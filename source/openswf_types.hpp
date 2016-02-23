@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "openswf_debug.hpp"
+
 namespace openswf
 {
     enum class language : uint8_t
@@ -12,6 +14,76 @@ namespace openswf
         SIMPLIFIED_CHINESE = 3,
         TRADITIONAL_CHINESE = 4
     };
+
+    enum class tag : uint32_t
+    {
+        END             = 0,
+        SHOW_FRAME,
+        DEFINE_SHAPE,
+        PLACE_OBJECT    = 4,
+        REMOVE_OBJECT,
+        DEFINE_BITS,
+        DEFINE_BUTTON,
+        JPEG_TABLES,
+        SET_BACKGROUND_COLOR,
+        DEFINE_FONT,
+        DEFINE_TEXT,
+        DO_ACTION,
+        DEFINE_FONT_INFO,
+        DEFINE_SOUND,
+        START_SOUND,
+        DEFINE_BUTTON_SOUND,
+        SOUND_STREAM_HEAD,
+        SOUND_STREAM_BLOCK,
+        DEFINE_BITS_LOSSLESS,
+        DEFINE_BITS_JPEG2,
+        DEFINE_SHAPE2,
+        DEFINE_BUTTON_CXFORM,
+        PROTECT,
+        PLACE_OBJECT2   = 26,
+        REMOVE_OBJECT2  = 28,
+        DEFINE_SHAPE3   = 32,
+        DEFINE_TEXT2,
+        DEFINE_BUTTON2,
+        DEFINE_BITS_JPEG3,
+        DEFINE_BITS_LOSSLESS2,
+        DEFINE_EDIT_TEXT,
+        DEFINE_SPRITE   = 39,
+        FRAME_LABEL     = 43,
+        SOUND_STREAM_HEAD2 = 45,
+        DEFINE_MORPH_SHAPE,
+        DEFINE_FONT2 = 48,
+        EXPORT_ASSETS = 56,
+        IMPORT_ASSETS,
+        ENABLE_DEBUGGER,
+        DO_INIT_ACTION,
+        DEFINE_VIDEO_STREAM,
+        VIDEO_FRAME,
+        DEFINE_FONT_INFO2,
+        ENABLE_DEBUGGER2 = 64,
+        SCRIPT_LIMITS,
+        SET_TAB_INDEX,
+        FILE_ATTRIBUTES = 69,
+        PLACE_OBJECT3,
+        IMPORT_ASSETS2,
+        DEFINE_FONT_ALIGN_ZONES = 73,
+        DEFINE_CSM_TEXT_SETTINGS,
+        DEFINE_FONT3,
+        SYMBOL_CLASS,
+        METADATA,
+        DEFINE_SCALING_GRID,
+        DO_ABC = 82,
+        DEFINE_SHAPE4,
+        DEFINE_MORPH_SHAPE2,
+        DEFINE_SCENE_AND_FRAME_LABEL_DATA = 86,
+        DEFINE_BINARY_DATA,
+        DEFINE_FONT_NAME = 88,
+        DEFINE_START_SOUND2 = 89,
+        DEFINE_BITS_JPEG4 = 90,
+        DEFINE_FONT4 = 91
+    };
+
+    const char* get_tag_str(tag code);
 
     // a rectangle value represents a rectangular region defined by a minimum 
     // x- and y-coordinate position and a maximum x- and y-coordinate position.
@@ -24,6 +96,9 @@ namespace openswf
         int32_t m_y_max;    // y maximum in twips
 
     public:
+        rect()
+        : m_x_min(0), m_x_max(0), m_y_min(0), m_y_max(0) {}
+        
         rect(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax) 
         : m_x_min(xmin), m_x_max(xmax), m_y_min(ymin), m_y_max(ymax) {}
 

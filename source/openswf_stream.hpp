@@ -21,7 +21,7 @@ namespace openswf
 
     public:
         stream(const uint8_t* raw, int size) 
-        : m_data(raw), m_offset(0), m_size(0), m_current_byte(0), m_unused_bits(0) {}
+        : m_data(raw), m_offset(0), m_size(size), m_current_byte(0), m_unused_bits(0) {}
 
         ~stream() {}
 
@@ -102,8 +102,11 @@ namespace openswf
         language read_language();
 
         //
-        void align();
-        uint32_t current_bit_position() const;
+        void        align();
+        uint32_t    get_bit_position() const;
+        uint32_t    get_position() const;
+        void        set_position(uint32_t pos);
+        bool        is_finished() const;
     };
 
     inline uint8_t stream::read_uint8() 
@@ -217,8 +220,24 @@ namespace openswf
         m_unused_bits = m_current_byte = 0; 
     }
 
-    inline uint32_t stream::current_bit_position() const
+    inline uint32_t stream::get_bit_position() const
     {
         return m_offset*8 - m_unused_bits;
+    }
+
+    inline uint32_t stream::get_position() const
+    {
+        return m_offset;
+    }
+
+    inline void stream::set_position(uint32_t pos)
+    {
+        m_offset = pos;
+        m_unused_bits = 0;
+    }
+
+    inline bool stream::is_finished() const
+    {
+        return m_offset >= m_size && m_unused_bits <= 0;
     }
 }
