@@ -4,6 +4,14 @@
 
 namespace openswf
 {
+    enum class language : uint8_t
+    {
+        // the western languages covered by Latin-1: English, French, German, and so on
+        LATIN       = 1,
+        JAPANESE    = 2,
+        SIMPLIFIED_CHINESE = 3,
+        TRADITIONAL_CHINESE = 4
+    };
 
     // a rectangle value represents a rectangular region defined by a minimum 
     // x- and y-coordinate position and a maximum x- and y-coordinate position.
@@ -23,31 +31,18 @@ namespace openswf
         int32_t get_height() const { return m_y_max - m_y_min; }
     };
 
-    // the RGB record represents a color as a 24-bit red, green, and blue value.
-    class rgb
-    {
-    protected:
-        uint8_t m_red;      // red color value from 0 to 255
-        uint8_t m_green;    // green color value from 0 to 255
-        uint8_t m_blue;     // blue color value from 0 to 255
-
-    public:
-        rgb(uint8_t red, uint8_t green, uint8_t blue)
-        : m_red(red), m_green(green), m_blue(blue) {}        
-    };
-
     // the RGBA record represents a color as 32-bit red, green, blue and alpha value.
-    class argb
+    class color
     {
     protected:
-        uint8_t m_alpha;    // alpha value defining opacity from 0 to 255
         uint8_t m_red;      // red color value from 0 to 255
         uint8_t m_green;    // green color value from 0 to 255
         uint8_t m_blue;     // blue color value from 0 to 255
+        uint8_t m_alpha;    // alpha value defining opacity from 0 to 255
 
     public:
-        argb(uint8_t alpha, uint8_t red, uint8_t green, uint8_t blue)
-        : m_alpha(alpha), m_red(red), m_green(green), m_blue(blue) {}
+        color(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha = 255)
+        : m_red(red), m_green(green), m_blue(blue), m_alpha(alpha) {}
     };
 
     // the MATRIX record represents a standard 2x3 transformation matrix of 

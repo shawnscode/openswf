@@ -1,6 +1,5 @@
 workspace("openswf")
     configurations({ "debug", "release" })
-    platforms({ "osx" })
     location("build")
     buildoptions({"-std=c++11", "-stdlib=libc++"})
 
@@ -16,5 +15,5 @@ workspace("openswf")
         kind("ConsoleApp")
         language("C++")
         location("build/unit-test")
-        files({"test/*.cpp", "source/*.cpp"})
+        files({"test/**.cpp", "source/**.cpp"})
         includedirs({ "3rd/catch/include", "source" })
