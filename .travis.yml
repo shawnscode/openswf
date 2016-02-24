@@ -1,14 +1,16 @@
 language: cpp
+os: osx
 compiler: g++
 
 before_install:
     - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
     - sudo apt-get update -qq
     
-    - apt-key adv --keyserver keys.gnupg.net --recv-keys FFBA9E40
-    - echo 'deb http://repo.nofla.me/ jessie main' >> /etc/apt/sources.list
-    - apt-get update
-    - apt-get install premake5
+    - brew install wget tar
+    - wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha7/premake-5.0.0-alpha7-macosx.tar.gz
+    - tar -xf premake-5.0.0-alpha7-macosx.tar.gz
+    - premake5 gmake
+
 
 install:
     - sudo apt-get install -qq g++-4.8
