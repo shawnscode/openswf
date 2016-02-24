@@ -3,7 +3,7 @@ os: osx
 compiler: g++
 
 before_install:
-    - brew install wget tar
+    - brew install wget
     - wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha7/premake-5.0.0-alpha7-macosx.tar.gz
     - tar -xf premake-5.0.0-alpha7-macosx.tar.gz
 
