@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <algorithm>
 
+#include "openswf_records.hpp"
 #include "openswf_stream.hpp"
 
 namespace openswf
@@ -46,7 +47,8 @@ namespace openswf
 
         // following the header is a series of tagged data blocks, all tags share 
         // a common format.
-        //
+        
+        // ## TAG Categories
         // there two categories of tags in a SWF file are as follows:
         // 1. definition tags define the content of the SWF file—the shapes, text, 
         // bitmaps, sounds, and so on. each definition tag assigns a unique ID 
@@ -54,34 +56,34 @@ namespace openswf
         // 2. control tags create and manipulate rendered instances of characters in
         // the dictionary, and control the flow of the file.
         //
-        //
+        // ## TAG Ordering
+        // Generally speaking, tags in a SWF can occur in any order. However, you must observe the following rules:
+        // 1. The FileAttributes tag must be the first tag in the SWF file for SWF 8 and later.
+        // 2. A tag should only depend on tags that come before it. A tag should never depend on a tag
+        // that comes later in the file.
+        // 3. A definition tag that defines a character must occur before any control tag that refers to that character.
+        // 4. Streaming sound tags must be in order. Out-of-order streaming sound tags result in the sound being played out of order.
+        // 5. The End tag is always the last tag in the SWF file.
         int  read_tags(stream& stream)
         {
             while( !stream.is_finished() )
             {
-                uint32_t header = stream.read_uint16();
-                uint32_t code   = header >> 6;
-                uint32_t length = header & 0x3f;
-
-                // if the tag is 63 bytes or longer, it is stored in a long tag header.
-                if( length == 0x3f )
-                    length = stream.read_int32();
+                auto header = record_header::read(stream);
 
                 // remember where the end of the tag is, so we can
                 // fast-forward past it when we're done reading it.
-                uint32_t end_pos = stream.get_position() + length;
+                uint32_t end_pos = stream.get_position() + header.length;
 
-                switch((tag)code)
+                switch(header.code)
                 {
                     // case tag::END : parse_end(stream); break;
                     // case tag::SHOW_FRAME: parse_show_frame(stream); break;
                     // case tag::DEFINE_SHAPE: parse_define_shape(stream); break;
                     // case tag::PLACE_OBJECT: parse_place_object(stream); break;
                     default:
-                        printf("[%02d]\t %s\n", (int)code, get_tag_str((tag)code));
+                        printf("[%02d]\t %s\n", (int)header.code, get_tag_str(header.code));
                         break;
                 }
-
 
                 stream.set_position(end_pos);
             }

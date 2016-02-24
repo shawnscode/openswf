@@ -17,10 +17,10 @@ namespace openswf
 
     enum class tag : uint32_t
     {
-        END             = 0,
+        END                         = 0,
         SHOW_FRAME,
         DEFINE_SHAPE,
-        PLACE_OBJECT    = 4,
+        PLACE_OBJECT                = 4,
         REMOVE_OBJECT,
         DEFINE_BITS,
         DEFINE_BUTTON,
@@ -40,7 +40,7 @@ namespace openswf
         DEFINE_SHAPE2,
         DEFINE_BUTTON_CXFORM,
         PROTECT,
-        PLACE_OBJECT2   = 26,
+        PLACE_OBJECT2               = 26,
         REMOVE_OBJECT2  = 28,
         DEFINE_SHAPE3   = 32,
         DEFINE_TEXT2,
@@ -166,10 +166,10 @@ namespace openswf
     // 2. addition transforms
     // addition and multiplication transforms can be combined as follows. 
     // the multiplication operation is performed first:
-    // R' = max(0, min(((R * red_mult_term)    / 256) + red_add_term,    255))
-    // G' = max(0, min(((G * green_mult_term)  / 256) + green_add_term,  255))
-    // B' = max(0, min(((B * blue_mult_term)   / 256) + blue_add_term,   255))
-    // A' = max(0, min(((A * alpha_mult_term)  / 256) + alpha_add_term,  255))
+    // R' = max(0, min(R * red_mult_term) + red_add_term,    255))
+    // G' = max(0, min(G * green_mult_term + green_add_term,  255))
+    // B' = max(0, min(B * blue_mult_term + blue_add_term,   255))
+    // A' = max(0, min(A * alpha_mult_term + alpha_add_term,  255))
     class cxform
     {
     protected:

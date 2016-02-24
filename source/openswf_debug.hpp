@@ -2,4 +2,6 @@
 
 #include <cassert>
 
-#define ERROR(a, b)
+#define LERROR(a, b)
+#define LWARNING(a, b)
+#define LINFO(a, b)
