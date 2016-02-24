@@ -19,7 +19,7 @@ namespace openswf
 
     // in SWF 3 and later versions, the display list is a hierarchical list 
     // where an element on the display can have a list of child elements.
-    class display_list
+    class DisplayList
     {
 
     };

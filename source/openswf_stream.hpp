@@ -8,7 +8,7 @@
 
 namespace openswf
 {
-    class stream
+    class Stream
     {
     protected:
         const uint8_t*  m_data;
@@ -20,10 +20,10 @@ namespace openswf
         std::string     m_string_buffer;
 
     public:
-        stream(const uint8_t* raw, int size) 
+        Stream(const uint8_t* raw, int size) 
         : m_data(raw), m_offset(0), m_size(size), m_current_byte(0), m_unused_bits(0) {}
 
-        ~stream() {}
+        ~Stream() {}
 
         // all integer values are stored in the SWF file by using little-endian byte order,
         // the bit order within bytes in the SWF file format is big-endian.
@@ -81,25 +81,25 @@ namespace openswf
         // the MATRIX record represents a standard 2x3 transformation matrix of the sort 
         // commonly used in 2D graphics. it is used to describe the scale, rotation, and 
         // translation of a graphic object. the MATRIX record must be byte aligned.
-        matrix read_matrix();
+        Matrix read_matrix();
 
         // the CXFORM record defines a simple transform that can be applied to the 
         // color space of a graphic object. the CXFORM must be byte aligned.
-        cxform read_cxform_rgb();
-        cxform read_cxform_rgba();
+        ColorTransform read_cxform_rgb();
+        ColorTransform read_cxform_rgba();
 
         // a rectangle value represents a rectangular region defined by a minimum 
         // x- and y-coordinate position and a maximum x- and y-coordinate position.
-        rect read_rect();
+        Rect read_rect();
 
         // struct color
-        color read_rgb();
-        color read_argb();
-        color read_rgba();
+        Color read_rgb();
+        Color read_argb();
+        Color read_rgba();
 
         // a language code identifies a spoken language that applies to text. 
         // language codes are associated with font specifications in the SWF file format.
-        language read_language();
+        LanguageCode read_language_code();
 
         //
         void        align();
@@ -109,43 +109,43 @@ namespace openswf
         bool        is_finished() const;
     };
 
-    inline uint8_t stream::read_uint8() 
+    inline uint8_t Stream::read_uint8() 
     { 
         align(); 
         return m_data[m_offset++]; 
     }
 
-    inline int8_t stream::read_int8() 
+    inline int8_t Stream::read_int8() 
     { 
         return (int8_t)read_uint8(); 
     }
 
-    inline int16_t stream::read_int16() 
+    inline int16_t Stream::read_int16() 
     { 
         return (int16_t)read_uint16(); 
     }
 
-    inline int32_t stream::read_int32() 
+    inline int32_t Stream::read_int32() 
     { 
         return (int32_t)read_uint32(); 
     }
 
-    inline int64_t stream::read_int64() 
+    inline int64_t Stream::read_int64() 
     { 
         return (int64_t)read_uint64(); 
     }
 
-    inline float stream::read_fixed16() 
+    inline float Stream::read_fixed16() 
     { 
         return (float)read_int16() / 256.0; 
     }
 
-    inline float stream::read_fixed32() 
+    inline float Stream::read_fixed32() 
     { 
         return (double)read_int32() / 65536.0; 
     }
 
-    inline float stream::read_float32() 
+    inline float Stream::read_float32() 
     {
         float       value = 0;
         uint32_t&   ref = *((uint32_t*)&value);
@@ -153,7 +153,7 @@ namespace openswf
         return value;
     }
 
-    inline float stream::read_float64()
+    inline float Stream::read_float64()
     {
         double      value = 0;
         uint64_t&   ref = *((uint64_t*)&value);
@@ -161,82 +161,82 @@ namespace openswf
         return value;
     }
 
-    inline int32_t stream::read_bits_as_int32(const int bitcount)
+    inline int32_t Stream::read_bits_as_int32(const int bitcount)
     {
         int32_t value = (int32_t)read_bits_as_uint32(bitcount);
         if( value & (1<<(bitcount-1)) ) value |= (-1 << bitcount);
         return value;
     }
 
-    inline float stream::read_bits_as_fixed16(const int bitcount)
+    inline float Stream::read_bits_as_fixed16(const int bitcount)
     {
         if( bitcount <= 8 ) return (double)read_bits_as_uint32(bitcount)/256.0;
         return (double)read_bits_as_int32(bitcount)/256.0;
     }
 
-    inline float stream::read_bits_as_fixed32(const int bitcount)
+    inline float Stream::read_bits_as_fixed32(const int bitcount)
     {
         if( bitcount <= 16 ) return (double)read_bits_as_uint32(bitcount)/65536.0;
         return (double)read_bits_as_int32(bitcount)/65536.0;
     }
 
-    inline std::string stream::read_string()
+    inline std::string Stream::read_string()
     {
         m_string_buffer.clear();
         while(char c = (char)read_uint8()) m_string_buffer.push_back(c);
         return m_string_buffer;
     }
 
-    inline color stream::read_rgb()
+    inline Color Stream::read_rgb()
     {
-        return color(read_uint8(), read_uint8(), read_uint8());
+        return Color(read_uint8(), read_uint8(), read_uint8());
     }
 
-    inline color stream::read_argb()
+    inline Color Stream::read_argb()
     {
         uint8_t a = read_uint8();
         uint8_t r = read_uint8();
         uint8_t g = read_uint8();
         uint8_t b = read_uint8();
-        return color(r, g, b, a);
+        return Color(r, g, b, a);
     }
 
-    inline color stream::read_rgba()
+    inline Color Stream::read_rgba()
     {
         uint8_t r = read_uint8();
         uint8_t g = read_uint8();
         uint8_t b = read_uint8();
         uint8_t a = read_uint8();
-        return color(r, g, b, a);
+        return Color(r, g, b, a);
     }
 
-    inline language stream::read_language()
+    inline LanguageCode Stream::read_language_code()
     {
-        return static_cast<language>(read_uint8());
+        return (LanguageCode)read_uint8();
     }
 
-    inline void stream::align() 
+    inline void Stream::align() 
     { 
         m_unused_bits = m_current_byte = 0; 
     }
 
-    inline uint32_t stream::get_bit_position() const
+    inline uint32_t Stream::get_bit_position() const
     {
         return m_offset*8 - m_unused_bits;
     }
 
-    inline uint32_t stream::get_position() const
+    inline uint32_t Stream::get_position() const
     {
         return m_offset;
     }
 
-    inline void stream::set_position(uint32_t pos)
+    inline void Stream::set_position(uint32_t pos)
     {
         m_offset = pos;
         m_unused_bits = 0;
     }
 
-    inline bool stream::is_finished() const
+    inline bool Stream::is_finished() const
     {
         return m_offset >= m_size && m_unused_bits <= 0;
     }

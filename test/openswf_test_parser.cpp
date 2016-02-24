@@ -8,7 +8,7 @@
 
 using namespace openswf;
 
-static std::auto_ptr<stream> create_from_file(const char* path) 
+static std::auto_ptr<Stream> create_from_file(const char* path) 
 {
     std::ifstream handle;
     handle.open(path, std::ifstream::in | std::ifstream::binary);
@@ -17,7 +17,7 @@ static std::auto_ptr<stream> create_from_file(const char* path)
     {
         printf("failed to open %s\n", path);
         exit(0);
-        return std::auto_ptr<stream>();
+        return std::auto_ptr<Stream>();
     }
 
     handle.seekg(0, std::ios::end);
@@ -29,12 +29,12 @@ static std::auto_ptr<stream> create_from_file(const char* path)
     handle.close();
 
     // fix: leaks
-    return std::auto_ptr<stream>(new stream((uint8_t*)binary, size));
+    return std::auto_ptr<Stream>(new Stream((uint8_t*)binary, size));
 }
 
 TEST_CASE( "PARSE_TAGS", "[OPENSWF]" )
 {
-    auto instance = swf();
+    auto instance = Parser();
     auto stream = create_from_file("../test/resources/openswf_test_parser.swf");
     instance.initialize( *stream );
 }

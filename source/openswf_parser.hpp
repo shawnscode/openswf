@@ -8,15 +8,15 @@
 
 namespace openswf
 {
-    class swf
+    class Parser
     {
     protected:
-        rect        m_frame_size;   // frame size in twips
+        Rect        m_frame_size;   // frame size in twips
         float       m_frame_rate;   // frame delay in 8.8 fixed number of frames per second
         uint16_t    m_frame_count;  // total number of frames in file
 
     public:
-        bool initialize(stream& stream)
+        bool initialize(Stream& stream)
         {
             read_header(stream);
             read_tags(stream);
@@ -24,7 +24,7 @@ namespace openswf
         }
 
     protected:
-        int  read_header(stream& stream)
+        int  read_header(Stream& stream)
         {
             uint8_t compressed  = stream.read_uint8();
             uint8_t const_w     = stream.read_uint8();
@@ -64,11 +64,11 @@ namespace openswf
         // 3. A definition tag that defines a character must occur before any control tag that refers to that character.
         // 4. Streaming sound tags must be in order. Out-of-order streaming sound tags result in the sound being played out of order.
         // 5. The End tag is always the last tag in the SWF file.
-        int  read_tags(stream& stream)
+        int  read_tags(Stream& stream)
         {
             while( !stream.is_finished() )
             {
-                auto header = record_header::read(stream);
+                auto header = RecordHeader::read(stream);
 
                 // remember where the end of the tag is, so we can
                 // fast-forward past it when we're done reading it.

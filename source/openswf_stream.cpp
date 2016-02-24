@@ -2,7 +2,7 @@
 
 using namespace openswf;
 
-uint16_t stream::read_uint16()
+uint16_t Stream::read_uint16()
 {
     align();
     uint16_t value = 0;
@@ -11,7 +11,7 @@ uint16_t stream::read_uint16()
     return value;
 }
 
-uint32_t stream::read_uint32()
+uint32_t Stream::read_uint32()
 {
     align();
     uint32_t value = 0;
@@ -22,7 +22,7 @@ uint32_t stream::read_uint32()
     return value;
 }
 
-uint64_t stream::read_uint64()
+uint64_t Stream::read_uint64()
 {
     align();
     uint64_t value = 0;
@@ -37,7 +37,7 @@ uint64_t stream::read_uint64()
     return value;
 }
 
-float stream::read_float16()
+float Stream::read_float16()
 {
     float       value = 0;
 
@@ -53,7 +53,7 @@ float stream::read_float16()
     return value;
 }
 
-uint32_t stream::read_encoded_uint32()
+uint32_t Stream::read_encoded_uint32()
 {
     uint32_t value = read_uint8();
     if( (value & 0x00000080) == 0 ) return value;
@@ -71,7 +71,7 @@ uint32_t stream::read_encoded_uint32()
     return value;
 }
 
-uint32_t stream::read_bits_as_uint32(const int bitcount)
+uint32_t Stream::read_bits_as_uint32(const int bitcount)
 {
     assert(bitcount<=32 && bitcount>=0);
 
@@ -111,9 +111,9 @@ uint32_t stream::read_bits_as_uint32(const int bitcount)
     return value;
 }
 
-matrix stream::read_matrix()
+Matrix Stream::read_matrix()
 {
-    auto out = matrix();
+    auto out = Matrix();
     align();
 
     // scale
@@ -142,9 +142,9 @@ matrix stream::read_matrix()
     return out;
 }
 
-cxform stream::read_cxform_rgb()
+ColorTransform Stream::read_cxform_rgb()
 {
-    auto out = cxform();
+    auto out = ColorTransform();
     align();
 
     auto has_add = read_bits_as_uint32(1);
@@ -168,9 +168,9 @@ cxform stream::read_cxform_rgb()
     return out;
 }
 
-cxform stream::read_cxform_rgba()
+ColorTransform Stream::read_cxform_rgba()
 {
-    auto out = cxform();
+    auto out = ColorTransform();
     align();
 
     auto has_add = read_bits_as_uint32(1);
@@ -196,11 +196,11 @@ cxform stream::read_cxform_rgba()
     return out;
 }
 
-rect stream::read_rect()
+Rect Stream::read_rect()
 {
     align();
     auto bitcount = read_bits_as_uint32(5); 
-    return rect(
+    return Rect(
         read_bits_as_int32(bitcount),   // x_min
         read_bits_as_int32(bitcount),   // x_max
         read_bits_as_int32(bitcount),   // y_min

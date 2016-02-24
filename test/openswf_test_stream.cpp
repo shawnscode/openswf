@@ -15,7 +15,7 @@ TEST_CASE( "STREAM_READ_INTEGER", "[OPENSWF]" )
 
     SECTION("integer values are stored using little-endian")
     {
-        auto records = openswf::stream(buffer, sizeof(buffer));
+        auto records = openswf::Stream(buffer, sizeof(buffer));
         REQUIRE( records.read_int8()    == 94 );
         REQUIRE( records.read_uint8()   == 195 );
         REQUIRE( records.read_int16()   == 11211 );
@@ -29,7 +29,7 @@ TEST_CASE( "STREAM_READ_INTEGER", "[OPENSWF]" )
         for( int32_t i=sizeof(buffer)-2; i>=0; i-- )
             buffer[i+1] = buffer[i];
 
-        auto records = openswf::stream(buffer, sizeof(buffer));
+        auto records = openswf::Stream(buffer, sizeof(buffer));
         records.read_bits_as_uint32(1);
         REQUIRE( records.read_int8()    == 94 );
         REQUIRE( records.read_uint8()   == 195 );
@@ -51,7 +51,7 @@ TEST_CASE( "STREAM_READ_FIXED", "[OPENSWF]" )
 
     SECTION( "fixed-number are stored using little-endian" )
     {
-        auto records = openswf::stream(buffer, sizeof(buffer));
+        auto records = openswf::Stream(buffer, sizeof(buffer));
         REQUIRE( records.read_fixed16() == Approx( ((int16_t)0xa704)/256.0) );
         REQUIRE( records.read_fixed32() == Approx( ((int32_t)0xfefab2a3)/65536.0) );
     }
@@ -61,7 +61,7 @@ TEST_CASE( "STREAM_READ_FIXED", "[OPENSWF]" )
         for( int32_t i=sizeof(buffer)-2; i>=0; i-- )
             buffer[i+1] = buffer[i];
 
-        auto records = openswf::stream(buffer, sizeof(buffer));
+        auto records = openswf::Stream(buffer, sizeof(buffer));
         records.read_bits_as_uint32(6);
 
         REQUIRE( records.read_fixed16() == Approx( ((int16_t)0xa704)/256.0) );
@@ -80,7 +80,7 @@ TEST_CASE( "STREAM_READ_FLOAT", "[OPENSWF]" )
 
     SECTION( "floating-point types are stored using IEEE standard 754 in little-endian, and must be byte-aligned" )
     {
-        auto records = openswf::stream(buffer, sizeof(buffer));
+        auto records = openswf::Stream(buffer, sizeof(buffer));
         auto offset  = 1;
         records.read_bits_as_uint32(3);
         REQUIRE( records.read_float16() == Approx(-0.125f) );
@@ -101,7 +101,7 @@ TEST_CASE( "STREAM_READ_BITS", "[OPENSWF]" )
             0xff, 0x85, 0x92        // fixed16:18(1111 1111 1000 0101 10), signed integer:6(01 0010)
         };
 
-        auto records = openswf::stream(buffer, sizeof(buffer));
+        auto records = openswf::Stream(buffer, sizeof(buffer));
         REQUIRE( records.read_bits_as_uint32(3) == 1 );
         REQUIRE( records.read_bits_as_uint32(11) == 1209 );
         REQUIRE( records.read_bits_as_int32(8) == 124 );
@@ -122,7 +122,7 @@ TEST_CASE( "STREAM_READ_BITS", "[OPENSWF]" )
             //(1000 1000) (11|11 1111) (1110 0001) (0110 | 1010) (10|00 0000)
         };
 
-        auto records = openswf::stream(buffer, sizeof(buffer));
+        auto records = openswf::Stream(buffer, sizeof(buffer));
         REQUIRE( records.read_bits_as_uint32(3)     == 1 );
         REQUIRE( records.read_bits_as_uint32(11)    == 1209 );
         REQUIRE( records.read_bits_as_int32(8)      == 124  );
@@ -149,7 +149,7 @@ TEST_CASE( "STREAM_READ_ENCODED_UINT32", "[OPENSWF]" )
         0xff, 0xff, 0xff, 0x0e, 
     };
 
-    auto records = openswf::stream(buffer, sizeof(buffer));
+    auto records = openswf::Stream(buffer, sizeof(buffer));
     REQUIRE( records.read_encoded_uint32() == 0x7a ); 
     REQUIRE( records.read_encoded_uint32() == (((0x3e & 0x7f) << 7) | (0xaa & 0x7f)) );
     REQUIRE( records.read_encoded_uint32() == 0x2f );
@@ -163,7 +163,7 @@ TEST_CASE( "STREAM_READ_STRING", "[OPENSWF]" )
     SECTION( "read acsii string with null terminator" )
     {
         std::string str("hello world, where amazing happens!");
-        auto records = openswf::stream((uint8_t*)str.c_str(), str.size());
+        auto records = openswf::Stream((uint8_t*)str.c_str(), str.size());
         REQUIRE( records.read_string() == str );
     }
 
@@ -182,7 +182,7 @@ TEST_CASE( "STREAM_READ_STRING", "[OPENSWF]" )
         utf8.push_back(0x3f);
         utf8.push_back(0x21);
 
-        auto records = openswf::stream(buffer, sizeof(buffer));
+        auto records = openswf::Stream(buffer, sizeof(buffer));
         REQUIRE( records.read_encoded_uint32() == 126 );
         REQUIRE( records.read_string() == utf8 );
         REQUIRE( records.read_encoded_uint32() == 79 );

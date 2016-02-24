@@ -6,7 +6,7 @@
 
 namespace openswf
 {
-    enum class language : uint8_t
+    enum class LanguageCode : uint8_t
     {
         // the western languages covered by Latin-1: English, French, German, and so on
         LATIN       = 1,
@@ -15,7 +15,7 @@ namespace openswf
         TRADITIONAL_CHINESE = 4
     };
 
-    enum class tag : uint32_t
+    enum class TagCode : uint32_t
     {
         END                         = 0,
         SHOW_FRAME,
@@ -83,11 +83,11 @@ namespace openswf
         DEFINE_FONT4 = 91
     };
 
-    const char* get_tag_str(tag code);
+    const char* get_tag_str(TagCode code);
 
     // a rectangle value represents a rectangular region defined by a minimum 
     // x- and y-coordinate position and a maximum x- and y-coordinate position.
-    class rect 
+    class Rect 
     {
     protected:
         int32_t m_x_min;    // x minimum in twips
@@ -96,10 +96,10 @@ namespace openswf
         int32_t m_y_max;    // y maximum in twips
 
     public:
-        rect()
+        Rect()
         : m_x_min(0), m_x_max(0), m_y_min(0), m_y_max(0) {}
         
-        rect(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax) 
+        Rect(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax) 
         : m_x_min(xmin), m_x_max(xmax), m_y_min(ymin), m_y_max(ymax) {}
 
         int32_t get_width() const { return m_x_max - m_x_min; }
@@ -107,7 +107,7 @@ namespace openswf
     };
 
     // the RGBA record represents a color as 32-bit red, green, blue and alpha value.
-    class color
+    class Color
     {
     protected:
         uint8_t m_red;      // red color value from 0 to 255
@@ -116,7 +116,7 @@ namespace openswf
         uint8_t m_alpha;    // alpha value defining opacity from 0 to 255
 
     public:
-        color(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha = 255)
+        Color(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha = 255)
         : m_red(red), m_green(green), m_blue(blue), m_alpha(alpha) {}
     };
 
@@ -130,15 +130,15 @@ namespace openswf
     // are calculated as follows: 
     //      x' = x * scale_x + y * rotate_skew_1 + translate_x
     //      y' = x * ratate_skew_0 + y * scale_x + translate_y
-    class matrix
+    class Matrix
     {
     protected:
         float m_values[2][3];
 
     public:
-        const static matrix identity;
+        const static Matrix identity;
 
-        matrix() { set_identity(); }
+        Matrix() { set_identity(); }
 
         void set_identity()
         {
@@ -170,15 +170,15 @@ namespace openswf
     // G' = max(0, min(G * green_mult_term + green_add_term,  255))
     // B' = max(0, min(B * blue_mult_term + blue_add_term,   255))
     // A' = max(0, min(A * alpha_mult_term + alpha_add_term,  255))
-    class cxform
+    class ColorTransform
     {
     protected:
         float m_values[4][2]; // [RGBA][mult, add]
 
     public:
-        const static cxform identity;
+        const static ColorTransform identity;
 
-        cxform() { set_identity(); }
+        ColorTransform() { set_identity(); }
 
         void set_identity()
         {
