@@ -64,7 +64,7 @@ namespace openswf
         SCRIPT_LIMITS,
         SET_TAB_INDEX,
         FILE_ATTRIBUTES = 69,
-        PLACE_OBJECT3,
+        PLACE_OBJECT3               = 70,
         IMPORT_ASSETS2,
         DEFINE_FONT_ALIGN_ZONES = 73,
         DEFINE_CSM_TEXT_SETTINGS,
@@ -84,6 +84,72 @@ namespace openswf
     };
 
     const char* get_tag_str(TagCode code);
+
+    // the CLIPEVENTFLAGS sequence specifies one or more sprite events to which 
+    // an event handler applies. in swf 6 and later, it is 4 bytes.
+    enum ClipEventMask {
+        CLIP_EVENT_KEY_UP                   = 0x1,
+        CLIP_EVENT_KEY_DOWN                 = 0x2,
+
+        CLIP_EVENT_MOUSE_UP                 = 0x4,
+        CLIP_EVENT_MOUSE_DOWN               = 0x8,
+        CLIP_EVENT_MOUSE_MOVE               = 0x10,
+
+        CLIP_EVENT_UNLOAD                   = 0x20,
+        CLIP_EVENT_ENTER_FRAME              = 0x40,
+        CLIP_EVENT_LOAD                     = 0x80,
+
+        CLIP_EVENT_MOUSE_DRAG_OVER          = 0x100,
+        CLIP_EVENT_MOUSE_ROLL_OUT           = 0x200,
+        CLIP_EVENT_MOUSE_ROLL_OVER          = 0x400,
+        CLIP_EVENT_MOUSE_RELEASE_OUTSIDE    = 0x800,
+        CLIP_EVENT_MOUSE_RELEASE_INSIDE     = 0x1000,
+        CLIP_EVENT_MOUSE_PRESS              = 0x2000,
+
+        CLIP_EVENT_INITIALIZE               = 0x4000,
+        CLIP_EVENT_DATA_RECEIVED            = 0x8000,
+
+        CLIP_EVENT_RESERVED_1               = 0x10000,
+        CLIP_EVENT_RESERVED_2               = 0x20000,
+        CLIP_EVENT_RESERVED_3               = 0x40000,
+        CLIP_EVENT_RESERVED_4               = 0x80000,
+        CLIP_EVENT_RESERVED_5               = 0x100000,
+
+        CLIP_EVENT_CONSTRUCT                = 0x200000,
+        CLIP_EVENT_KEY_PRESS                = 0x400000,
+        CLIP_EVENT_MOUSE_DRAG_OUT           = 0x800000,
+
+        CLIP_EVENT_RESERVED_6               = 0x1000000,
+        CLIP_EVENT_RESERVED_7               = 0x2000000,
+        CLIP_EVENT_RESERVED_8               = 0x4000000,
+        CLIP_EVENT_RESERVED_9               = 0x8000000,
+        CLIP_EVENT_RESERVED_10              = 0x10000000,
+        CLIP_EVENT_RESERVED_11              = 0x20000000,
+        CLIP_EVENT_RESERVED_12              = 0x40000000,
+        CLIP_EVENT_RESERVED_13              = 0x80000000,
+    };
+
+    enum PlaceMask
+    {
+        PLACE_HAS_CLIP_ACTIONS      = 0x1,
+        PLACE_HAS_CLIP_DEPTH        = 0x2,
+        PLACE_HAS_NAME              = 0x4,
+        PLACE_HAS_RATIO             = 0x8,
+        PLACE_HAS_COLOR_TRANSFORM   = 0x10,
+        PLACE_HAS_MATRIX            = 0x20,
+        PLACE_HAS_CHARACTOR         = 0x40,
+        PLACE_MOVE                  = 0x80, // PLACE_OBJECT_2
+
+        PLACE_RESERVED_1            = 0x100,
+        PLACE_RESERVED_2            = 0x200,
+        PLACE_RESERVED_3            = 0x400,
+
+        PLACE_HAS_IMAGE             = 0x800, // PLACE_OBJECT_3
+        PLACE_HAS_CLASS_NAME        = 0x1000,
+        PLACE_HAS_CACHE_AS_BITMAP   = 0x2000,
+        PLACE_HAS_BELND_MODE        = 0x4000,
+        PLACE_HAS_FILTER_LIST       = 0x8000
+    };
 
     // a rectangle value represents a rectangular region defined by a minimum 
     // x- and y-coordinate position and a maximum x- and y-coordinate position.

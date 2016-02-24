@@ -73,3 +73,4 @@ const char* openswf::get_tag_str(TagCode code)
         return "undefined";
     }
 }
+
