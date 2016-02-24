@@ -3,18 +3,9 @@ os: osx
 compiler: g++
 
 before_install:
-    - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-    - sudo apt-get update -qq
-    
     - brew install wget tar
     - wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha7/premake-5.0.0-alpha7-macosx.tar.gz
     - tar -xf premake-5.0.0-alpha7-macosx.tar.gz
-    - premake5 gmake
-
-
-install:
-    - sudo apt-get install -qq g++-4.8
-    - export CXX="g++-4.8"
 
 script:
     - premake5 gmake
