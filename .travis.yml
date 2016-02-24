@@ -1,6 +1,6 @@
 language: cpp
 os: osx
-compiler: g++
+compiler: clang
 
 before_install:
     - brew install wget
@@ -8,7 +8,7 @@ before_install:
     - tar -xf premake-5.0.0-alpha7-macosx.tar.gz
 
 script:
-    - premake5 gmake
+    - ./premake5 gmake
     - cd build
     - make config=debug unit-test
     - ./unit-test/bin/debug/unit-test
