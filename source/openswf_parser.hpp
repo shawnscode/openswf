@@ -67,29 +67,34 @@ namespace openswf
         // 4. Streaming sound tags must be in order. Out-of-order streaming sound tags 
         // result in the sound being played out of order.
         // 5. The End tag is always the last tag in the SWF file.
-        int  read_tags(Stream& stream)
+
+        TagCode read_tag(Stream& stream)
+        {
+            auto header = RecordHeader::read(stream);
+
+            // remember where the end of the tag is, so we can
+            // fast-forward past it when we're done reading it.
+            uint32_t end_pos = stream.get_position() + header.size;
+
+            switch(header.code)
+            {
+                // case tag::END : parse_end(stream); break;
+                // case tag::SHOW_FRAME: parse_show_frame(stream); break;
+                // case tag::DEFINE_SHAPE: parse_define_shape(stream); break;
+                // case tag::PLACE_OBJECT: parse_place_object(stream); break;
+                default:
+                    // printf("[%02d]\t %s\n", (int)header.code, get_tag_str(header.code));
+                    break;
+            }
+
+            stream.set_position(end_pos);
+            return header.code;
+        }
+        
+        int read_tags(Stream& stream)
         {
             while( !stream.is_finished() )
-            {
-                auto header = RecordHeader::read(stream);
-
-                // remember where the end of the tag is, so we can
-                // fast-forward past it when we're done reading it.
-                uint32_t end_pos = stream.get_position() + header.size;
-
-                switch(header.code)
-                {
-                    // case tag::END : parse_end(stream); break;
-                    // case tag::SHOW_FRAME: parse_show_frame(stream); break;
-                    // case tag::DEFINE_SHAPE: parse_define_shape(stream); break;
-                    // case tag::PLACE_OBJECT: parse_place_object(stream); break;
-                    default:
-                        printf("[%02d]\t %s\n", (int)header.code, get_tag_str(header.code));
-                        break;
-                }
-
-                stream.set_position(end_pos);
-            }
+                read_tag(stream);
 
             return 0;
         }

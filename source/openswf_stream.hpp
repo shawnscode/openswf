@@ -20,6 +20,9 @@ namespace openswf
         std::string     m_string_buffer;
 
     public:
+        Stream()
+        : m_data(nullptr), m_offset(0), m_size(0), m_current_byte(0), m_unused_bits(0) {}
+
         Stream(const uint8_t* raw, int size) 
         : m_data(raw), m_offset(0), m_size(size), m_current_byte(0), m_unused_bits(0) {}
 
@@ -103,10 +106,13 @@ namespace openswf
 
         //
         void        align();
+        void        set_position(uint32_t pos);
+
         uint32_t    get_bit_position() const;
         uint32_t    get_position() const;
-        void        set_position(uint32_t pos);
+        uint32_t    get_size() const;
         bool        is_finished() const;
+
     };
 
     inline uint8_t Stream::read_uint8() 
@@ -228,6 +234,11 @@ namespace openswf
     inline uint32_t Stream::get_position() const
     {
         return m_offset;
+    }
+
+    inline uint32_t Stream::get_size() const
+    {
+        return m_size;
     }
 
     inline void Stream::set_position(uint32_t pos)
