@@ -1,6 +1,7 @@
 #pragma once
 
 #include "catch.hpp"
+#include "openswf_types.hpp"
 #include "openswf_stream.hpp"
 #include "openswf_parser.hpp"
 

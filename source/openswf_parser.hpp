@@ -78,6 +78,7 @@ namespace openswf
 
             switch(header.code)
             {
+                // case TagCode:END: return new RecordEnd(); break
                 // case tag::END : parse_end(stream); break;
                 // case tag::SHOW_FRAME: parse_show_frame(stream); break;
                 // case tag::DEFINE_SHAPE: parse_define_shape(stream); break;

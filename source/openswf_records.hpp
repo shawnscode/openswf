@@ -228,7 +228,13 @@ namespace openswf {
     // TAG = 1
     // the ShowFrame tag instructs us to display the contents of the display list. 
     // the file is paused for the duration of a single frame.
-    struct RecordShowFrame {};
+    struct RecordShowFrame 
+    {
+        static RecordShowFrame read(Stream& stream) 
+        {
+            return RecordShowFrame();
+        }
+    };
 
     // TAG = 9
     // the SetBackgroundColor tag sets the background color of the display.
@@ -244,7 +250,6 @@ namespace openswf {
         }
     };
 
-
     //// END
     //// ---------------------------------------------------
 
@@ -256,7 +261,13 @@ namespace openswf {
 
     // TAG = 0
     // the End tag indicates the end of file
-    struct RecordEnd {};
+    struct RecordEnd 
+    {
+        static RecordEnd read(Stream& stream)
+        {
+            return RecordEnd();
+        }
+    };
 
     // TAG = 69
     // the FileAttributes tag defines characteristics of the SWF file.
@@ -378,9 +389,16 @@ namespace openswf {
     // the DefineSceneAndFrameLabelData tag contains scene and frame label data for a MovieClip. 
     // scenes are supported for the main timeline only, for all other movie clips 
     // a single scene is exported.
-    // struct RecordDefineSceneAndFrameLabelData
-    // {
-    // };
+    struct RecordDefineSceneAndFrameLabelData
+    {
+        uint32_t                    scene_count;
+        std::vector<uint32_t>       offsets;
+        std::vector<std::string>    names;
+        
+        uint32_t                    frame_label_count;
+        std::vector<uint32_t>       frame_labels;
+        
+    };
 
     //// END
     //// ---------------------------------------------------

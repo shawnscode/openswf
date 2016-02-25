@@ -75,7 +75,7 @@ namespace openswf
         DO_ABC = 82,
         DEFINE_SHAPE4,
         DEFINE_MORPH_SHAPE2,
-        DEFINE_SCENE_AND_FRAME_LABEL_DATA = 86, // IGNORE
+        DEFINE_SCENE_AND_FRAME_LABEL_DATA = 86, //
         DEFINE_BINARY_DATA,
         DEFINE_FONT_NAME = 88,
         DEFINE_START_SOUND2 = 89,
@@ -208,19 +208,16 @@ namespace openswf
     };
 
     // the RGBA record represents a color as 32-bit red, green, blue and alpha value.
-    class Color
+    struct Color
     {
-    protected:
-        uint8_t m_red;      // red color value from 0 to 255
-        uint8_t m_green;    // green color value from 0 to 255
-        uint8_t m_blue;     // blue color value from 0 to 255
-        uint8_t m_alpha;    // alpha value defining opacity from 0 to 255
+        uint8_t r;      // red color value from 0 to 255
+        uint8_t g;    // green color value from 0 to 255
+        uint8_t b;     // blue color value from 0 to 255
+        uint8_t a;    // alpha value defining opacity from 0 to 255
 
-    public:
         Color() {}
-
-        Color(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha = 255)
-        : m_red(red), m_green(green), m_blue(blue), m_alpha(alpha) {}
+        Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
+        : r(r), g(g), b(b), a(a) {}
     };
 
     // the MATRIX record represents a standard 2x3 transformation matrix of 
