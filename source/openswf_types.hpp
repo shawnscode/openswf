@@ -17,15 +17,15 @@ namespace openswf
 
     enum class TagCode : uint32_t
     {
-        END                         = 0,
-        SHOW_FRAME,
+        END                         = 0, //
+        SHOW_FRAME                  = 1, //
         DEFINE_SHAPE,
-        PLACE_OBJECT                = 4,
-        REMOVE_OBJECT,
+        PLACE_OBJECT                = 4, //
+        REMOVE_OBJECT               = 5, // 
         DEFINE_BITS,
         DEFINE_BUTTON,
         JPEG_TABLES,
-        SET_BACKGROUND_COLOR,
+        SET_BACKGROUND_COLOR        = 9, // 
         DEFINE_FONT,
         DEFINE_TEXT,
         DO_ACTION,
@@ -39,9 +39,9 @@ namespace openswf
         DEFINE_BITS_JPEG2,
         DEFINE_SHAPE2,
         DEFINE_BUTTON_CXFORM,
-        PROTECT,
-        PLACE_OBJECT2               = 26,
-        REMOVE_OBJECT2  = 28,
+        PROTECT                     = 24, // IGNORE
+        PLACE_OBJECT2               = 26, //
+        REMOVE_OBJECT2              = 28, // 
         DEFINE_SHAPE3   = 32,
         DEFINE_TEXT2,
         DEFINE_BUTTON2,
@@ -53,29 +53,29 @@ namespace openswf
         SOUND_STREAM_HEAD2 = 45,
         DEFINE_MORPH_SHAPE,
         DEFINE_FONT2 = 48,
-        EXPORT_ASSETS = 56,
-        IMPORT_ASSETS,
-        ENABLE_DEBUGGER,
+        EXPORT_ASSETS               = 56, // IGNORE
+        IMPORT_ASSETS               = 57, // IGNORE
+        ENABLE_DEBUGGER             = 58, // IGNORE
         DO_INIT_ACTION,
         DEFINE_VIDEO_STREAM,
         VIDEO_FRAME,
         DEFINE_FONT_INFO2,
-        ENABLE_DEBUGGER2 = 64,
-        SCRIPT_LIMITS,
+        ENABLE_DEBUGGER2            = 64, // IGNORE
+        SCRIPT_LIMITS               = 65, //
         SET_TAB_INDEX,
-        FILE_ATTRIBUTES = 69,
-        PLACE_OBJECT3               = 70,
-        IMPORT_ASSETS2,
+        FILE_ATTRIBUTES             = 69, //
+        PLACE_OBJECT3               = 70, //
+        IMPORT_ASSETS2              = 71, // IGNORE
         DEFINE_FONT_ALIGN_ZONES = 73,
         DEFINE_CSM_TEXT_SETTINGS,
         DEFINE_FONT3,
-        SYMBOL_CLASS,
-        METADATA,
-        DEFINE_SCALING_GRID,
+        SYMBOL_CLASS                = 76, //
+        METADATA                    = 77, // IGNORE
+        DEFINE_SCALING_GRID         = 78, // 
         DO_ABC = 82,
         DEFINE_SHAPE4,
         DEFINE_MORPH_SHAPE2,
-        DEFINE_SCENE_AND_FRAME_LABEL_DATA = 86,
+        DEFINE_SCENE_AND_FRAME_LABEL_DATA = 86, // IGNORE
         DEFINE_BINARY_DATA,
         DEFINE_FONT_NAME = 88,
         DEFINE_START_SOUND2 = 89,
@@ -84,6 +84,29 @@ namespace openswf
     };
 
     const char* get_tag_str(TagCode code);
+
+    enum class BlendMode : uint32_t {
+        NORMAL      = 1,
+        LAYER,
+        MULTIPLY,
+        SCREEN,
+        LIGHTEN,
+        DARKEN,
+        DIFFERENCE,
+        ADD,
+        SUBTRACT,
+        INVERT,
+        ALPHA,
+        ERASE,
+        OVERLAY,
+        HARDLIGHT,
+    };
+
+    enum class ClampMode : uint8_t
+    {
+        WRAP,
+        REPEAT
+    };
 
     // the CLIPEVENTFLAGS sequence specifies one or more sprite events to which 
     // an event handler applies. in swf 6 and later, it is 4 bytes.
@@ -151,6 +174,18 @@ namespace openswf
         PLACE_HAS_FILTER_LIST       = 0x8000
     };
 
+    enum FileAttributeMask
+    {
+        FILE_ATTR_RESERVED_1        = 0x1,
+        FILE_ATTR_USE_DIRECT_BLIT   = 0x2,
+        FILE_ATTR_USE_GPU           = 0x4,
+        FILE_ATTR_HAS_METADATA      = 0x8,
+        FILE_ATTR_SCRIPT_3          = 0x10,
+        FILE_ATTR_RESERVED_2        = 0x20,
+        FILE_ATTR_RESERVED_3        = 0x40,
+        FILE_ATTR_USE_NETWORK       = 0x80,
+    };
+
     // a rectangle value represents a rectangular region defined by a minimum 
     // x- and y-coordinate position and a maximum x- and y-coordinate position.
     class Rect 
@@ -182,6 +217,8 @@ namespace openswf
         uint8_t m_alpha;    // alpha value defining opacity from 0 to 255
 
     public:
+        Color() {}
+
         Color(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha = 255)
         : m_red(red), m_green(green), m_blue(blue), m_alpha(alpha) {}
     };

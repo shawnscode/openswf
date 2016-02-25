@@ -1,6 +1,10 @@
 #pragma once
 
+#include <vector>
+#include <string>
+
 #include "openswf_stream.hpp"
+#include "openswf_filter.hpp"
 
 namespace openswf {
 
@@ -27,7 +31,7 @@ namespace openswf {
 
     ////
 
-    struct RecordClipAction
+    struct RecordClipAction // not record
     {
         uint32_t    event;      // events to which this handler applies
         uint32_t    size;       // offset in bytes from end of this field 
@@ -49,7 +53,7 @@ namespace openswf {
         }
     };
 
-    struct RecordClipActionList
+    struct RecordClipActionList // not record
     {
         uint16_t    reserved;   // must be 0
         uint32_t    events;     // all events used in these clip actions
@@ -66,6 +70,32 @@ namespace openswf {
 
             return record;
         }
+    };
+
+    struct RecordClip // not record
+    {
+        
+    };
+
+    struct RecordFilter
+    {
+        uint8_t filter_id;
+        union{
+            FilterDropShadow    drop_shadow;
+            FilterBlur          blur;
+            FilterGlow          glow;
+            FilterBevel         bevel;
+            FilterColorMatrix   color_matrix;
+            FilterConvolution   convolution;
+        };
+    };
+
+    struct RecordFilterList
+    {
+        const static uint8_t MAX_FILTER = 2;
+
+        uint8_t         n;
+        RecordFilter    filter[MAX_FILTER];
     };
 
     //// ---------------------------------------------------
@@ -152,9 +182,205 @@ namespace openswf {
         uint16_t        ratio;          // (optional)
         std::string     name;           // (optional)
 
-        uint16_t                clip_depth;     // (optional)
+        uint16_t            clip_depth;         // (optional)
+        RecordFilterList    surface_filters;    // (optional)
+
+        uint8_t         blend_mode;     // (optional) checkout enum class BlendMode for details
+        uint8_t         bitmap_cache;   // (optional) 0 = disabled, 1-255 = bitmap enabled
+
         RecordClipActionList    clip_actions;   // (optional)
     };
+
+
+    // TAG = 5
+    // the RemoveObject tag removes the specified character (at the 
+    // specified depth) from the display list.
+    struct RecordRemoveObject
+    {
+        uint16_t    character_id;
+        uint16_t    depth;
+
+        static RecordRemoveObject read(Stream& stream)
+        {
+            RecordRemoveObject record;
+            record.character_id = stream.read_uint16();
+            record.depth        = stream.read_uint16();
+            return record;
+        }
+    };
+
+    // TAG = 28
+    // the RemoveObject2 tag removes the character at the specified 
+    // depth from the display list.
+    struct RecordRemoveObject2
+    {
+        uint16_t    depth;
+
+        static RecordRemoveObject2 read(Stream& stream)
+        {
+            RecordRemoveObject2 record;
+            record.depth        = stream.read_uint16();
+            return record;
+        }
+    };
+
+    //// CONTROL TAGS USED TO OPERATE DISPLAY LIST
+    // TAG = 1
+    // the ShowFrame tag instructs us to display the contents of the display list. 
+    // the file is paused for the duration of a single frame.
+    struct RecordShowFrame {};
+
+    // TAG = 9
+    // the SetBackgroundColor tag sets the background color of the display.
+    struct RecordSetBackgroundColor
+    {
+        Color   color;
+
+        static RecordSetBackgroundColor read(Stream& stream)
+        {
+            RecordSetBackgroundColor record;
+            record.color = stream.read_rgb();
+            return record;
+        }
+    };
+
+
+    //// END
+    //// ---------------------------------------------------
+
+    //// ---------------------------------------------------
+    //// CONTROL TAGS
+
+    // TAG = 24
+    // struct RecordProtect {};
+
+    // TAG = 0
+    // the End tag indicates the end of file
+    struct RecordEnd {};
+
+    // TAG = 69
+    // the FileAttributes tag defines characteristics of the SWF file.
+    // this tag is required for swf 8 and later and must be the first
+    // in the swf file.
+    struct RecordFileAttributes
+    {
+        uint32_t attributes; // see FileAttributeMask for details
+
+        static RecordFileAttributes read(Stream& stream)
+        {
+            RecordFileAttributes record;
+            record.attributes = stream.read_uint32();
+            return record;
+        }
+    };
+
+    // TAG = 56
+    // struct RecordExportAssets {}
+
+    // TAG = 57
+    // struct RecordImportAssets {}
+
+    // TAG = 71
+    // struct RecordImportAssets2 {}
+
+    // TAG = 58
+    // struct RecordEnableDebugger {}
+
+    // TAG = 64
+    // struct RecordEnableDebugger2 {}
+
+    // TAG = 77
+    // struct RecordMetadata {}
+
+    //// ---------------------------------------------------
+    //// DEFINITION TAGS
+
+    // TAG = 65
+    // the ScriptLimits tag includes two fields that can be used to override the 
+    // default settings for maximum recursion depth and ActionScript time-out: 
+    // MaxRecursionDepth and ScriptTimeoutSeconds.
+    struct RecordScriptLimits
+    {
+        uint16_t max_recursion_depth;
+        uint16_t script_timeout_seconds;
+
+        static RecordScriptLimits read(Stream& stream)
+        {
+            RecordScriptLimits record;
+            record.max_recursion_depth      = stream.read_uint16();
+            record.script_timeout_seconds   = stream.read_uint16();
+            return record;
+        }
+    };
+
+    // TAG = 76
+    // the SymbolClass tag creates associations between symbols in the SWF file and
+    // ActionScript 3.0 classes. 
+    // tt is the ActionScript 3.0 equivalent of the ExportAssets tag. 
+    // If the character ID is zero, the class is associated with the main timeline of the SWF. 
+    struct RecordSymbolClass
+    {
+        uint16_t                    count;
+        std::vector<uint16_t>       tags;   // character_id for the symbol to associate
+        // the full-qualified name of the as3.0 class with which to associate this symbol,
+        // the class must have already been declared by a DoABC tag.
+        std::vector<std::string>    names; 
+
+        static RecordSymbolClass read(Stream& stream)
+        {
+            RecordSymbolClass record;
+            record.count = stream.read_uint16();
+
+            for( auto i=0; i<record.count; i++ )
+            {
+                record.tags.push_back(stream.read_uint16());
+                record.names.push_back(stream.read_string());
+            }
+
+            return record;
+        }
+    };
+
+    // TAG = 78
+    // the DefineScalingGrid tag introduces the concept of 9-slice scaling, 
+    // which allows component-style scaling to be applied to a sprite or button character.
+    // the 9-slice scaling does not affect the children of, or any text within.
+    struct RecordDefineScalingGrid
+    {
+        uint16_t    character_id;
+        Rect        splitter;       // specifies the center portion of the nine regions
+
+        static RecordDefineScalingGrid read(Stream& stream)
+        {
+            RecordDefineScalingGrid record;
+            record.character_id     = stream.read_uint16();
+            record.splitter         = stream.read_rect();
+            return record;
+        }
+    };
+
+    // TAG = 43
+    // the FRAME_LABEL tag gives the specified name to the current frame
+    struct RecordFrameLabel
+    {
+        std::string name;
+        uint8_t     named_anchor;   // swf 6 later
+        static RecordFrameLabel read(Stream& stream)
+        {
+            RecordFrameLabel record;
+            record.name = stream.read_string();
+            record.named_anchor = stream.read_uint8();
+            return record;
+        }
+    };
+
+    // TAG = 86
+    // the DefineSceneAndFrameLabelData tag contains scene and frame label data for a MovieClip. 
+    // scenes are supported for the main timeline only, for all other movie clips 
+    // a single scene is exported.
+    // struct RecordDefineSceneAndFrameLabelData
+    // {
+    // };
 
     //// END
     //// ---------------------------------------------------
