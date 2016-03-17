@@ -24,6 +24,7 @@ namespace openswf
         float   m_timer;
 
         int                                         m_current_frame;
+        std::vector<IFrameCommand*>                 m_records;
         std::vector<std::vector<IFrameCommand*>>    m_frames;
         std::unordered_map<uint16_t, ICharactor*>   m_dictionary;
         std::unordered_map<uint16_t, ICharactor*>   m_displays;
@@ -37,13 +38,19 @@ namespace openswf
 
         ~Player();
 
+        //
+        float   get_frame_count() const;
+        float   get_frame_rate() const;
+        Rect    get_size() const;
+
+        //
         void define(uint16_t cid, ICharactor* ch);
         void place(uint16_t cid, uint16_t depth, Matrix transform, ColorTransform cxform) {}
         void remove(uint16_t cid, uint16_t depth) {}
 
-        void begin_record_frame();
+        //
+        void record_frame();
         void push_command(IFrameCommand* command);
-        void end_record_frame();
 
         //
         void update(float dt);
@@ -51,43 +58,60 @@ namespace openswf
     };
 
     /// COMMANDS
-    struct PlaceCommand : IFrameCommand
+    namespace record { struct PlaceObject; struct PlaceObject2; }
+    struct PlaceCommand : public IFrameCommand
     {
         uint16_t        character_id;
         uint16_t        depth;
         Matrix          transform;
         ColorTransform  cxform;
 
+        PlaceCommand(const record::PlaceObject&);
+        PlaceCommand(const record::PlaceObject2&);
+
         virtual void execute(Player* parent);
     };
 
-    struct RemoveCommand : IFrameCommand
+    namespace record { struct RemoveObject; }
+    struct RemoveCommand : public IFrameCommand
     {
         uint16_t        character_id;
         uint16_t        depth;
+
+        RemoveCommand(const record::RemoveObject&);
 
         virtual void execute(Player* parent);
     };
 
     //// INLINE METHODS of PLAYER
+    inline float Player::get_frame_rate() const
+    {
+        return m_frame_rate;
+    }
+
+    inline float Player::get_frame_count() const
+    {
+        return m_frame_count;
+    }
+
+    inline Rect Player::get_size() const
+    {
+        return m_size;
+    }
+
     inline void Player::define(uint16_t cid, ICharactor* ch)
     {
         m_dictionary[cid] = ch;
     }
 
-    inline void Player::begin_record_frame()
-    {
-        if( m_frames.size() == 0 ) 
-            m_frames.push_back(std::vector<IFrameCommand*>());
-    }
-
     inline void Player::push_command(IFrameCommand* command)
     {
-        m_frames.back().push_back(command);
+        m_records.push_back(command);
     }
 
-    inline void Player::end_record_frame()
+    inline void Player::record_frame()
     {
-        m_frames.push_back(std::vector<IFrameCommand*>());
+        m_frames.push_back(m_records);
+        m_records.clear();
     }
 }

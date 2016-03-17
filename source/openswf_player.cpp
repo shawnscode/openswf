@@ -1,11 +1,21 @@
 #include "openswf_player.hpp"
+#include "openswf_parser.hpp"
 
 namespace openswf
 {
+    PlaceCommand::PlaceCommand(const record::PlaceObject& def)
+        : character_id(def.character_id), depth(def.depth), transform(def.matrix), cxform(def.cxform) {}
+
+    PlaceCommand::PlaceCommand(const record::PlaceObject2& def)
+        : character_id(def.character_id), depth(def.depth), transform(def.matrix), cxform(def.cxform) {}
+
     void PlaceCommand::execute(Player* player)
     {
         player->place(character_id, depth, transform, cxform);
     }
+
+    RemoveCommand::RemoveCommand(const record::RemoveObject& def)
+        : character_id(def.character_id), depth(def.depth) {}
 
     void RemoveCommand::execute(Player* player)
     {
@@ -14,6 +24,9 @@ namespace openswf
 
     Player::~Player()
     {
+        for( auto command : m_records )
+            delete command;
+
         for( auto& frame : m_frames )
             for( auto command : frame )
                 delete command;

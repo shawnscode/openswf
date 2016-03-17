@@ -74,6 +74,35 @@ namespace openswf
 
         // TAG = 2
         // The DefineShape tag defines a shape for later use by control tags such as PlaceObject.
+
+        // TAG = 22
+        // DefineShape2 extends the capabilities of DefineShape with the ability to support
+        // more than 255 styles in the style list and multiple style lists in a single shape.
+
+        // TAG = 32
+        // DefineShape3 extends the capabilities of DefineShape2 by extending all
+        // of the RGB color fields to support RGBA with opacity information.
+        struct ShapeRecord
+        {
+            typedef std::vector<ShapeRecord> Array;
+
+            uint32_t    move_delta_x; // in twips
+            uint32_t    move_delta_y;
+
+            uint32_t    fill_style_0;
+            uint32_t    fill_style_1;
+            uint32_t    line_style;
+
+            FillStyle::Array    new_fill_styles;
+            LineStyle::Array    new_line_styles;
+            uint8_t             fill_index_bits;
+            uint8_t             line_index_bits;
+
+            ShapeRecord() 
+            :   move_delta_x(0), move_delta_y(0), fill_style_0(0), fill_style_1(0),
+                fill_index_bits(0), line_index_bits(0) {}
+        };
+
         struct DefineShape
         {
             uint16_t            character_id;
@@ -85,7 +114,12 @@ namespace openswf
             uint32_t            fill_index_bits;
             uint32_t            line_index_bits;
 
-            static DefineShape read(Stream& stream);
+            ShapeRecord::Array  records;
+
+            static DefineShape read(Stream& stream, int type = 1);
+
+            static void read_line_styles(Stream& stream, LineStyle::Array& array, int type);
+            static void read_fill_styles(Stream& stream, FillStyle::Array& array, int type);
         };
 
         // TAG: 4
@@ -100,7 +134,6 @@ namespace openswf
             PlaceObject() : character_id(0), depth(0) {}
             static PlaceObject read(Stream& stream, int size);
         };
-
 
         // TAG = 5
         // the RemoveObject tag removes the specified character (at the 
@@ -120,6 +153,32 @@ namespace openswf
             Color   color;
 
             static SetBackgroundColor read(Stream& stream);
+        };
+
+        // TAG = 26
+        // the PlaceObject2 tag can both add a character to the display list,
+        // and modify the attributes of a character that is already on the display list.
+        struct PlaceObject2
+        {
+            uint16_t        depth;         // depth of character
+            uint16_t        character_id;  // (optional)
+            Matrix          matrix;        // (optional)
+            ColorTransform  cxform;        // (optional)
+
+            uint16_t        ratio;         // (optional) morph ratio
+            std::string     name;          // (optional)
+
+            // (optional) specifies the top-most depth that will be masked
+            uint16_t        clip_depth;
+            // (optional) which is valid only for placing sprite characters,
+            // defines one or more event handlers to be invoked when certain
+            // events occur.
+            // RecordClipActionList    clip_actions;
+
+            PlaceObject2()
+            : depth(0), character_id(0), ratio(0), clip_depth(0) {}
+
+            static PlaceObject2 read(Stream& stream);
         };
 
         // TAG = 43

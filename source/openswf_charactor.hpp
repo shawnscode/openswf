@@ -7,38 +7,36 @@ namespace openswf
 {
     struct ICharactor 
     {
-        void render() {}
+        virtual void render() = 0;
+        virtual ~ICharactor() {}
     };
 
 
     struct FillStyle
     {
+        typedef std::vector<FillStyle> Array;
+
         FillStyleCode   type;
         Color           rgba;       // solid fill color with opacity information
         // Matrix          gradient;   // matrix for gradient fill
         // uint16_t        bitmap_id;  // ID of bitmap charactor for fill
         // Matrix          bitmap;
-
-        typedef std::vector<FillStyle> Array;
     };
 
     // struct FillGradient {};
     // struct FillBitmap {}; 
-
     struct LineStyle
     {
+        typedef std::vector<LineStyle> Array;
+
         uint16_t    width;
         Color       rgba;
-
-        typedef std::vector<LineStyle> Array;
     };
 
-    struct ShapeRecord
+    namespace record { class DefineShape; }
+    struct Shape : public ICharactor
     {
-        uint32_t    move_delta_x; // in twips
-        uint32_t    move_delta_y;
-
-
-        typedef std::vector<ShapeRecord> Array;
+        Shape(const record::DefineShape& def) {}
+        virtual void render() {}
     };
 }

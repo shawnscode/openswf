@@ -1,16 +1,10 @@
 #include "openswf_debug.hpp"
 #include "openswf_parser.hpp"
+#include "openswf_charactor.hpp"
 
 namespace openswf
 {
     using namespace record;
-
-    struct Shape : ICharactor
-    {
-        Shape(const record::DefineShape& def)
-        {
-        }
-    };
 
     Player::Ptr parse(Stream& stream)
     {
@@ -25,17 +19,57 @@ namespace openswf
             {
                 case TagCode::DEFINE_SHAPE:
                 {
-                    auto def = DefineShape::read(stream);
+                    auto def = DefineShape::read(stream, 1);
                     player->define(def.character_id, new Shape(def));
                     break;
                 }
-                default:
+
+                case TagCode::DEFINE_SHAPE2:
                 {
-                    stream.set_position(tag.end_pos);
+                    auto def = DefineShape::read(stream, 2);
+                    player->define(def.character_id, new Shape(def));
                     break;
                 }
+
+                case TagCode::DEFINE_SHAPE3:
+                {
+                    auto def = DefineShape::read(stream, 3);
+                    player->define(def.character_id, new Shape(def));
+                    break;
+                }
+
+                case TagCode::PLACE_OBJECT:
+                {
+                    auto def = PlaceObject::read(stream, tag.size);
+                    player->push_command(new PlaceCommand(def));
+                    break;
+                }
+
+                case TagCode::PLACE_OBJECT2:
+                {
+                    auto def = PlaceObject2::read(stream);
+                    player->push_command(new PlaceCommand(def));
+                    break;
+                }
+
+                case TagCode::REMOVE_OBJECT:
+                {
+                    auto def = RemoveObject::read(stream);
+                    player->push_command(new RemoveCommand(def));
+                    break;
+                }
+
+                case TagCode::SHOW_FRAME:
+                {
+                    player->record_frame();
+                    break;
+                }
+
+                default:
+                    break;
             }
 
+            stream.set_position(tag.end_pos);
             tag = TagHeader::read(stream);
         }
 
@@ -95,44 +129,53 @@ namespace openswf
         }
 
         // TAG: 2
-        DefineShape DefineShape::read(Stream& stream)
+
+        void DefineShape::read_line_styles(Stream& stream, LineStyle::Array& array, int type)
+        {
+            uint8_t count = stream.read_uint8();
+            if( count == 0xFF ) count = stream.read_uint16();
+
+            array.reserve(count + array.size());
+            for( auto i=0; i<count; i++ )
+            {
+                LineStyle style;
+                style.width = stream.read_uint8();
+                if( type >= 3 ) style.rgba = stream.read_rgba();
+                else style.rgba = stream.read_rgb();
+                array.push_back(style);
+            }
+        }
+
+        void DefineShape::read_fill_styles(Stream& stream, FillStyle::Array& array, int type)
+        {
+            uint8_t count = stream.read_uint8();
+            if( count == 0xFF ) count = stream.read_uint16();
+
+            array.reserve(count + array.size());
+            for( auto i=0; i<count; i++ )
+            {
+                FillStyle style;
+                style.type = (FillStyleCode)stream.read_uint8();
+
+                if( style.type == FillStyleCode::SOLID )
+                    if( type >= 3 ) style.rgba = stream.read_rgba();
+                    else style.rgba = stream.read_rgb();
+                else
+                    assert(false); // not supported yet
+
+                array.push_back(style);
+            }
+        }
+
+        DefineShape DefineShape::read(Stream& stream, int type)
         {
             DefineShape record;
 
             record.character_id = stream.read_uint16();
             record.bounds       = stream.read_rect();
 
-            // parse fill styles
-            uint8_t fcount = stream.read_uint8();
-            if( fcount == 0xFF ) fcount = stream.read_uint16();
-
-            record.fill_styles.reserve(fcount);
-            for( auto i=0; i<fcount; i++ )
-            {
-                FillStyle style;
-                style.type = (FillStyleCode)stream.read_uint8();
-
-                if( style.type == FillStyleCode::SOLID )
-                    style.rgba = stream.read_rgb();
-                else
-                    assert(false);
-
-                record.fill_styles.push_back(style);
-            }
-
-            // parse line styles
-            uint8_t lcount = stream.read_uint8();
-            if( lcount == 0xFF ) lcount = stream.read_uint16();
-
-            record.line_styles.reserve(lcount);
-            for( auto i=0; i<lcount; i++ )
-            {
-                LineStyle style;
-                style.width = stream.read_uint8();
-                style.rgba  = stream.read_rgb();
-
-                record.line_styles.push_back(style);
-            }
+            read_fill_styles(stream, record.fill_styles, type);
+            read_line_styles(stream, record.line_styles, type);
 
             // parse shape records
             record.fill_index_bits = stream.read_bits_as_uint32(4);
@@ -141,24 +184,71 @@ namespace openswf
             bool finished = false;
             while( !finished )
             {
+                ShapeRecord shape;
+
                 bool is_edge = stream.read_bits_as_uint32(1) > 0;
                 if( !is_edge )
                 {
-                    uint8_t mask = stream.read_bits_as_uint32(5);
+                    uint32_t mask = stream.read_bits_as_uint32(5);
                     if( mask == 0x00 )
                     {
                         finished = true;
                         break;
                     }
 
-                    // skip
-                    // if( mask & 0x10 )
-                    // {
-                    //     uint8_t bits = stream.read_bits_as_uint32(5);
-                    // }
+                    if( mask & 0x01 ) // StateMoveTo
+                    {
+                        uint8_t bits = stream.read_bits_as_uint32(5);
+                        shape.move_delta_x = stream.read_bits_as_int32(bits);
+                        shape.move_delta_y = stream.read_bits_as_int32(bits);
+                    }
+
+                    if( mask & 0x02 ) // StateFillStyle0
+                        shape.fill_style_0 = stream.read_bits_as_uint32(record.fill_index_bits);
+
+                    if( mask & 0x04 ) // StateFillStyle1
+                        shape.fill_style_1 = stream.read_bits_as_uint32(record.fill_index_bits);
+
+                    if( mask & 0x08 ) // StateLineStyle
+                        shape.line_style = stream.read_bits_as_uint32(record.line_index_bits);
+
+                    if( mask & 0x10 ) // StateNewStyles, used by DefineShape2, DefineShape3 only.
+                    {
+                        assert( type >= 2 );
+                        read_fill_styles(stream, shape.new_fill_styles, type);
+                        read_line_styles(stream, shape.new_line_styles, type);
+                        shape.fill_index_bits = stream.read_bits_as_uint32(4);
+                        shape.line_index_bits = stream.read_bits_as_uint32(4);
+                    }
                 }
                 else
-                    assert(false);
+                {
+                    bool is_straight = stream.read_bits_as_uint32(1) > 0;
+                    if( is_straight )
+                    {
+                        auto bits = stream.read_bits_as_uint32(4);
+                        auto is_general = stream.read_bits_as_uint32(1) > 0;
+                        if( is_general )
+                        {
+                            shape.move_delta_x = stream.read_bits_as_int32(bits+2);
+                            shape.move_delta_y = stream.read_bits_as_int32(bits+2);
+                            continue;
+                        }
+
+                        auto is_vertical = stream.read_bits_as_uint32(1) > 0;
+                        if( is_vertical )
+                        {
+                            shape.move_delta_y = stream.read_bits_as_int32(bits+2);
+                            continue;
+                        }
+
+                        shape.move_delta_x = stream.read_bits_as_int32(bits+2);
+                    }
+                    else // curved edges
+                        assert(false);
+                }
+
+                record.records.push_back(shape);
             }
 
             return record;
@@ -195,6 +285,29 @@ namespace openswf
         {
             SetBackgroundColor record;
             record.color = stream.read_rgb();
+            return record;
+        }
+
+        // TAG: 26
+        PlaceObject2 PlaceObject2::read(Stream& stream)
+        {
+            PlaceObject2 record;
+
+            auto mask = stream.read_uint8();
+
+            record.depth        = stream.read_uint16();
+            record.character_id = mask & PLACE_HAS_CHARACTOR ? stream.read_uint16() : 0;
+
+            if( mask & PLACE_HAS_MATRIX ) record.matrix = stream.read_matrix();
+            if( mask & PLACE_HAS_COLOR_TRANSFORM ) record.cxform = stream.read_cxform_rgba();
+
+            record.ratio = mask & PLACE_HAS_RATIO ? stream.read_uint16() : 0;
+
+            if( mask & PLACE_HAS_NAME ) record.name = stream.read_string();
+            if( mask & PLACE_HAS_CLIP_DEPTH ) record.clip_depth = stream.read_uint16();
+            // if( mask & PLACE_HAS_CLIP_ACTIONS )
+                // record.clip_actions = RecordClipActionList::read(stream);
+
             return record;
         }
 
