@@ -2,102 +2,141 @@
 
 #include <cstdint>
 #include <algorithm>
+#include <vector>
 
-#include "openswf_records.hpp"
 #include "openswf_stream.hpp"
+
+// ## TAG Categories
+// there two categories of tags in a SWF file are as follows:
+// 1. definition tags define the content of the SWF file—the shapes, text,
+// bitmaps, sounds, and so on. each definition tag assigns a unique ID
+// called a character ID to the content it defines.
+// 2. control tags create and manipulate rendered instances of characters in
+// the dictionary, and control the flow of the file.
+//
+// ## TAG Ordering
+// Generally speaking, tags in a SWF can occur in any order. However, you
+// must observe the following rules:
+// 1. The FileAttributes tag must be the first tag in the SWF file for SWF 8 and later.
+// 2. A tag should only depend on tags that come before it. A tag should never
+// depend on a tag that comes later in the file.
+// 3. A definition tag that defines a character must occur before any control
+// tag that refers to that character.
+// 4. Streaming sound tags must be in order. Out-of-order streaming sound tags
+// result in the sound being played out of order.
+// 5. The End tag is always the last tag in the SWF file.
 
 namespace openswf
 {
-    class Parser
+    namespace record // should we hide this details from interface?
     {
-    protected:
-        Rect        m_frame_size;   // frame size in twips
-        float       m_frame_rate;   // frame delay in 8.8 fixed number of frames per second
-        uint16_t    m_frame_count;  // total number of frames in file
-
-    public:
-        bool initialize(Stream& stream)
+        struct Header
         {
-            read_header(stream);
-            read_tags(stream);
-            return true;
-        }
+            bool        compressed;
+            uint8_t     version;
+            uint32_t    size;
+            Rect        frame_size;   // frame size in twips
+            float       frame_rate;   // frame delay in 8.8 fixed number of frames per second
+            uint16_t    frame_count;  // total number of frames in file
 
-    protected:
-        int  read_header(Stream& stream)
+            static Header read(Stream& stream);
+        };
+
+        struct TagHeader
         {
-            uint8_t compressed  = stream.read_uint8();
-            uint8_t const_w     = stream.read_uint8();
-            uint8_t const_s     = stream.read_uint8();
-            uint8_t version     = stream.read_uint8();
-            uint32_t size       = stream.read_uint32();
+            TagCode     code; // tag code
+            uint32_t    size; // offset in bytes from end of header to next tag
+            uint32_t    end_pos;
 
-            assert( (char)compressed == 'F' ); // compressed mode not supports
-            assert( (char)const_w == 'W' && (char)const_s == 'S' );
+            TagHeader() : code(TagCode::END), size(0) {}
+            static TagHeader read(Stream& stream);
+        };
 
-            m_frame_size    = stream.read_rect();
-            m_frame_rate    = stream.read_fixed16();
-            m_frame_count   = stream.read_uint16();
-
-            // some SWF files have been seen that have 0-frame sprites.
-            // but the macromedia player behaves as if they have 1 frame.
-            m_frame_count   = std::max(m_frame_count, (uint16_t)1);
-            return 0;
-        }
-
-        // following the header is a series of tagged data blocks, all tags share 
-        // a common format.
-        
-        // ## TAG Categories
-        // there two categories of tags in a SWF file are as follows:
-        // 1. definition tags define the content of the SWF file—the shapes, text, 
-        // bitmaps, sounds, and so on. each definition tag assigns a unique ID 
-        // called a character ID to the content it defines. 
-        // 2. control tags create and manipulate rendered instances of characters in
-        // the dictionary, and control the flow of the file.
-        //
-        // ## TAG Ordering
-        // Generally speaking, tags in a SWF can occur in any order. However, you 
-        // must observe the following rules:
-        // 1. The FileAttributes tag must be the first tag in the SWF file for SWF 8 and later.
-        // 2. A tag should only depend on tags that come before it. A tag should never 
-        // depend on a tag that comes later in the file.
-        // 3. A definition tag that defines a character must occur before any control 
-        // tag that refers to that character.
-        // 4. Streaming sound tags must be in order. Out-of-order streaming sound tags 
-        // result in the sound being played out of order.
-        // 5. The End tag is always the last tag in the SWF file.
-
-        TagCode read_tag(Stream& stream)
+        // TAG = 0
+        // the End tag indicates the end of file
+        struct End
         {
-            auto header = RecordHeader::read(stream);
+            static End read(Stream& stream);
+        };
 
-            // remember where the end of the tag is, so we can
-            // fast-forward past it when we're done reading it.
-            uint32_t end_pos = stream.get_position() + header.size;
-
-            switch(header.code)
-            {
-                // case TagCode:END: return new RecordEnd(); break
-                // case tag::END : parse_end(stream); break;
-                // case tag::SHOW_FRAME: parse_show_frame(stream); break;
-                // case tag::DEFINE_SHAPE: parse_define_shape(stream); break;
-                // case tag::PLACE_OBJECT: parse_place_object(stream); break;
-                default:
-                    // printf("[%02d]\t %s\n", (int)header.code, get_tag_str(header.code));
-                    break;
-            }
-
-            stream.set_position(end_pos);
-            return header.code;
-        }
-        
-        int read_tags(Stream& stream)
+        // TAG = 1
+        // the ShowFrame tag instructs us to display the contents of the display list. 
+        // the file is paused for the duration of a single frame.
+        struct ShowFrame
         {
-            while( !stream.is_finished() )
-                read_tag(stream);
+            static ShowFrame read(Stream& stream);
+        };
 
-            return 0;
-        }
-    };
+        // TAG: 4
+        // the PlaceObject tag adds a character to the display list.
+        struct PlaceObject
+        {
+            uint16_t        character_id;   // ID of character to place
+            uint16_t        depth;          // depth of character
+            Matrix          matrix;         // transform matrix data
+            ColorTransform  cxform;         // (optional) color transform data
+
+            PlaceObject() : character_id(0), depth(0) {}
+            static PlaceObject read(Stream& stream, int size);
+        };
+
+
+        // TAG = 5
+        // the RemoveObject tag removes the specified character (at the 
+        // specified depth) from the display list.
+        struct RemoveObject
+        {
+            uint16_t    character_id;
+            uint16_t    depth;
+
+            static RemoveObject read(Stream& stream);
+        };
+
+        // TAG = 9
+        // the SetBackgroundColor tag sets the background color of the display.
+        struct SetBackgroundColor
+        {
+            Color   color;
+
+            static SetBackgroundColor read(Stream& stream);
+        };
+
+        // TAG = 43
+        // the FRAME_LABEL tag gives the specified name to the current frame
+        struct FrameLabel
+        {
+            std::string name;
+            uint8_t     named_anchor;   // swf 6 later
+
+            static FrameLabel read(Stream& stream);
+        };
+
+        // TAG = 69
+        // the FileAttributes tag defines characteristics of the SWF file.
+        // this tag is required for swf 8 and later and must be the first
+        // in the swf file.
+        struct FileAttributes
+        {
+            uint32_t attributes; // see FileAttributeMask for details
+
+            static FileAttributes read(Stream& stream);
+        };
+
+        // TAG = 86
+        // the DefineSceneAndFrameLabelData tag contains scene and frame label data for a MovieClip. 
+        // scenes are supported for the main timeline only, for all other movie clips 
+        // a single scene is exported.
+        struct DefineSceneAndFrameLabelData
+        {
+            uint32_t                    scene_count;        // number of scenes
+            std::vector<uint32_t>       scene_offsets;      //
+            std::vector<std::string>    scene_names;        //
+            
+            uint32_t                    frame_label_count;
+            std::vector<uint32_t>       frame_numbers;      // 
+            std::vector<std::string>    frame_labels;       // 
+            
+            static DefineSceneAndFrameLabelData read(Stream& stream);
+        };
+    }
 }

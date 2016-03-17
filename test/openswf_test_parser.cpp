@@ -1,25 +1,56 @@
 #include "openswf_test.hpp"
 
 using namespace openswf;
+using namespace openswf::record;
 
-TEST_CASE_METHOD(Parser, "PARSER", "[OPENSWF]")
+TEST_CASE("PARSE_TAG_HEADER", "[OPENSWF]")
 {
     auto stream = create_from_file("../test/resources/openswf_test_parser.swf");
     REQUIRE( stream.get_position() == 0 );
     REQUIRE( stream.get_bit_position() == 0 );
     REQUIRE( stream.get_size() == 1340 );
 
-    read_header(stream);
-    REQUIRE( m_frame_count == 1 );
-    REQUIRE( m_frame_rate == Approx(24) );
-    REQUIRE( m_frame_size.get_width() == Approx(320) );
-    REQUIRE( m_frame_size.get_width() == Approx(320) );
+    auto header = Header::read(stream);
 
-    REQUIRE( read_tag(stream) == TagCode::FILE_ATTRIBUTES );
-    REQUIRE( read_tag(stream) == TagCode::METADATA );
-    REQUIRE( read_tag(stream) == TagCode::SET_BACKGROUND_COLOR );
-    REQUIRE( read_tag(stream) == TagCode::DEFINE_SCENE_AND_FRAME_LABEL_DATA );
-    REQUIRE( read_tag(stream) == TagCode::SHOW_FRAME );
-    REQUIRE( read_tag(stream) == TagCode::END );
+    REQUIRE( header.frame_count == 1 );
+    REQUIRE( header.frame_rate == Approx(24) );
+    REQUIRE( header.frame_size.get_width() == Approx(320) );
+    REQUIRE( header.frame_size.get_width() == Approx(320) );
+
+    {
+        auto tag = TagHeader::read(stream);
+        stream.set_position(tag.end_pos);
+        REQUIRE( tag.code == TagCode::FILE_ATTRIBUTES );
+    }
+
+    {
+        auto tag = TagHeader::read(stream);
+        stream.set_position(tag.end_pos);
+        REQUIRE( tag.code == TagCode::METADATA );
+    }
+    
+    {
+        auto tag = TagHeader::read(stream);
+        stream.set_position(tag.end_pos);
+        REQUIRE( tag.code == TagCode::SET_BACKGROUND_COLOR );
+    }
+
+    {
+        auto tag = TagHeader::read(stream);
+        stream.set_position(tag.end_pos);
+        REQUIRE( tag.code == TagCode::DEFINE_SCENE_AND_FRAME_LABEL_DATA );
+    }
+
+    {
+        auto tag = TagHeader::read(stream);
+        stream.set_position(tag.end_pos);
+        REQUIRE( tag.code == TagCode::SHOW_FRAME );
+    }
+
+    {
+        auto tag = TagHeader::read(stream);
+        stream.set_position(tag.end_pos);
+        REQUIRE( tag.code == TagCode::END );
+    }
     REQUIRE( stream.is_finished() );
 }

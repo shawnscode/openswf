@@ -71,6 +71,7 @@ namespace openswf
         // when a signed-bit value is expanded into a larger word size, 
         // the high bit is copied to the leftmost bits.
         int32_t read_bits_as_int32(const int bitcount);
+        
         float read_bits_as_fixed16(const int bitcount);
         float read_bits_as_fixed32(const int bitcount);
 
@@ -189,7 +190,8 @@ namespace openswf
     inline std::string Stream::read_string()
     {
         m_string_buffer.clear();
-        while(char c = (char)read_uint8()) m_string_buffer.push_back(c);
+        while(char c = (char)read_uint8())
+            m_string_buffer.push_back(c);
         return m_string_buffer;
     }
 

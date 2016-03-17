@@ -186,6 +186,19 @@ namespace openswf
         FILE_ATTR_USE_NETWORK       = 0x80,
     };
 
+    enum class FillStyleType : uint8_t
+    {
+        SOLID                           = 0x00,
+        LINEAR_GRADIENT                 = 0x10,
+        RADIAL_GRADIENT                 = 0x12,
+        FOCAL_RADIAL_GRADIENT           = 0x13,
+
+        REPEATING_BITMAP                = 0x40,
+        CLIPPED_BITMAP                  = 0x41,
+        NON_SMOOTHED_REPEATING_BITMAP   = 0x42,
+        NON_SMOOTHED_CLIPPED_BITMAP     = 0x43
+    };
+
     // a rectangle value represents a rectangular region defined by a minimum 
     // x- and y-coordinate position and a maximum x- and y-coordinate position.
     class Rect 
