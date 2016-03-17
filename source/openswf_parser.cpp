@@ -1,7 +1,47 @@
+#include "openswf_debug.hpp"
 #include "openswf_parser.hpp"
 
 namespace openswf
 {
+    using namespace record;
+
+    struct Shape : ICharactor
+    {
+        Shape(const record::DefineShape& def)
+        {
+        }
+    };
+
+    Player::Ptr parse(Stream& stream)
+    {
+        stream.set_position(0);
+        auto header = Header::read(stream);
+        auto player = Player::Ptr(new Player(header.frame_size, header.frame_rate, header.frame_count));
+
+        auto tag = TagHeader::read(stream);
+        while( tag.code != TagCode::END )
+        {
+            switch(tag.code)
+            {
+                case TagCode::DEFINE_SHAPE:
+                {
+                    auto def = DefineShape::read(stream);
+                    player->define(def.character_id, new Shape(def));
+                    break;
+                }
+                default:
+                {
+                    stream.set_position(tag.end_pos);
+                    break;
+                }
+            }
+
+            tag = TagHeader::read(stream);
+        }
+
+        return player;
+    }
+
     namespace record
     {
         Header Header::read(Stream& stream)
@@ -52,6 +92,76 @@ namespace openswf
         ShowFrame ShowFrame::read(Stream& stream)
         {
             return ShowFrame();
+        }
+
+        // TAG: 2
+        DefineShape DefineShape::read(Stream& stream)
+        {
+            DefineShape record;
+
+            record.character_id = stream.read_uint16();
+            record.bounds       = stream.read_rect();
+
+            // parse fill styles
+            uint8_t fcount = stream.read_uint8();
+            if( fcount == 0xFF ) fcount = stream.read_uint16();
+
+            record.fill_styles.reserve(fcount);
+            for( auto i=0; i<fcount; i++ )
+            {
+                FillStyle style;
+                style.type = (FillStyleCode)stream.read_uint8();
+
+                if( style.type == FillStyleCode::SOLID )
+                    style.rgba = stream.read_rgb();
+                else
+                    assert(false);
+
+                record.fill_styles.push_back(style);
+            }
+
+            // parse line styles
+            uint8_t lcount = stream.read_uint8();
+            if( lcount == 0xFF ) lcount = stream.read_uint16();
+
+            record.line_styles.reserve(lcount);
+            for( auto i=0; i<lcount; i++ )
+            {
+                LineStyle style;
+                style.width = stream.read_uint8();
+                style.rgba  = stream.read_rgb();
+
+                record.line_styles.push_back(style);
+            }
+
+            // parse shape records
+            record.fill_index_bits = stream.read_bits_as_uint32(4);
+            record.line_index_bits = stream.read_bits_as_uint32(4);
+
+            bool finished = false;
+            while( !finished )
+            {
+                bool is_edge = stream.read_bits_as_uint32(1) > 0;
+                if( !is_edge )
+                {
+                    uint8_t mask = stream.read_bits_as_uint32(5);
+                    if( mask == 0x00 )
+                    {
+                        finished = true;
+                        break;
+                    }
+
+                    // skip
+                    // if( mask & 0x10 )
+                    // {
+                    //     uint8_t bits = stream.read_bits_as_uint32(5);
+                    // }
+                }
+                else
+                    assert(false);
+            }
+
+            return record;
         }
 
         // TAG: 4

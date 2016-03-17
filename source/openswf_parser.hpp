@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "openswf_stream.hpp"
+#include "openswf_player.hpp"
 
 // ## TAG Categories
 // there two categories of tags in a SWF file are as follows:
@@ -28,6 +29,10 @@
 
 namespace openswf
 {
+
+    // Movie
+    Player::Ptr parse(Stream& stream);
+
     namespace record // should we hide this details from interface?
     {
         struct Header
@@ -65,6 +70,22 @@ namespace openswf
         struct ShowFrame
         {
             static ShowFrame read(Stream& stream);
+        };
+
+        // TAG = 2
+        // The DefineShape tag defines a shape for later use by control tags such as PlaceObject.
+        struct DefineShape
+        {
+            uint16_t            character_id;
+            Rect                bounds;         // bounds of shape
+
+            //
+            FillStyle::Array    fill_styles;
+            LineStyle::Array    line_styles;
+            uint32_t            fill_index_bits;
+            uint32_t            line_index_bits;
+
+            static DefineShape read(Stream& stream);
         };
 
         // TAG: 4

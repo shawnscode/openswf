@@ -54,3 +54,29 @@ TEST_CASE("PARSE_TAG_HEADER", "[OPENSWF]")
     }
     REQUIRE( stream.is_finished() );
 }
+
+//FILE_ATTRIBUTES
+// METADATA
+// SET_BACKGROUND_COLOR
+// DEFINE_SCENE_AND_FRAME_LABEL_DATA
+// DEFINE_SHAPE
+// PLACE_OBJECT2
+// SHOW_FRAME
+// SHOW_FRAME
+// SHOW_FRAME
+// DEFINE_SHAPE
+// PLACE_OBJECT2
+// SHOW_FRAME
+
+TEST_CASE("CREATE_PLAYER_FROM_FILE", "[OPENSWF]")
+{
+    auto stream = create_from_file("../test/resources/simple-shape-1.swf");
+    auto header = Header::read(stream);
+    auto tag = TagHeader::read(stream);
+    while( tag.code != TagCode::END )
+    {
+        printf("%s\n", get_tag_str(tag.code));
+        stream.set_position(tag.end_pos);
+        tag = TagHeader::read(stream);
+    }
+}

@@ -186,7 +186,7 @@ namespace openswf
         FILE_ATTR_USE_NETWORK       = 0x80,
     };
 
-    enum class FillStyleType : uint8_t
+    enum class FillStyleCode : uint8_t
     {
         SOLID                           = 0x00,
         LINEAR_GRADIENT                 = 0x10,
