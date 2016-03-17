@@ -4,12 +4,12 @@ namespace openswf
 {
     void PlaceCommand::execute(Player* player)
     {
-        parent->place(character_id, depth, transform, cxform);
+        player->place(character_id, depth, transform, cxform);
     }
 
     void RemoveCommand::execute(Player* player)
     {
-        parent->remove(character_id, depth);
+        player->remove(character_id, depth);
     }
 
     Player::~Player()

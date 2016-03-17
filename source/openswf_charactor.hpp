@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include "openswf_types.hpp"
 
 namespace openswf
 {
