@@ -5,7 +5,10 @@
 
 #include "openswf_test.hpp"
 
-openswf::Stream create_from_file(const char* path) 
+using namespace openswf;
+using namespace openswf::record;
+
+Stream create_from_file(const char* path) 
 {
     std::ifstream handle;
     handle.open(path, std::ifstream::in | std::ifstream::binary);
@@ -26,5 +29,19 @@ openswf::Stream create_from_file(const char* path)
     handle.close();
 
     // fix: leaks
-    return openswf::Stream((uint8_t*)binary, size);
+    return Stream((uint8_t*)binary, size);
 }
+
+TagHeader get_tag_at(Stream& stream, uint32_t pos)
+{
+    stream.set_position(0);
+    Header::read(stream);
+    for( int i=0; i<pos-1; i++ )
+    {
+        auto tag = TagHeader::read(stream);
+        stream.set_position(tag.end_pos);
+    }
+
+    return TagHeader::read(stream);
+}
+
