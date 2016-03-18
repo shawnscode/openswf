@@ -63,41 +63,41 @@ TEST_CASE("DEFINE-SHAPE-PARSE", "[OPENSWF]")
     REQUIRE( header.code == TagCode::DEFINE_SHAPE );
     auto def = DefineShape::read(stream);
 
-    std::vector<std::vector<Point>> paths;
+    std::vector<std::vector<Point2f>> paths;
     std::vector<int> fill_0_array, fill_1_array, line_array;
     {
-        Point path[] = { 
-            Point(4660, 2580), 
-            Point(7629, 2580), 
-            Point(7629, 6089),
-            Point(4120, 6089),
-            Point(4120, 3280)
+        Point2f path[] = {
+            Point2f(4660, 2580), 
+            Point2f(7629, 2580), 
+            Point2f(7629, 6089),
+            Point2f(4120, 6089),
+            Point2f(4120, 3280)
         };
-        paths.push_back(std::vector<Point>(path, path+5));
+        paths.push_back(std::vector<Point2f>(path, path+5));
         fill_0_array.push_back(0);
         fill_1_array.push_back(1);
         line_array.push_back(0);
     }
     {
-        Point path[] = { 
-            Point(4120, 3280),
-            Point(440, 3280),
-            Point(440, 1220),
-            Point(4660, 1220),
-            Point(4660, 2580)
+        Point2f path[] = {
+            Point2f(4120, 3280),
+            Point2f(440, 3280),
+            Point2f(440, 1220),
+            Point2f(4660, 1220),
+            Point2f(4660, 2580)
         };
-        paths.push_back(std::vector<Point>(path, path+5));
+        paths.push_back(std::vector<Point2f>(path, path+5));
         fill_0_array.push_back(0);
         fill_1_array.push_back(2);
         line_array.push_back(0);
     }
     {
-        Point path[] = { 
-            Point(4660, 2580),
-            Point(4120, 2580),
-            Point(4120, 3280)
+        Point2f path[] = {
+            Point2f(4660, 2580),
+            Point2f(4120, 2580),
+            Point2f(4120, 3280)
         };
-        paths.push_back(std::vector<Point>(path, path+3));
+        paths.push_back(std::vector<Point2f>(path, path+3));
         fill_0_array.push_back(1);
         fill_1_array.push_back(0);
         line_array.push_back(0);

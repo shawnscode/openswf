@@ -86,13 +86,13 @@ namespace openswf
         {
             typedef std::vector<ShapeEdge> Array;
 
-            ShapeEdge(const Point& anchor)
+            ShapeEdge(const Point2f& anchor)
                 : control(anchor), anchor(anchor) {}
 
             ShapeEdge(int32_t cx, int32_t cy, int32_t ax, int32_t ay)
-                : control(Point(cx, cy)), anchor(Point(ax, ay)){}
+                : control(Point2f(cx, cy)), anchor(Point2f(ax, ay)){}
 
-            Point control, anchor;
+            Point2f control, anchor;
         };
 
         struct ShapePath
@@ -103,7 +103,7 @@ namespace openswf
             uint32_t            right_fill;
             uint32_t            line;
 
-            Point               start;
+            Point2f             start;
             ShapeEdge::Array    edges;
 
             ShapePath() : left_fill(0), right_fill(0), line(0) {}

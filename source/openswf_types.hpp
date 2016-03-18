@@ -199,18 +199,32 @@ namespace openswf
         NON_SMOOTHED_CLIPPED_BITMAP     = 0x43
     };
 
-    struct Point
+    
+    template<typename T> struct Point
     {
-        int32_t x, y;
+        T x, y;
 
         Point() : x(0), y(0) {}
-        Point(int32_t x, int32_t y) : x(x), y(y) {}
+        Point(T x, T y) : x(x), y(y) {}
 
-        bool operator ==(const Point& rh) const
+        bool operator == (const Point<T>& rh) const
         { 
             return this->x == rh.x && this->y ==rh.y; 
         }
+
+        Point<T> operator + (const Point<T>& rh) const
+        {
+            return Point<T>(this->x + rh.x, this->y + rh.y);
+        }
+
+        Point<T> operator * (T factor) const
+        {
+            return Point<T>(this->x*factor, this->y*factor);
+        }
     };
+
+    typedef Point<float>    Point2f;
+    typedef Point<int32_t>  Point2i;
 
     // a rectangle value represents a rectangular region defined by a minimum 
     // x- and y-coordinate position and a maximum x- and y-coordinate position.

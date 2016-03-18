@@ -180,7 +180,7 @@ namespace openswf
             uint32_t fill_index_bits = stream.read_bits_as_uint32(4);
             uint32_t line_index_bits = stream.read_bits_as_uint32(4);
             uint32_t fill_index_base = 0, line_index_base = 0;
-            Point cursor;
+            Point2f cursor;
 
             ShapePath current_path;
             auto push_path = [&]()
@@ -212,8 +212,8 @@ namespace openswf
                     if( mask & 0x01 ) // StateMoveTo
                     {
                         uint8_t bits = stream.read_bits_as_uint32(5);
-                        cursor.x = stream.read_bits_as_int32(bits);
-                        cursor.y = stream.read_bits_as_int32(bits);
+                        cursor.x = (float)stream.read_bits_as_int32(bits);
+                        cursor.y = (float)stream.read_bits_as_int32(bits);
 
                         push_path();
                     }
@@ -260,21 +260,21 @@ namespace openswf
                     bool is_straight = stream.read_bits_as_uint32(1) > 0;
                     if( is_straight ) // StraightEdgeRecrod
                     {
-                        int32_t dx = 0, dy = 0;
+                        float dx = 0, dy = 0;
                         auto bits = stream.read_bits_as_uint32(4) + 2;
                         auto is_general = stream.read_bits_as_uint32(1) > 0;
                         if( is_general )
                         {
-                            dx = stream.read_bits_as_int32(bits);
-                            dy = stream.read_bits_as_int32(bits);
+                            dx = (float)stream.read_bits_as_int32(bits);
+                            dy = (float)stream.read_bits_as_int32(bits);
                         }
                         else
                         {
                             auto is_vertical = stream.read_bits_as_uint32(1) > 0;
                             if( is_vertical )
-                                dy = stream.read_bits_as_int32(bits);
+                                dy = (float)stream.read_bits_as_int32(bits);
                             else
-                                dx = stream.read_bits_as_int32(bits);
+                                dx = (float)stream.read_bits_as_int32(bits);
                         }
 
                         cursor.x += dx;
@@ -285,10 +285,10 @@ namespace openswf
                     else // CurvedEdgeRecord
                     {
                         auto bits   = stream.read_bits_as_uint32(4) + 2;
-                        auto cx     = stream.read_bits_as_int32(bits);
-                        auto cy     = stream.read_bits_as_int32(bits);
-                        auto ax     = stream.read_bits_as_int32(bits);
-                        auto ay     = stream.read_bits_as_int32(bits);
+                        auto cx     = (float)stream.read_bits_as_int32(bits);
+                        auto cy     = (float)stream.read_bits_as_int32(bits);
+                        auto ax     = (float)stream.read_bits_as_int32(bits);
+                        auto ay     = (float)stream.read_bits_as_int32(bits);
 
                         current_path.edges.push_back(ShapeEdge(cx, cy, ax, ay));
                         cursor.x = ax;
