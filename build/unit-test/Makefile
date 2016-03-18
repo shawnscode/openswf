@@ -16,15 +16,15 @@ ifeq ($(config),debug)
   TARGET = $(TARGETDIR)/unit-test
   OBJDIR = obj/debug
   DEFINES += -DDEBUG
-  INCLUDES += -I../../3rd/catch/include -I../../source
+  INCLUDES += -I../../3rd/catch/include -I../../3rd/libtess2/Include -I../../source
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g -std=c++11 -stdlib=libc++
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CFLAGS)
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS +=
-  LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS)
+  LIBS += ../../libs/libtess2.a
+  LDDEPS += ../../libs/libtess2.a
+  ALL_LDFLAGS += $(LDFLAGS) -L../../libs
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
   define PREBUILDCMDS
   endef
@@ -43,15 +43,15 @@ ifeq ($(config),release)
   TARGET = $(TARGETDIR)/unit-test
   OBJDIR = obj/release
   DEFINES += -DNDEBUG
-  INCLUDES += -I../../3rd/catch/include -I../../source
+  INCLUDES += -I../../3rd/catch/include -I../../3rd/libtess2/Include -I../../source
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O2 -std=c++11 -stdlib=libc++
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CFLAGS)
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS +=
-  LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS) -Wl,-x
+  LIBS += ../../libs/libtess2.a
+  LDDEPS += ../../libs/libtess2.a
+  ALL_LDFLAGS += $(LDFLAGS) -L../../libs -Wl,-x
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
   define PREBUILDCMDS
   endef

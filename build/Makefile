@@ -11,25 +11,34 @@ ifndef verbose
 endif
 
 ifeq ($(config),debug)
+  tess2_config = debug
   unit_test_config = debug
 endif
 ifeq ($(config),release)
+  tess2_config = release
   unit_test_config = release
 endif
 
-PROJECTS := unit-test
+PROJECTS := tess2 unit-test
 
 .PHONY: all clean help $(PROJECTS) 
 
 all: $(PROJECTS)
 
-unit-test:
+tess2:
+ifneq (,$(tess2_config))
+	@echo "==== Building tess2 ($(tess2_config)) ===="
+	@${MAKE} --no-print-directory -C . -f tess2.make config=$(tess2_config)
+endif
+
+unit-test: tess2
 ifneq (,$(unit_test_config))
 	@echo "==== Building unit-test ($(unit_test_config)) ===="
 	@${MAKE} --no-print-directory -C unit-test -f Makefile config=$(unit_test_config)
 endif
 
 clean:
+	@${MAKE} --no-print-directory -C . -f tess2.make clean
 	@${MAKE} --no-print-directory -C unit-test -f Makefile clean
 
 help:
@@ -42,6 +51,7 @@ help:
 	@echo "TARGETS:"
 	@echo "   all (default)"
 	@echo "   clean"
+	@echo "   tess2"
 	@echo "   unit-test"
 	@echo ""
 	@echo "For more information, see http://industriousone.com/premake/quick-start"
