@@ -1,3 +1,6 @@
 [submodule "3rd/catch"]
 	path = 3rd/catch
 	url = https://github.com/philsquared/Catch.git
+[submodule "3rd/libtess2"]
+	path = 3rd/libtess2
+	url = https://github.com/memononen/libtess2.git
