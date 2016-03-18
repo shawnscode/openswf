@@ -201,8 +201,15 @@ namespace openswf
 
     struct Point
     {
-        uint32_t x, y;
-        Point(uint32_t x, uint32_t y) : x(x), y(y) {}
+        int32_t x, y;
+
+        Point() : x(0), y(0) {}
+        Point(int32_t x, int32_t y) : x(x), y(y) {}
+
+        bool operator ==(const Point& rh) const
+        { 
+            return this->x == rh.x && this->y ==rh.y; 
+        }
     };
 
     // a rectangle value represents a rectangular region defined by a minimum 

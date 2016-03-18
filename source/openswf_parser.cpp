@@ -180,7 +180,7 @@ namespace openswf
             uint32_t fill_index_bits = stream.read_bits_as_uint32(4);
             uint32_t line_index_bits = stream.read_bits_as_uint32(4);
             uint32_t fill_index_base = 0, line_index_base = 0;
-            int32_t  cursor_x = 0, cursor_y = 0;
+            Point cursor;
 
             ShapePath current_path;
             auto push_path = [&]()
@@ -191,8 +191,7 @@ namespace openswf
                     current_path.reset();
                 }
 
-                current_path.x = cursor_x;
-                current_path.y = cursor_y;
+                current_path.start = cursor;
             };
 
             bool finished = false;
@@ -213,8 +212,8 @@ namespace openswf
                     if( mask & 0x01 ) // StateMoveTo
                     {
                         uint8_t bits = stream.read_bits_as_uint32(5);
-                        cursor_x = stream.read_bits_as_int32(bits);
-                        cursor_y = stream.read_bits_as_int32(bits);
+                        cursor.x = stream.read_bits_as_int32(bits);
+                        cursor.y = stream.read_bits_as_int32(bits);
 
                         push_path();
                     }
@@ -223,17 +222,17 @@ namespace openswf
                     {
                         push_path();
 
-                        current_path.fill_0 = stream.read_bits_as_uint32(fill_index_bits);
-                        if( current_path.fill_0 > 0 )
-                            current_path.fill_0 += fill_index_base;
+                        current_path.left_fill = stream.read_bits_as_uint32(fill_index_bits);
+                        if( current_path.left_fill > 0 )
+                            current_path.left_fill += fill_index_base;
                     }
 
                     if( (mask & 0x04) && fill_index_bits > 0 ) // StateFillStyle1
                     {
                         push_path();
-                        current_path.fill_1 = stream.read_bits_as_uint32(fill_index_bits);
-                        if( current_path.fill_1 > 0 )
-                            current_path.fill_1 += fill_index_base;
+                        current_path.right_fill = stream.read_bits_as_uint32(fill_index_bits);
+                        if( current_path.right_fill > 0 )
+                            current_path.right_fill += fill_index_base;
                     }
 
                     if( (mask & 0x08) && line_index_bits > 0 ) // StateLineStyle
@@ -278,10 +277,10 @@ namespace openswf
                                 dx = stream.read_bits_as_int32(bits);
                         }
 
-                        cursor_x += dx;
-                        cursor_y += dy;
+                        cursor.x += dx;
+                        cursor.y += dy;
 
-                        current_path.edges.push_back(ShapeEdge(cursor_x, cursor_y, cursor_x, cursor_y));
+                        current_path.edges.push_back(ShapeEdge(cursor));
                     }
                     else // CurvedEdgeRecord
                     {
@@ -292,8 +291,8 @@ namespace openswf
                         auto ay     = stream.read_bits_as_int32(bits);
 
                         current_path.edges.push_back(ShapeEdge(cx, cy, ax, ay));
-                        cursor_x = ax;
-                        cursor_y = ay;
+                        cursor.x = ax;
+                        cursor.y = ay;
                     }
                 }
             }
