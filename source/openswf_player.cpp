@@ -3,19 +3,47 @@
 
 namespace openswf
 {
-    PlaceCommand::PlaceCommand(const record::PlaceObject& def)
-        : character_id(def.character_id), depth(def.depth), transform(def.matrix), cxform(def.cxform) {}
+    PlaceCommand* PlaceCommand::create(const record::PlaceObject& def)
+    {
+        auto cmd = new (std::nothrow) PlaceCommand();
+        if( !cmd ) return nullptr;
 
-    PlaceCommand::PlaceCommand(const record::PlaceObject2& def)
-        : character_id(def.character_id), depth(def.depth), transform(def.matrix), cxform(def.cxform) {}
+        cmd->character_id = def.character_id;
+        cmd->depth        = def.depth;
+        cmd->transform    = def.matrix;
+        cmd->cxform       = def.cxform;
+
+        return cmd;
+    }
+
+    PlaceCommand* PlaceCommand::create(const record::PlaceObject2& def)
+    {
+        auto cmd = new (std::nothrow) PlaceCommand();
+        if( !cmd ) return nullptr;
+
+        cmd->character_id = def.character_id;
+        cmd->depth        = def.depth;
+        cmd->transform    = def.matrix;
+        cmd->cxform       = def.cxform;
+
+        return cmd;
+    }
 
     void PlaceCommand::execute(Player* player)
     {
         player->place(character_id, depth, transform, cxform);
     }
 
-    RemoveCommand::RemoveCommand(const record::RemoveObject& def)
-        : character_id(def.character_id), depth(def.depth) {}
+    RemoveCommand* RemoveCommand::create(const record::RemoveObject& def)
+    {
+        auto cmd = new (std::nothrow) RemoveCommand();
+        if( !cmd ) return nullptr;
+
+        cmd->character_id = def.character_id;
+        cmd->depth        = def.depth;
+
+        return cmd;
+    }
 
     void RemoveCommand::execute(Player* player)
     {

@@ -8,6 +8,7 @@ namespace openswf
     struct ICharactor 
     {
         virtual void render() = 0;
+        // virtual void render(const Matrix& transform, const ColorTransform& cxform) = 0;
         virtual ~ICharactor() {}
     };
 
@@ -32,10 +33,20 @@ namespace openswf
         Color       rgba;
     };
 
+    struct ShapeMeshSet
+    {
+
+    };
+
     namespace record { class DefineShape; }
     struct Shape : public ICharactor
     {
-        Shape(const record::DefineShape& def);
+        static Shape* create(const record::DefineShape& def);
+
+        //
+        Shape();
+        bool initialize(const record::DefineShape& def);
         virtual void render() {}
+        // virtual void render(const Matrix& transform, const ColorTransform& cxform);
     };
 }

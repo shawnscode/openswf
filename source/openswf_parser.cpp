@@ -20,42 +20,42 @@ namespace openswf
                 case TagCode::DEFINE_SHAPE:
                 {
                     auto def = DefineShape::read(stream, 1);
-                    player->define(def.character_id, new Shape(def));
+                    player->define(def.character_id, Shape::create(def));
                     break;
                 }
 
                 case TagCode::DEFINE_SHAPE2:
                 {
                     auto def = DefineShape::read(stream, 2);
-                    player->define(def.character_id, new Shape(def));
+                    player->define(def.character_id, Shape::create(def));
                     break;
                 }
 
                 case TagCode::DEFINE_SHAPE3:
                 {
                     auto def = DefineShape::read(stream, 3);
-                    player->define(def.character_id, new Shape(def));
+                    player->define(def.character_id, Shape::create(def));
                     break;
                 }
 
                 case TagCode::PLACE_OBJECT:
                 {
                     auto def = PlaceObject::read(stream, tag.size);
-                    player->push_command(new PlaceCommand(def));
+                    player->push_command(PlaceCommand::create(def));
                     break;
                 }
 
                 case TagCode::PLACE_OBJECT2:
                 {
                     auto def = PlaceObject2::read(stream);
-                    player->push_command(new PlaceCommand(def));
+                    player->push_command(PlaceCommand::create(def));
                     break;
                 }
 
                 case TagCode::REMOVE_OBJECT:
                 {
                     auto def = RemoveObject::read(stream);
-                    player->push_command(new RemoveCommand(def));
+                    player->push_command(RemoveCommand::create(def));
                     break;
                 }
 

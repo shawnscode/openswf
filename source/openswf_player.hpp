@@ -61,25 +61,27 @@ namespace openswf
     namespace record { struct PlaceObject; struct PlaceObject2; }
     struct PlaceCommand : public IFrameCommand
     {
+        static PlaceCommand* create(const record::PlaceObject&);
+        static PlaceCommand* create(const record::PlaceObject2&);
+
         uint16_t        character_id;
         uint16_t        depth;
         Matrix          transform;
         ColorTransform  cxform;
 
-        PlaceCommand(const record::PlaceObject&);
-        PlaceCommand(const record::PlaceObject2&);
-
+        PlaceCommand() : character_id(0), depth(0) {}
         virtual void execute(Player* parent);
     };
 
     namespace record { struct RemoveObject; }
     struct RemoveCommand : public IFrameCommand
     {
+        static RemoveCommand* create(const record::RemoveObject&);
+
         uint16_t        character_id;
         uint16_t        depth;
 
-        RemoveCommand(const record::RemoveObject&);
-
+        RemoveCommand() : character_id(0), depth(0) {}
         virtual void execute(Player* parent);
     };
 

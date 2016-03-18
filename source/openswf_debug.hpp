@@ -2,6 +2,6 @@
 
 #include <cassert>
 
-#define LERROR(a, b)
-#define LWARNING(a, b)
-#define LINFO(a, b)
+#define LERROR(message) printf("[%s] %s", "ERRO", message);
+#define LWARNING(message) printf("[%s] %s", "WARN", message);
+#define LINFO(message) printf("[%s] %s", "INFO", message);
