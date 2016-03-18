@@ -11,7 +11,6 @@ namespace openswf
         virtual ~ICharactor() {}
     };
 
-
     struct FillStyle
     {
         typedef std::vector<FillStyle> Array;
@@ -36,7 +35,7 @@ namespace openswf
     namespace record { class DefineShape; }
     struct Shape : public ICharactor
     {
-        Shape(const record::DefineShape& def) {}
+        Shape(const record::DefineShape& def);
         virtual void render() {}
     };
 }

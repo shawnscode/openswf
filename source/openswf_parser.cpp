@@ -128,8 +128,7 @@ namespace openswf
             return ShowFrame();
         }
 
-        // TAG: 2
-
+        // TAG: 2, 22, 32
         void DefineShape::read_line_styles(Stream& stream, LineStyle::Array& array, int type)
         {
             uint8_t count = stream.read_uint8();
@@ -178,77 +177,125 @@ namespace openswf
             read_line_styles(stream, record.line_styles, type);
 
             // parse shape records
-            record.fill_index_bits = stream.read_bits_as_uint32(4);
-            record.line_index_bits = stream.read_bits_as_uint32(4);
+            uint32_t fill_index_bits = stream.read_bits_as_uint32(4);
+            uint32_t line_index_bits = stream.read_bits_as_uint32(4);
+            uint32_t fill_index_base = 0, line_index_base = 0;
+            int32_t  cursor_x = 0, cursor_y = 0;
+
+            ShapePath current_path;
+            auto push_path = [&]()
+            {
+                if( !current_path.edges.empty() )
+                {
+                    record.paths.push_back(current_path);
+                    current_path.reset();
+                }
+
+                current_path.x = cursor_x;
+                current_path.y = cursor_y;
+            };
 
             bool finished = false;
-            while( !finished )
-            {
-                ShapeRecord shape;
 
+            while( true )
+            {
                 bool is_edge = stream.read_bits_as_uint32(1) > 0;
                 if( !is_edge )
                 {
                     uint32_t mask = stream.read_bits_as_uint32(5);
-                    if( mask == 0x00 )
+                    if( mask == 0x00 ) // EndShapeRecord
                     {
-                        finished = true;
+                        push_path();
                         break;
                     }
 
+                    // StyleChangeRecord
                     if( mask & 0x01 ) // StateMoveTo
                     {
                         uint8_t bits = stream.read_bits_as_uint32(5);
-                        shape.move_delta_x = stream.read_bits_as_int32(bits);
-                        shape.move_delta_y = stream.read_bits_as_int32(bits);
+                        cursor_x = stream.read_bits_as_int32(bits);
+                        cursor_y = stream.read_bits_as_int32(bits);
+
+                        push_path();
                     }
 
-                    if( mask & 0x02 ) // StateFillStyle0
-                        shape.fill_style_0 = stream.read_bits_as_uint32(record.fill_index_bits);
+                    if( (mask & 0x02) && fill_index_bits > 0 ) // StateFillStyle0
+                    {
+                        push_path();
 
-                    if( mask & 0x04 ) // StateFillStyle1
-                        shape.fill_style_1 = stream.read_bits_as_uint32(record.fill_index_bits);
+                        current_path.fill_0 = stream.read_bits_as_uint32(fill_index_bits);
+                        if( current_path.fill_0 > 0 )
+                            current_path.fill_0 += fill_index_base;
+                    }
 
-                    if( mask & 0x08 ) // StateLineStyle
-                        shape.line_style = stream.read_bits_as_uint32(record.line_index_bits);
+                    if( (mask & 0x04) && fill_index_bits > 0 ) // StateFillStyle1
+                    {
+                        push_path();
+                        current_path.fill_1 = stream.read_bits_as_uint32(fill_index_bits);
+                        if( current_path.fill_1 > 0 )
+                            current_path.fill_1 += fill_index_base;
+                    }
+
+                    if( (mask & 0x08) && line_index_bits > 0 ) // StateLineStyle
+                    {
+                        push_path();
+                        current_path.line = stream.read_bits_as_uint32(line_index_bits);
+                    }
 
                     if( mask & 0x10 ) // StateNewStyles, used by DefineShape2, DefineShape3 only.
                     {
                         assert( type >= 2 );
-                        read_fill_styles(stream, shape.new_fill_styles, type);
-                        read_line_styles(stream, shape.new_line_styles, type);
-                        shape.fill_index_bits = stream.read_bits_as_uint32(4);
-                        shape.line_index_bits = stream.read_bits_as_uint32(4);
+                        push_path();
+                        // ???
+
+                        fill_index_base = record.fill_styles.size();
+                        line_index_base = record.line_styles.size();
+                        read_fill_styles(stream, record.fill_styles, type);
+                        read_line_styles(stream, record.line_styles, type);
+                        fill_index_bits = stream.read_bits_as_uint32(4);
+                        line_index_bits = stream.read_bits_as_uint32(4);
                     }
                 }
                 else
                 {
                     bool is_straight = stream.read_bits_as_uint32(1) > 0;
-                    if( is_straight )
+                    if( is_straight ) // StraightEdgeRecrod
                     {
-                        auto bits = stream.read_bits_as_uint32(4);
+                        int32_t dx = 0, dy = 0;
+                        auto bits = stream.read_bits_as_uint32(4) + 2;
                         auto is_general = stream.read_bits_as_uint32(1) > 0;
                         if( is_general )
                         {
-                            shape.move_delta_x = stream.read_bits_as_int32(bits+2);
-                            shape.move_delta_y = stream.read_bits_as_int32(bits+2);
-                            continue;
+                            dx = stream.read_bits_as_int32(bits);
+                            dy = stream.read_bits_as_int32(bits);
                         }
-
-                        auto is_vertical = stream.read_bits_as_uint32(1) > 0;
-                        if( is_vertical )
+                        else
                         {
-                            shape.move_delta_y = stream.read_bits_as_int32(bits+2);
-                            continue;
+                            auto is_vertical = stream.read_bits_as_uint32(1) > 0;
+                            if( is_vertical )
+                                dy = stream.read_bits_as_int32(bits);
+                            else
+                                dx = stream.read_bits_as_int32(bits);
                         }
 
-                        shape.move_delta_x = stream.read_bits_as_int32(bits+2);
-                    }
-                    else // curved edges
-                        assert(false);
-                }
+                        cursor_x += dx;
+                        cursor_y += dy;
 
-                record.records.push_back(shape);
+                        current_path.edges.push_back(ShapeEdge(cursor_x, cursor_y, cursor_x, cursor_y));
+                    }
+                    else // CurvedEdgeRecord
+                    {
+                        auto bits   = stream.read_bits_as_uint32(4) + 2;
+                        auto cx     = stream.read_bits_as_int32(bits);
+                        auto cy     = stream.read_bits_as_int32(bits);
+                        auto ax     = stream.read_bits_as_int32(bits);
+                        auto ay     = stream.read_bits_as_int32(bits);
+
+                        current_path.edges.push_back(ShapeEdge(cx, cy, ax, ay));
+                        cursor_x = ax;
+                        cursor_y = ay;
+                    }
+                }
             }
 
             return record;

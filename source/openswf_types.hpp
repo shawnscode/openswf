@@ -199,6 +199,12 @@ namespace openswf
         NON_SMOOTHED_CLIPPED_BITMAP     = 0x43
     };
 
+    struct Point
+    {
+        uint32_t x, y;
+        Point(uint32_t x, uint32_t y) : x(x), y(y) {}
+    };
+
     // a rectangle value represents a rectangular region defined by a minimum 
     // x- and y-coordinate position and a maximum x- and y-coordinate position.
     class Rect 

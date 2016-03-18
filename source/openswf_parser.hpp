@@ -82,25 +82,33 @@ namespace openswf
         // TAG = 32
         // DefineShape3 extends the capabilities of DefineShape2 by extending all
         // of the RGB color fields to support RGBA with opacity information.
-        struct ShapeRecord
+        struct ShapeEdge
         {
-            typedef std::vector<ShapeRecord> Array;
+            typedef std::vector<ShapeEdge> Array;
 
-            uint32_t    move_delta_x; // in twips
-            uint32_t    move_delta_y;
+            ShapeEdge(int32_t cx, int32_t cy, int32_t ax, int32_t ay)
+                : control_x(cx), control_y(cy), anchor_x(ax), anchor_y(ay) {}
 
-            uint32_t    fill_style_0;
-            uint32_t    fill_style_1;
-            uint32_t    line_style;
+            int32_t control_x, control_y;
+            int32_t anchor_x, anchor_y;
+        };
 
-            FillStyle::Array    new_fill_styles;
-            LineStyle::Array    new_line_styles;
-            uint8_t             fill_index_bits;
-            uint8_t             line_index_bits;
+        struct ShapePath
+        {
+            typedef std::vector<ShapePath> Array;
 
-            ShapeRecord() 
-            :   move_delta_x(0), move_delta_y(0), fill_style_0(0), fill_style_1(0),
-                fill_index_bits(0), line_index_bits(0) {}
+            int                 x, y;
+            uint32_t            fill_0;     // left of vector
+            uint32_t            fill_1;     // right of vector
+            uint32_t            line;
+            ShapeEdge::Array    edges;
+
+            ShapePath() : x(0), y(0), fill_0(0), fill_1(0), line(0) {}
+            void reset()
+            {
+                x = y = fill_0 = fill_1 = line = 0;
+                edges.clear();
+            }
         };
 
         struct DefineShape
@@ -108,13 +116,13 @@ namespace openswf
             uint16_t            character_id;
             Rect                bounds;         // bounds of shape
 
-            //
+            // * the style arrays begin at index 1
             FillStyle::Array    fill_styles;
             LineStyle::Array    line_styles;
             uint32_t            fill_index_bits;
             uint32_t            line_index_bits;
 
-            ShapeRecord::Array  records;
+            ShapePath::Array    paths;
 
             static DefineShape read(Stream& stream, int type = 1);
 
