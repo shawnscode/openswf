@@ -109,17 +109,15 @@ TEST_CASE("DEFINE-SHAPE-PARSE", "[OPENSWF]")
         auto& path = def.paths[i];
         auto& compare = paths[i];
 
-        REQUIRE( path.fill_0 == fill_0_array[i] );
-        REQUIRE( path.fill_1 == fill_1_array[i] );
+        REQUIRE( path.left_fill == fill_0_array[i] );
+        REQUIRE( path.right_fill == fill_1_array[i] );
         REQUIRE( path.line == line_array[i] );
 
-        REQUIRE( path.x == compare[0].x );
-        REQUIRE( path.y == compare[0].y );
+        REQUIRE( path.start == compare[0] );
         REQUIRE( path.edges.size() == compare.size() - 1 );
         for( int i=0; i<path.edges.size(); i++ )
         {
-            REQUIRE( path.edges[i].anchor_x == compare[i+1].x );
-            REQUIRE( path.edges[i].anchor_y == compare[i+1].y );
+            REQUIRE( path.edges[i].anchor == compare[i+1] );
         }
     }
 }
