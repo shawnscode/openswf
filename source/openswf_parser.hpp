@@ -124,9 +124,6 @@ namespace openswf
             // * the style arrays begin at index 1
             FillStyle::Array    fill_styles;
             LineStyle::Array    line_styles;
-            uint32_t            fill_index_bits;
-            uint32_t            line_index_bits;
-
             ShapePath::Array    paths;
 
             static DefineShape read(Stream& stream, int type = 1);

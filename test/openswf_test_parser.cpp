@@ -120,4 +120,6 @@ TEST_CASE("DEFINE-SHAPE-PARSE", "[OPENSWF]")
             REQUIRE( path.edges[i].anchor == compare[i+1] );
         }
     }
+
+    Shape::create(def);
 }

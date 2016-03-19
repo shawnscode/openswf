@@ -33,20 +33,28 @@ namespace openswf
         Color       rgba;
     };
 
-    struct ShapeMeshSet
-    {
 
-    };
 
-    namespace record { class DefineShape; }
+    typedef std::vector<Point2f>    Segments;
+    typedef std::vector<Segments>   Contours;
+
+    namespace record { class DefineShape; class ShapePath; }
+
     struct Shape : public ICharactor
     {
-        static Shape* create(const record::DefineShape& def);
+        Rect                    bounds;
+        std::vector<Point2f>    vertices;
+        std::vector<uint16_t>   indexs;
 
-        //
         Shape();
         bool initialize(const record::DefineShape& def);
         virtual void render() {}
         // virtual void render(const Matrix& transform, const ColorTransform& cxform);
+
+        static Shape* create(const record::DefineShape& def);
+
+        static void contour_push_path(Contours& contours, const record::ShapePath& path);
+        static bool contour_merge_segments(Contours& contours, Segments& segments);
+        static void contour_add_curve(Segments& segments, const Point2f& prev, const Point2f& ctrl, const Point2f& next, int depth = 0);
     };
 }

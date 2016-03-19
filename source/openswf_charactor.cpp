@@ -5,107 +5,98 @@
 #include "openswf_charactor.hpp"
 #include "openswf_parser.hpp"
 
+extern "C" {
+    #include "tesselator.h"
+}
+
 namespace openswf
 {
 
-    typedef std::vector<Point2f> Segments;
-
     const uint32_t  MAX_CURVE_SUBDIVIDE = 20;
     const float     CURVE_TOLERANCE     = 1.0f;
+    const uint32_t  MAX_POOL_SIZE       = 128*1024; // 128 kb
+    const uint32_t  MAX_POLYGON_SIZE    = 6;
 
-    struct SubShape
+    void Shape::contour_push_path(Contours& contours, const record::ShapePath& path)
     {
-        bool                    is_fill;
-        std::vector<Segments>   contours;
+        Segments segments;
+        segments.reserve(path.edges.size() + 1);
+        segments.push_back(path.start);
 
-        SubShape(bool fill) : is_fill(fill) {}
-
-        void push_path(const record::ShapePath& path)
+        Point2f last = path.start;
+        for( auto& edge : path.edges )
         {
-            Segments segments;
-            segments.reserve(path.edges.size() + 1);
-            segments.push_back(path.start);
-
-            Point2f last = path.start;
-            for( auto& edge : path.edges )
-            {
-                if( edge.control == edge.anchor )
-                    segments.push_back(edge.anchor);
-                else
-                    add_curve(segments, last, edge.control, edge.anchor);
-
-                last = edge.anchor;
-            }
-
-            if( !this->is_fill || !merge_segments(segments) )
-                this->contours.push_back(segments);
-        }
-
-        bool merge_segments(Segments& next)
-        {
-            for( auto& segments : this->contours )
-            {
-                if(segments.front() == next.back())
-                {
-                    next.pop_back();
-
-                    next.reserve(next.size() + segments.size());
-                    next.insert(next.end(), segments.begin(), segments.end());
-                    segments = std::move(next);
-                    return true;
-                }
-                else if(segments.back() == next.front())
-                {
-                    segments.pop_back();
-
-                    segments.reserve(segments.size() + next.size());
-                    segments.insert(segments.end(), next.begin(), next.end());
-                    return true;
-                }
-                else if(segments.back() == next.back())
-                {
-                    next.pop_back();
-                    std::reverse(next.begin(), next.end());
-
-                    segments.reserve(next.size() + segments.size());
-                    segments.insert(segments.end(), next.begin(), next.end());
-                    return true;
-                }
-                else if(segments.front() == next.front())
-                {
-                    std::reverse(next.begin(), next.end());
-                    next.pop_back();
-
-                    next.reserve(next.size() + segments.size());
-                    next.insert(next.end(), segments.begin(), segments.end());
-                    segments = std::move(next);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        void add_curve(Segments& segments, const Point2f& prev, const Point2f& ctrl, const Point2f& next, int depth = 0)
-        {
-            Point2f mid = (prev + next) * 0.5f;
-            Point2f q = (mid + ctrl) * 0.5f;
-
-            float dist = std::abs((mid.x - q.x)) + std::abs(mid.y - q.y);
-            if( dist < CURVE_TOLERANCE || depth >= MAX_CURVE_SUBDIVIDE )
-                segments.push_back(next);
+            if( edge.control == edge.anchor )
+                segments.push_back(edge.anchor);
             else
+                contour_add_curve(segments, last, edge.control, edge.anchor);
+
+            last = edge.anchor;
+        }
+
+        if( !contour_merge_segments(contours, segments) )
+            contours.push_back(std::move(segments));
+    }
+
+    bool Shape::contour_merge_segments(Contours& contours, Segments& next)
+    {
+        for( auto& segments : contours )
+        {
+            if(segments.front() == next.back())
             {
-                // subdivide
-                add_curve(segments, prev, (prev + ctrl) * 0.5f, q, depth + 1);
-                add_curve(segments, q, (ctrl + next) * 0.5f, next, depth + 1);
+                next.pop_back();
+
+                next.reserve(next.size() + segments.size());
+                next.insert(next.end(), segments.begin(), segments.end());
+                segments = std::move(next);
+                return true;
+            }
+            else if(segments.back() == next.front())
+            {
+                segments.pop_back();
+
+                segments.reserve(segments.size() + next.size());
+                segments.insert(segments.end(), next.begin(), next.end());
+                return true;
+            }
+            else if(segments.back() == next.back())
+            {
+                next.pop_back();
+                std::reverse(next.begin(), next.end());
+
+                segments.reserve(next.size() + segments.size());
+                segments.insert(segments.end(), next.begin(), next.end());
+                return true;
+            }
+            else if(segments.front() == next.front())
+            {
+                std::reverse(next.begin(), next.end());
+                next.pop_back();
+
+                next.reserve(next.size() + segments.size());
+                next.insert(next.end(), segments.begin(), segments.end());
+                segments = std::move(next);
+                return true;
             }
         }
+        return false;
+    }
 
-        void tesselate(std::vector<Point2f>& vertices, std::vector<uint32_t>& indexes)
+    void Shape::contour_add_curve(Segments& segments, const Point2f& prev, const Point2f& ctrl, const Point2f& next, int depth)
+    {
+        Point2f mid = (prev + next) * 0.5f;
+        Point2f q = (mid + ctrl) * 0.5f;
+
+        float dist = std::abs((mid.x - q.x)) + std::abs(mid.y - q.y);
+        if( dist < CURVE_TOLERANCE || depth >= MAX_CURVE_SUBDIVIDE )
+            segments.push_back(next);
+        else
         {
-
+            // subdivide
+            contour_add_curve(segments, prev, (prev + ctrl) * 0.5f, q, depth + 1);
+            contour_add_curve(segments, q, (ctrl + next) * 0.5f, next, depth + 1);
         }
-    };
+    }
 
     Shape* Shape::create(const record::DefineShape& def)
     {
@@ -123,31 +114,67 @@ namespace openswf
 
     bool Shape::initialize(const record::DefineShape& def)
     {
-        auto polygons = std::vector<SubShape>(def.fill_styles.size(), SubShape(true));
-        auto lines = std::vector<SubShape>(def.fill_styles.size(), SubShape(false));
+        this->bounds = def.bounds;
 
-        // for( int i=0; i<polygons.size(); i++ ) polygons[i].style = i + 1;
-        // for( int i=0; i<lines.size(); i++ ) lines[i].style = i + 1;
+        auto polygons = std::vector<Contours>(def.fill_styles.size(), Contours());
+        auto lines = std::vector<Contours>(def.line_styles.size(), Contours());
 
+        // 
         for( auto& path : def.paths )
         {
             assert( path.edges.size() != 0 );
+
             if( path.left_fill > 0 ) 
-                polygons[path.left_fill-1].push_path(path);
+                contour_push_path( polygons[path.left_fill-1], path );
+
             if( path.right_fill > 0 )
-                polygons[path.right_fill-1].push_path(path);
+                contour_push_path( polygons[path.right_fill-1], path );
+
             if( path.line > 0 )
-                lines[path.line-1].push_path(path);
+                contour_push_path( lines[path.line-1], path );
         }
 
-        // for( auto& polygon : polygons )
-        // {
-        //     polygon.tesselate();
-        // }
+        // tesselate polygons
+        auto tess = tessNewTess(nullptr);
+        if( !tess ) return false;
 
+        for( auto& mesh_set : polygons )
+        {
+            for( auto& mesh : mesh_set )
+                tessAddContour(tess, 2, &mesh[0], sizeof(Point2f), mesh.size());
+        }
+
+        if( !tessTesselate(tess, TESS_WINDING_ODD, TESS_POLYGONS, MAX_POLYGON_SIZE, 2, 0) )
+        {
+            tessDeleteTess(tess);
+            return false;
+        }
+
+        const TESSreal* vertices = tessGetVertices(tess);
+        const TESSindex vcount = tessGetVertexCount(tess);
+        const TESSindex nelems = tessGetElementCount(tess);
+        const TESSindex* elems = tessGetElements(tess);
+
+        this->vertices.clear();
+        this->vertices.reserve(vcount);
+        for( int i=0; i<vcount; i++ )
+            this->vertices.push_back(Point2f(vertices[i*2], vertices[i*2+1]));
+
+        this->indexs.reserve(nelems*(MAX_POLYGON_SIZE-2)*3);
+        for( int i=0; i<nelems; i++ )
+        {
+            const int* p = &elems[i*MAX_POLYGON_SIZE];
+            assert(p[0] != TESS_UNDEF && p[1] != TESS_UNDEF && p[2] != TESS_UNDEF);
+            for( int j=2; j<MAX_POLYGON_SIZE && p[j] != TESS_UNDEF; j++ )
+            {
+                this->indexs.push_back(p[0]);
+                this->indexs.push_back(p[1]);
+                this->indexs.push_back(p[j]);
+            }
+        }
+
+        tessDeleteTess(tess);
         return true;
     }
-
-
 
 }
