@@ -44,7 +44,7 @@ namespace openswf
     {
         Rect                    bounds;
         std::vector<Point2f>    vertices;
-        std::vector<uint16_t>   indexs;
+        std::vector<uint16_t>   indices;
 
         Shape();
         bool initialize(const record::DefineShape& def);

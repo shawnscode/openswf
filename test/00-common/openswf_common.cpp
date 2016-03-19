@@ -1,9 +1,7 @@
-#define CATCH_CONFIG_MAIN
-
 #include <memory>
 #include <fstream>
 
-#include "openswf_test.hpp"
+#include "openswf_common.hpp"
 
 using namespace openswf;
 using namespace openswf::record;

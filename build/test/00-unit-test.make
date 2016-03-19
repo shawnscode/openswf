@@ -13,45 +13,18 @@ endif
 ifeq ($(config),debug)
   RESCOMP = windres
   TARGETDIR = bin/debug
-  TARGET = $(TARGETDIR)/unit-test
-  OBJDIR = obj/debug
+  TARGET = $(TARGETDIR)/00-unit-test
+  OBJDIR = obj/debug/00-unit-test
   DEFINES += -DDEBUG
-  INCLUDES += -I../../3rd/catch/include -I../../3rd/libtess2/Include -I../../source
+  INCLUDES += -I../../3rd/catch/include -I../../3rd/libtess2/Include -I../../3rd/glfw/include -I../../source -I../../test/00-common
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g -std=c++11 -stdlib=libc++
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CFLAGS)
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += ../../libs/libtess2.a
-  LDDEPS += ../../libs/libtess2.a
-  ALL_LDFLAGS += $(LDFLAGS) -L../../libs
-  LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
-  define PREBUILDCMDS
-  endef
-  define PRELINKCMDS
-  endef
-  define POSTBUILDCMDS
-  endef
-all: $(TARGETDIR) $(OBJDIR) prebuild prelink $(TARGET)
-	@:
-
-endif
-
-ifeq ($(config),release)
-  RESCOMP = windres
-  TARGETDIR = bin/release
-  TARGET = $(TARGETDIR)/unit-test
-  OBJDIR = obj/release
-  DEFINES += -DNDEBUG
-  INCLUDES += -I../../3rd/catch/include -I../../3rd/libtess2/Include -I../../source
-  FORCE_INCLUDE +=
-  ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
-  ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O2 -std=c++11 -stdlib=libc++
-  ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CFLAGS)
-  ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += ../../libs/libtess2.a
-  LDDEPS += ../../libs/libtess2.a
-  ALL_LDFLAGS += $(LDFLAGS) -L../../libs -Wl,-x
+  LIBS += -ltess2 -lopenswf
+  LDDEPS +=
+  ALL_LDFLAGS += $(LDFLAGS) -L../../libs/3rd -L../../libs -L/usr/local/lib
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
   define PREBUILDCMDS
   endef
@@ -65,11 +38,7 @@ all: $(TARGETDIR) $(OBJDIR) prebuild prelink $(TARGET)
 endif
 
 OBJECTS := \
-	$(OBJDIR)/openswf_charactor.o \
-	$(OBJDIR)/openswf_parser.o \
-	$(OBJDIR)/openswf_player.o \
-	$(OBJDIR)/openswf_stream.o \
-	$(OBJDIR)/openswf_types.o \
+	$(OBJDIR)/openswf_common.o \
 	$(OBJDIR)/openswf_test.o \
 	$(OBJDIR)/openswf_test_parser.o \
 	$(OBJDIR)/openswf_test_stream.o \
@@ -87,7 +56,7 @@ ifeq (/bin,$(findstring /bin,$(SHELL)))
 endif
 
 $(TARGET): $(GCH) ${CUSTOMFILES} $(OBJECTS) $(LDDEPS) $(RESOURCES)
-	@echo Linking unit-test
+	@echo Linking 00-unit-test
 	$(SILENT) $(LINKCMD)
 	$(POSTBUILDCMDS)
 
@@ -108,7 +77,7 @@ else
 endif
 
 clean:
-	@echo Cleaning unit-test
+	@echo Cleaning 00-unit-test
 ifeq (posix,$(SHELLTYPE))
 	$(SILENT) rm -f  $(TARGET)
 	$(SILENT) rm -rf $(OBJDIR)
@@ -130,28 +99,16 @@ $(GCH): $(PCH)
 	$(SILENT) $(CXX) -x c++-header $(ALL_CXXFLAGS) -o "$@" -MF "$(@:%.gch=%.d)" -c "$<"
 endif
 
-$(OBJDIR)/openswf_charactor.o: ../../source/openswf_charactor.cpp
+$(OBJDIR)/openswf_common.o: ../../test/00-common/openswf_common.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_parser.o: ../../source/openswf_parser.cpp
+$(OBJDIR)/openswf_test.o: ../../test/01-unit-test/openswf_test.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_player.o: ../../source/openswf_player.cpp
+$(OBJDIR)/openswf_test_parser.o: ../../test/01-unit-test/openswf_test_parser.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_stream.o: ../../source/openswf_stream.cpp
-	@echo $(notdir $<)
-	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_types.o: ../../source/openswf_types.cpp
-	@echo $(notdir $<)
-	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_test.o: ../../test/unit-test/openswf_test.cpp
-	@echo $(notdir $<)
-	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_test_parser.o: ../../test/unit-test/openswf_test_parser.cpp
-	@echo $(notdir $<)
-	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_test_stream.o: ../../test/unit-test/openswf_test_stream.cpp
+$(OBJDIR)/openswf_test_stream.o: ../../test/01-unit-test/openswf_test_stream.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 

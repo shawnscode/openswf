@@ -10,5 +10,11 @@ before_install:
 script:
     - ./premake5 gmake
     - cd build
-    - make config=debug unit-test
-    - ./unit-test/bin/debug/unit-test
+    - cd 3rd
+    - make
+    - cd ../openswf
+    - make config=debug openswf
+    - cd ../test
+    - make
+    - cd ..
+    - ./test/bin/debug/00-unit-test

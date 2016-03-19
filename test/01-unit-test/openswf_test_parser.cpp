@@ -1,3 +1,4 @@
+#include "catch.hpp"
 #include "openswf_test.hpp"
 
 using namespace openswf;

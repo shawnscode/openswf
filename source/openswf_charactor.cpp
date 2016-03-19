@@ -160,16 +160,16 @@ namespace openswf
         for( int i=0; i<vcount; i++ )
             this->vertices.push_back(Point2f(vertices[i*2], vertices[i*2+1]));
 
-        this->indexs.reserve(nelems*(MAX_POLYGON_SIZE-2)*3);
+        this->indices.reserve(nelems*(MAX_POLYGON_SIZE-2)*3);
         for( int i=0; i<nelems; i++ )
         {
             const int* p = &elems[i*MAX_POLYGON_SIZE];
             assert(p[0] != TESS_UNDEF && p[1] != TESS_UNDEF && p[2] != TESS_UNDEF);
             for( int j=2; j<MAX_POLYGON_SIZE && p[j] != TESS_UNDEF; j++ )
             {
-                this->indexs.push_back(p[0]);
-                this->indexs.push_back(p[1]);
-                this->indexs.push_back(p[j]);
+                this->indices.push_back(p[0]);
+                this->indices.push_back(p[1]);
+                this->indices.push_back(p[j]);
             }
         }
 
