@@ -145,13 +145,13 @@ $(OBJDIR)/openswf_stream.o: ../../source/openswf_stream.cpp
 $(OBJDIR)/openswf_types.o: ../../source/openswf_types.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_test.o: ../../test/openswf_test.cpp
+$(OBJDIR)/openswf_test.o: ../../test/unit-test/openswf_test.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_test_parser.o: ../../test/openswf_test_parser.cpp
+$(OBJDIR)/openswf_test_parser.o: ../../test/unit-test/openswf_test_parser.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_test_stream.o: ../../test/openswf_test_stream.cpp
+$(OBJDIR)/openswf_test_stream.o: ../../test/unit-test/openswf_test_stream.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 
