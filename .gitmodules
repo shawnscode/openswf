@@ -4,6 +4,3 @@
 [submodule "3rd/libtess2"]
 	path = 3rd/libtess2
 	url = https://github.com/memononen/libtess2.git
-[submodule "3rd/glfw"]
-	path = 3rd/glfw
-	url = https://github.com/glfw/glfw.git

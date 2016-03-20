@@ -4,6 +4,7 @@ compiler: clang
 
 before_install:
     - brew install wget
+    - brew install glfw3
     - wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha7/premake-5.0.0-alpha7-macosx.tar.gz
     - tar -xf premake-5.0.0-alpha7-macosx.tar.gz
 
@@ -17,4 +18,4 @@ script:
     - cd ../test
     - make
     - cd ..
-    - ./test/bin/debug/00-unit-test
+    - ./test/bin/debug/01-unit-test
