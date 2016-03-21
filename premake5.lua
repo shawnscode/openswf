@@ -13,7 +13,7 @@ workspace( "dependencies" )
 
 workspace("openswf")
     configurations({ "debug", "release" })
-    location( "build/openswf" )
+    location( "build" )
 
     filter("configurations:debug")
         defines({ "DEBUG" })
