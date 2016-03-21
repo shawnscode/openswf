@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     if( !glfwInit() )
         return -1;
 
-    auto window = glfwCreateWindow(size.get_width()/20.f, size.get_height()/20.f, "01-Simple-Shape", NULL, NULL);
+    auto window = glfwCreateWindow(size.get_width(), size.get_height(), "01-Simple-Shape", NULL, NULL);
     if( !window )
     {
         glfwTerminate();
@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
 
     while( !glfwWindowShouldClose(window))
     {
-        glViewport(0, 0, size.get_width()/20.f, size.get_height()/20.f);
+        glViewport(0, 0, size.get_width(), size.get_height());
         glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         glEnable(GL_BLEND);
@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
         glDisable(GL_TEXTURE_2D);
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glOrtho(0.f, size.get_width()/20.f, size.get_height()/20.f, 0.f, -1.f, 1000.f);
+        glOrtho(0.f, size.get_width(), size.get_height(), 0.f, -1.f, 1000.f);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         glDisable(GL_DEPTH_TEST);
@@ -59,7 +59,7 @@ int main(int argc, char* argv[])
             auto start_idx = 0;
             if( i > 0 ) start_idx = shape->contour_indices[i-1];
 
-            auto color = shape->fill_styles[i].rgba;
+            auto& color = shape->fill_styles[i].color;
             glColor4ub(color.r, color.g, color.b, color.a);
             glBegin(GL_TRIANGLES);
             for( int j=start_idx; j<shape->contour_indices[i]; j++ )

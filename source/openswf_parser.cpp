@@ -10,7 +10,10 @@ namespace openswf
     {
         stream.set_position(0);
         auto header = Header::read(stream);
-        auto player = Player::Ptr(new Player(header.frame_size, header.frame_rate, header.frame_count));
+        auto player = Player::Ptr(new Player(
+            header.frame_size.to_pixel(), 
+            header.frame_rate, 
+            header.frame_count));
 
         auto tag = TagHeader::read(stream);
         while( tag.code != TagCode::END )
@@ -139,8 +142,8 @@ namespace openswf
             {
                 LineStyle style;
                 style.width = stream.read_uint8();
-                if( type >= 3 ) style.rgba = stream.read_rgba();
-                else style.rgba = stream.read_rgb();
+                if( type >= 3 ) style.color = stream.read_rgba();
+                else style.color = stream.read_rgb();
                 array.push_back(style);
             }
         }
@@ -157,8 +160,8 @@ namespace openswf
                 style.type = (FillStyleCode)stream.read_uint8();
 
                 if( style.type == FillStyleCode::SOLID )
-                    if( type >= 3 ) style.rgba = stream.read_rgba();
-                    else style.rgba = stream.read_rgb();
+                    if( type >= 3 ) style.color = stream.read_rgba();
+                    else style.color = stream.read_rgb();
                 else
                     assert(false); // not supported yet
 

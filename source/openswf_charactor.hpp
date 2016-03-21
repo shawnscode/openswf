@@ -17,7 +17,7 @@ namespace openswf
         typedef std::vector<FillStyle> Array;
 
         FillStyleCode   type;
-        Color           rgba;       // solid fill color with opacity information
+        Color           color;      // solid fill color with opacity information
         // Matrix          gradient;   // matrix for gradient fill
         // uint16_t        bitmap_id;  // ID of bitmap charactor for fill
         // Matrix          bitmap;
@@ -30,10 +30,8 @@ namespace openswf
         typedef std::vector<LineStyle> Array;
 
         uint16_t    width;
-        Color       rgba;
+        Color       color;
     };
-
-
 
     typedef std::vector<Point2f>    Segments;
     typedef std::vector<Segments>   Contours;

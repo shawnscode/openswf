@@ -3,6 +3,8 @@
 #include <cstdint>
 
 #include "openswf_debug.hpp"
+#define PIXEL_TO_TWIPS 20.f
+#define TWIPS_TO_PIXEL 0.05f
 
 namespace openswf
 {
@@ -224,15 +226,15 @@ namespace openswf
 
         Point& to_pixel()
         {
-            this->x *= 0.05f;
-            this->y *= 0.05f;
+            this->x *= TWIPS_TO_PIXEL;
+            this->y *= TWIPS_TO_PIXEL;
             return *this;
         }
 
         Point& to_twips()
         {
-            this->x *= 20.f;
-            this->y *= 20.f;
+            this->x *= PIXEL_TO_TWIPS;
+            this->y *= PIXEL_TO_TWIPS;
             return *this;
         }
     };
@@ -242,23 +244,43 @@ namespace openswf
 
     // a rectangle value represents a rectangular region defined by a minimum 
     // x- and y-coordinate position and a maximum x- and y-coordinate position.
-    class Rect 
+    struct Rect 
     {
-    protected:
-        int32_t m_x_min;    // x minimum in twips
-        int32_t m_x_max;    // x maximum in twips
-        int32_t m_y_min;    // y minimum in twips
-        int32_t m_y_max;    // y maximum in twips
+        float xmin, xmax;
+        float ymin, ymax;
 
-    public:
-        Rect()
-        : m_x_min(0), m_x_max(0), m_y_min(0), m_y_max(0) {}
+        Rect() : xmin(0), xmax(0), ymin(0), ymax(0) {}
         
-        Rect(int32_t xmin, int32_t xmax, int32_t ymin, int32_t ymax) 
-        : m_x_min(xmin), m_x_max(xmax), m_y_min(ymin), m_y_max(ymax) {}
+        Rect(float xmin, float xmax, float ymin, float ymax) 
+        : xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax) {}
 
-        int32_t get_width() const { return m_x_max - m_x_min; }
-        int32_t get_height() const { return m_y_max - m_y_min; }
+        float get_width() const 
+        { 
+            return this->xmax - this->xmin; 
+        }
+
+        float get_height() const 
+        { 
+            return this->ymax - this->ymin; 
+        }
+
+        Rect& to_pixel()
+        {
+            this->xmin *= TWIPS_TO_PIXEL;
+            this->xmax *= TWIPS_TO_PIXEL;
+            this->ymin *= TWIPS_TO_PIXEL;
+            this->ymax *= TWIPS_TO_PIXEL;
+            return *this;
+        }
+
+        Rect& to_twips()
+        {
+            this->xmin *= PIXEL_TO_TWIPS;
+            this->xmax *= PIXEL_TO_TWIPS;
+            this->ymin *= PIXEL_TO_TWIPS;
+            this->ymax *= PIXEL_TO_TWIPS;
+            return *this;
+        }
     };
 
     // the RGBA record represents a color as 32-bit red, green, blue and alpha value.
