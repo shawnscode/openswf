@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
     glfwMakeContextCurrent(window);
     glfwSetTime(0);
 
-    auto tag = get_tag_at(stream, 5);
+    get_tag_at(stream, 5);
     auto shape = Shape::create(record::DefineShape::read(stream));
     if( !shape )
         return -1;
@@ -54,15 +54,21 @@ int main(int argc, char* argv[])
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-        glColor4f(1.0f, 0.5f, 0.5f, 1.0f);
-
-        glBegin(GL_TRIANGLES);
-        for( int i=0; i<shape->indices.size(); i++ )
+        for( int i=shape->contour_indices.size()-1; i>=0; i-- )
         {
-            auto& point = shape->vertices[shape->indices[i]];
-            glVertex2f(point.x/20.f, point.y/20.f);
+            auto start_idx = 0;
+            if( i > 0 ) start_idx = shape->contour_indices[i-1];
+
+            auto color = shape->fill_styles[i].rgba;
+            glColor4ub(color.r, color.g, color.b, color.a);
+            glBegin(GL_TRIANGLES);
+            for( int j=start_idx; j<shape->contour_indices[i]; j++ )
+            {
+                auto& point = shape->vertices[shape->indices[j]];
+                glVertex2f(point.x, point.y);
+            }
+            glEnd();
         }
-        glEnd();
 
         glEnable(GL_DEPTH_TEST);
         glfwSwapBuffers(window);

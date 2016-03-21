@@ -194,8 +194,6 @@ namespace openswf
                 current_path.start = cursor;
             };
 
-            bool finished = false;
-
             while( true )
             {
                 bool is_edge = stream.read_bits_as_uint32(1) > 0;

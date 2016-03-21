@@ -221,6 +221,20 @@ namespace openswf
         {
             return Point<T>(this->x*factor, this->y*factor);
         }
+
+        Point& to_pixel()
+        {
+            this->x *= 0.05f;
+            this->y *= 0.05f;
+            return *this;
+        }
+
+        Point& to_twips()
+        {
+            this->x *= 20.f;
+            this->y *= 20.f;
+            return *this;
+        }
     };
 
     typedef Point<float>    Point2f;

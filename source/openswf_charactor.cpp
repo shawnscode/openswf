@@ -115,6 +115,7 @@ namespace openswf
     bool Shape::initialize(const record::DefineShape& def)
     {
         this->bounds = def.bounds;
+        this->fill_styles = def.fill_styles;
 
         auto polygons = std::vector<Contours>(def.fill_styles.size(), Contours());
         auto lines = std::vector<Contours>(def.line_styles.size(), Contours());
@@ -134,46 +135,56 @@ namespace openswf
                 contour_push_path( lines[path.line-1], path );
         }
 
-        // tesselate polygons
-        auto tess = tessNewTess(nullptr);
-        if( !tess ) return false;
+        assert( polygons.size() == def.fill_styles.size() );
 
+        // tesselate polygons
         for( auto& mesh_set : polygons )
         {
+            auto tess = tessNewTess(nullptr);
+            if( !tess ) return false;
+
             for( auto& mesh : mesh_set )
                 tessAddContour(tess, 2, &mesh[0], sizeof(Point2f), mesh.size());
-        }
 
-        if( !tessTesselate(tess, TESS_WINDING_ODD, TESS_POLYGONS, MAX_POLYGON_SIZE, 2, 0) )
-        {
-            tessDeleteTess(tess);
-            return false;
-        }
-
-        const TESSreal* vertices = tessGetVertices(tess);
-        const TESSindex vcount = tessGetVertexCount(tess);
-        const TESSindex nelems = tessGetElementCount(tess);
-        const TESSindex* elems = tessGetElements(tess);
-
-        this->vertices.clear();
-        this->vertices.reserve(vcount);
-        for( int i=0; i<vcount; i++ )
-            this->vertices.push_back(Point2f(vertices[i*2], vertices[i*2+1]));
-
-        this->indices.reserve(nelems*(MAX_POLYGON_SIZE-2)*3);
-        for( int i=0; i<nelems; i++ )
-        {
-            const int* p = &elems[i*MAX_POLYGON_SIZE];
-            assert(p[0] != TESS_UNDEF && p[1] != TESS_UNDEF && p[2] != TESS_UNDEF);
-            for( int j=2; j<MAX_POLYGON_SIZE && p[j] != TESS_UNDEF; j++ )
+            if( !tessTesselate(tess, TESS_WINDING_NONZERO, TESS_POLYGONS, MAX_POLYGON_SIZE, 2, 0) )
             {
-                this->indices.push_back(p[0]);
-                this->indices.push_back(p[1]);
-                this->indices.push_back(p[j]);
+                tessDeleteTess(tess);
+                return false;
             }
+
+            const TESSreal* vertices = tessGetVertices(tess);
+            const TESSindex vcount = tessGetVertexCount(tess);
+            const TESSindex nelems = tessGetElementCount(tess);
+            const TESSindex* elems = tessGetElements(tess);
+
+            auto vert_base_size = this->vertices.size();
+            this->vertices.reserve(vert_base_size+vcount);
+            for( int i=0; i<vcount; i++ )
+                this->vertices.push_back( Point2f(vertices[i*2], vertices[i*2+1]).to_pixel() );
+
+            auto ind_base_size = this->indices.size();
+            this->indices.reserve(ind_base_size+nelems*(MAX_POLYGON_SIZE-2)*3);
+            for( int i=0; i<nelems; i++ )
+            {
+                const int* p = &elems[i*MAX_POLYGON_SIZE];
+                assert(p[0] != TESS_UNDEF && p[1] != TESS_UNDEF && p[2] != TESS_UNDEF);
+
+                // triangle fans
+                for( int j=2; j<MAX_POLYGON_SIZE && p[j] != TESS_UNDEF; j++ )
+                {
+                    this->indices.push_back(vert_base_size + p[0]);
+                    this->indices.push_back(vert_base_size + p[j-1]);
+                    this->indices.push_back(vert_base_size + p[j]);
+                }
+            }
+
+            tessDeleteTess(tess);
+            this->contour_indices.push_back( this->indices.size() );
         }
 
-        tessDeleteTess(tess);
+        assert( polygons.size() == this->contour_indices.size() );
+        assert( this->contour_indices.back() == this->indices.size() );
+
         return true;
     }
 

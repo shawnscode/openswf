@@ -43,8 +43,11 @@ namespace openswf
     struct Shape : public ICharactor
     {
         Rect                    bounds;
+
+        FillStyle::Array        fill_styles;
         std::vector<Point2f>    vertices;
         std::vector<uint16_t>   indices;
+        std::vector<uint16_t>   contour_indices;
 
         Shape();
         bool initialize(const record::DefineShape& def);
