@@ -16,19 +16,6 @@ namespace openswf
         return cmd;
     }
 
-    PlaceCommand* PlaceCommand::create(const record::PlaceObject2& def)
-    {
-        auto cmd = new (std::nothrow) PlaceCommand();
-        if( !cmd ) return nullptr;
-
-        cmd->character_id = def.character_id;
-        cmd->depth        = def.depth;
-        cmd->transform    = def.matrix;
-        cmd->cxform       = def.cxform;
-
-        return cmd;
-    }
-
     void PlaceCommand::execute(Player* player)
     {
         player->place(character_id, depth, transform, cxform);

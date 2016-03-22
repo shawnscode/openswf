@@ -50,14 +50,21 @@ namespace openswf
 
                 case TagCode::PLACE_OBJECT2:
                 {
-                    auto def = PlaceObject2::read(stream);
+                    auto def = PlaceObject::read_ex(stream);
                     player->push_command(PlaceCommand::create(def));
                     break;
                 }
 
                 case TagCode::REMOVE_OBJECT:
                 {
-                    auto def = RemoveObject::read(stream);
+                    auto def = RemoveObject::read(stream, 1);
+                    player->push_command(RemoveCommand::create(def));
+                    break;
+                }
+
+                case TagCode::REMOVE_OBJECT2:
+                {
+                    auto def = RemoveObject::read(stream, 2);
                     player->push_command(RemoveCommand::create(def));
                     break;
                 }
@@ -169,6 +176,16 @@ namespace openswf
             }
         }
 
+        enum DefineShapeMask
+        {
+            SHAPE_END           = 0x00,
+            SHAPE_MOVE_TO       = 0x01,
+            SHAPE_FILL_STYLE_0  = 0x02,
+            SHAPE_FILL_STYLE_1  = 0x04,
+            SHAPE_LINE_STYLE    = 0x08,
+            SHAPE_NEW_STYLE     = 0x10
+        };
+
         DefineShape DefineShape::read(Stream& stream, int type)
         {
             DefineShape record;
@@ -203,14 +220,14 @@ namespace openswf
                 if( !is_edge )
                 {
                     uint32_t mask = stream.read_bits_as_uint32(5);
-                    if( mask == 0x00 ) // EndShapeRecord
+                    if( mask == SHAPE_END ) // EndShapeRecord
                     {
                         push_path();
                         break;
                     }
 
                     // StyleChangeRecord
-                    if( mask & 0x01 ) // StateMoveTo
+                    if( mask & SHAPE_MOVE_TO ) // StateMoveTo
                     {
                         uint8_t bits = stream.read_bits_as_uint32(5);
                         cursor.x = (float)stream.read_bits_as_int32(bits);
@@ -219,7 +236,7 @@ namespace openswf
                         push_path();
                     }
 
-                    if( (mask & 0x02) && fill_index_bits > 0 ) // StateFillStyle0
+                    if( (mask & SHAPE_FILL_STYLE_0) && fill_index_bits > 0 ) // StateFillStyle0
                     {
                         push_path();
 
@@ -228,7 +245,7 @@ namespace openswf
                             current_path.left_fill += fill_index_base;
                     }
 
-                    if( (mask & 0x04) && fill_index_bits > 0 ) // StateFillStyle1
+                    if( (mask & SHAPE_FILL_STYLE_1) && fill_index_bits > 0 ) // StateFillStyle1
                     {
                         push_path();
                         current_path.right_fill = stream.read_bits_as_uint32(fill_index_bits);
@@ -236,13 +253,13 @@ namespace openswf
                             current_path.right_fill += fill_index_base;
                     }
 
-                    if( (mask & 0x08) && line_index_bits > 0 ) // StateLineStyle
+                    if( (mask & SHAPE_LINE_STYLE) && line_index_bits > 0 ) // StateLineStyle
                     {
                         push_path();
                         current_path.line = stream.read_bits_as_uint32(line_index_bits);
                     }
 
-                    if( mask & 0x10 ) // StateNewStyles, used by DefineShape2, DefineShape3 only.
+                    if( mask & SHAPE_NEW_STYLE ) // StateNewStyles, used by DefineShape2, DefineShape3 only.
                     {
                         assert( type >= 2 );
                         push_path();
@@ -301,7 +318,7 @@ namespace openswf
             return record;
         }
 
-        // TAG: 4
+        // TAG: 4, 26
         PlaceObject PlaceObject::read(Stream& stream, int size)
         {
             auto start_pos = stream.get_position();
@@ -318,11 +335,70 @@ namespace openswf
             return record;
         }
 
-        // TAG: 5
-        RemoveObject RemoveObject::read(Stream& stream)
+        enum Place2Mask
         {
+            PLACE_2_HAS_MOVE        = 0x01,
+            PLACE_2_HAS_CHARACTOR   = 0x02,
+            PLACE_2_HAS_MATRIX      = 0x04,
+            PLACE_2_HAS_CXFORM      = 0x08,
+            PLACE_2_HAS_RATIO       = 0x10,
+            PLACE_2_HAS_NAME        = 0x20,
+            PLACE_2_HAS_CLIP_DEPTH  = 0x40,
+            PLACE_2_HAS_CLIP_ACTIONS= 0x80
+        };
+
+        PlaceObject PlaceObject::read_ex(Stream& stream)
+        {
+            PlaceObject record;
+
+            auto mask = stream.read_uint8();
+
+            record.depth        = stream.read_uint16();
+            record.character_id = mask & PLACE_2_HAS_CHARACTOR ? stream.read_uint16() : 0;
+
+            if( mask & PLACE_2_HAS_MATRIX ) record.matrix = stream.read_matrix();
+            if( mask & PLACE_2_HAS_CXFORM ) record.cxform = stream.read_cxform_rgba();
+
+            record.ratio = mask & PLACE_2_HAS_RATIO ? stream.read_uint16() : 0;
+
+            if( mask & PLACE_2_HAS_NAME ) record.name = stream.read_string();
+            if( mask & PLACE_2_HAS_CLIP_DEPTH ) record.clip_depth = stream.read_uint16();
+
+            // if( mask & PLACE_HAS_CLIP_ACTIONS )
+                // record.clip_actions = RecordClipActionList::read(stream);
+
+            return record;
+        }
+
+        enum Place3Mask
+        {
+            PLACE_3_HAS_FILTERS         = 0x0001,
+            PLACE_3_HAS_BLEND_MODE      = 0x0002,
+            PLACE_3_HAS_CACHE_AS_BITMAP = 0x0004,
+            PLACE_3_HAS_CLASS_NAME      = 0x0008,
+            PLACE_3_HAS_IMAGE           = 0x0010,
+
+            PLACE_3_RESERVED_1          = 0x0020,
+            PLACE_3_RESERVED_2          = 0x0040,
+            PLACE_3_RESERVED_3          = 0x0080,
+            PLACE_3_MOVE                = 0x0100,
+            PLACE_3_HAS_CHARACTOR       = 0x0200,
+            PLACE_3_HAS_MATRIX          = 0x0400,
+            PLACE_3_HAS_CXFORM          = 0x0800,
+            PLACE_3_HAS_RATIO           = 0x1000,
+            PLACE_3_HAS_NAME            = 0x2000,
+            PLACE_3_HAS_CLIP_DEPTH      = 0x4000,
+            PLACE_3_HAS_CLIPS           = 0x8000
+        };
+
+        // TAG: 5
+        RemoveObject RemoveObject::read(Stream& stream, int type)
+        {
+            assert( type == 1 || type == 2 );
+
             RemoveObject record;
-            record.character_id = stream.read_uint16();
+            if( type == 2 ) record.character_id = stream.read_uint16();
+            else record.character_id = 0;
             record.depth        = stream.read_uint16();
             return record;
         }
@@ -332,29 +408,6 @@ namespace openswf
         {
             SetBackgroundColor record;
             record.color = stream.read_rgb();
-            return record;
-        }
-
-        // TAG: 26
-        PlaceObject2 PlaceObject2::read(Stream& stream)
-        {
-            PlaceObject2 record;
-
-            auto mask = stream.read_uint8();
-
-            record.depth        = stream.read_uint16();
-            record.character_id = mask & PLACE_HAS_CHARACTOR ? stream.read_uint16() : 0;
-
-            if( mask & PLACE_HAS_MATRIX ) record.matrix = stream.read_matrix();
-            if( mask & PLACE_HAS_COLOR_TRANSFORM ) record.cxform = stream.read_cxform_rgba();
-
-            record.ratio = mask & PLACE_HAS_RATIO ? stream.read_uint16() : 0;
-
-            if( mask & PLACE_HAS_NAME ) record.name = stream.read_string();
-            if( mask & PLACE_HAS_CLIP_DEPTH ) record.clip_depth = stream.read_uint16();
-            // if( mask & PLACE_HAS_CLIP_ACTIONS )
-                // record.clip_actions = RecordClipActionList::read(stream);
-
             return record;
         }
 

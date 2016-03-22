@@ -58,11 +58,10 @@ namespace openswf
     };
 
     /// COMMANDS
-    namespace record { struct PlaceObject; struct PlaceObject2; }
+    namespace record { struct PlaceObject; }
     struct PlaceCommand : public IFrameCommand
     {
         static PlaceCommand* create(const record::PlaceObject&);
-        static PlaceCommand* create(const record::PlaceObject2&);
 
         uint16_t        character_id;
         uint16_t        depth;

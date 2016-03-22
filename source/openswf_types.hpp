@@ -154,28 +154,6 @@ namespace openswf
         CLIP_EVENT_RESERVED_13              = 0x80000000,
     };
 
-    enum PlaceMask
-    {
-        PLACE_HAS_CLIP_ACTIONS      = 0x1,
-        PLACE_HAS_CLIP_DEPTH        = 0x2,
-        PLACE_HAS_NAME              = 0x4,
-        PLACE_HAS_RATIO             = 0x8,
-        PLACE_HAS_COLOR_TRANSFORM   = 0x10,
-        PLACE_HAS_MATRIX            = 0x20,
-        PLACE_HAS_CHARACTOR         = 0x40,
-        PLACE_MOVE                  = 0x80, // PLACE_OBJECT_2
-
-        PLACE_RESERVED_1            = 0x100,
-        PLACE_RESERVED_2            = 0x200,
-        PLACE_RESERVED_3            = 0x400,
-
-        PLACE_HAS_IMAGE             = 0x800, // PLACE_OBJECT_3
-        PLACE_HAS_CLASS_NAME        = 0x1000,
-        PLACE_HAS_CACHE_AS_BITMAP   = 0x2000,
-        PLACE_HAS_BELND_MODE        = 0x4000,
-        PLACE_HAS_FILTER_LIST       = 0x8000
-    };
-
     enum FileAttributeMask
     {
         FILE_ATTR_RESERVED_1        = 0x1,

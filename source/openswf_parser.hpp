@@ -132,28 +132,40 @@ namespace openswf
             static void read_fill_styles(Stream& stream, FillStyle::Array& array, int type);
         };
 
-        // TAG: 4
+        // TAG = 4
         // the PlaceObject tag adds a character to the display list.
+
+        // TAG = 26
+        // the PlaceObject2 tag can both add a character to the display list,
+        // and modify the attributes of a character that is already on the display list.
         struct PlaceObject
         {
             uint16_t        character_id;   // ID of character to place
             uint16_t        depth;          // depth of character
             Matrix          matrix;         // transform matrix data
-            ColorTransform  cxform;         // (optional) color transform data
+            ColorTransform  cxform;         // color transform data
 
-            PlaceObject() : character_id(0), depth(0) {}
+            uint16_t        ratio;          // morph ratio
+            std::string     name;           // name of sprite
+            uint16_t        clip_depth;     // specifies the top-most depth that will be masked 
+
+            PlaceObject() : character_id(0), depth(0), ratio(0), clip_depth(0) {}
             static PlaceObject read(Stream& stream, int size);
+            static PlaceObject read_ex(Stream& stream);
         };
 
         // TAG = 5
         // the RemoveObject tag removes the specified character (at the 
         // specified depth) from the display list.
+
+        // Tag = 28
+        // The RemoveObject2 tag removes the character at the specified depth from the display list.
         struct RemoveObject
         {
             uint16_t    character_id;
             uint16_t    depth;
 
-            static RemoveObject read(Stream& stream);
+            static RemoveObject read(Stream& stream, int type);
         };
 
         // TAG = 9
@@ -165,31 +177,21 @@ namespace openswf
             static SetBackgroundColor read(Stream& stream);
         };
 
-        // TAG = 26
-        // the PlaceObject2 tag can both add a character to the display list,
-        // and modify the attributes of a character that is already on the display list.
-        struct PlaceObject2
-        {
-            uint16_t        depth;         // depth of character
-            uint16_t        character_id;  // (optional)
-            Matrix          matrix;        // (optional)
-            ColorTransform  cxform;        // (optional)
+        // TAG = 39
+        // The DefineSprite tag defines a sprite character.
+        // It consists of a character ID and a frame count, followed by a series of control tags.
+        // The sprite is terminated with an End tag.
+        // The following tags are valid within a DefineSprite tag:
+        // 1. ShowFrame 2. PlaceObject 3. PlaceObject2 4. RemoveObject 5. RemoveObject2
+        // 6. StartSound 7. FrameLabel 8. SoundStreamHead 9. SoundStreamHead2 10. SoundStreamBlock
+        // 11. Actions 12. End
+        // struct DefineSprite
+        // {
+        //     uint16_t    character_id;
+        //     uint16_t    frame_count;
 
-            uint16_t        ratio;         // (optional) morph ratio
-            std::string     name;          // (optional)
-
-            // (optional) specifies the top-most depth that will be masked
-            uint16_t        clip_depth;
-            // (optional) which is valid only for placing sprite characters,
-            // defines one or more event handlers to be invoked when certain
-            // events occur.
-            // RecordClipActionList    clip_actions;
-
-            PlaceObject2()
-            : depth(0), character_id(0), ratio(0), clip_depth(0) {}
-
-            static PlaceObject2 read(Stream& stream);
-        };
+        //     std::vector<std::vector<IFrameCommand*>>
+        // };
 
         // TAG = 43
         // the FRAME_LABEL tag gives the specified name to the current frame
