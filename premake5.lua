@@ -43,6 +43,7 @@ workspace("test")
     includedirs({ "3rd/catch/include", "3rd/libtess2/Include", "3rd/glfw/include", "/usr/local/include", "source", "test/00-common" })
     language( "C++" )
     buildoptions({"-std=c++11", "-stdlib=libc++"})
+    targetdir( "bin" )
 
     project( "01-unit-test" )
         links({ "tess2", "openswf" })

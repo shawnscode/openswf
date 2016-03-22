@@ -1,4 +1,5 @@
 build
 deprecated
 libs
+bin
 run.sh

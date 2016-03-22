@@ -13,9 +13,9 @@ script:
     - cd build
     - cd 3rd
     - make
-    - cd ../openswf
-    - make config=debug openswf
-    - cd ../test
-    - make
     - cd ..
-    - ./test/bin/debug/01-unit-test
+    - make config=debug openswf
+    - cd test
+    - make
+    - cd ../../bin
+    - ./01-unit-test
