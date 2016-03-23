@@ -129,4 +129,9 @@ namespace openswf
         return true;
     }
 
+    Rect Player::get_size() const
+    {
+        return m_sprite->bounds;
+    }
+
 }

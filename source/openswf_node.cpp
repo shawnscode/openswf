@@ -2,7 +2,7 @@
 #include "openswf_player.hpp"
 
 extern "C" {
-#include <GLFW/glfw3.h>
+#include "GLFW/glfw3.h"
 }
 
 namespace openswf
@@ -10,6 +10,7 @@ namespace openswf
     ////
     Node::Node(ICharactor* ch) : m_character(ch) {}
 
+    void Node::update(float dt) {}
     void Node::render(const Matrix& matrix, const ColorTransform& cxform)
     {
         m_character->render(matrix, cxform);
@@ -17,7 +18,7 @@ namespace openswf
 
     ////
     DisplayList::DisplayList(Player* env, Sprite* sprite)
-    : Node(sprite), m_environment(env), m_sprite(sprite), m_frame_timer(0)
+    : Node(sprite), m_environment(env), m_sprite(sprite), m_frame_timer(0), m_current_frame(0)
     {
         assert( sprite->frame_rate < 64 );
         m_frame_delta = 1.f / sprite->frame_rate;
@@ -46,8 +47,8 @@ namespace openswf
 
     void DisplayList::render(const Matrix& matrix, const ColorTransform& cxform)
     {
-        // for( auto& pair : m_children )
-            // pair.second->render( m_matrix * matrix, m_cxform * cxform );
+        for( auto& pair : m_children )
+            pair.second->render( matrix*m_matrix, cxform*m_cxform );
     }
 
     // PROTECTED METHODS

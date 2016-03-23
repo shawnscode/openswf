@@ -50,7 +50,7 @@ workspace("test")
         files({ "test/01-unit-test/**.cpp", "test/00-common/*.cpp" })
 
     project("02-simple-shape")
-        links({ "tess2", "openswf", "glfw3" })
+        links({ "tess2", "glfw3", "openswf" })
         linkoptions { "-framework OpenGL", "-framework Cocoa", "-framework IOKit", "-framework CoreVideo" }
         files({ "test/02-simple-shape/**.cpp", "test/00-common/*.cpp" })
 

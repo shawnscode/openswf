@@ -62,7 +62,7 @@ TEST_CASE("DEFINE-SHAPE-PARSE", "[OPENSWF]")
     auto header = get_tag_at(stream, 5);
 
     REQUIRE( header.code == TagCode::DEFINE_SHAPE );
-    auto def = DefineShape::read(stream);
+    auto def = DefineShape::read(stream, header.code);
 
     std::vector<std::vector<Point2f>> paths;
     std::vector<int> fill_0_array, fill_1_array, line_array;
@@ -121,6 +121,4 @@ TEST_CASE("DEFINE-SHAPE-PARSE", "[OPENSWF]")
             REQUIRE( path.edges[i].anchor == compare[i+1] );
         }
     }
-
-    Shape::create(def);
 }

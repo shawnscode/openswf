@@ -10,7 +10,7 @@
 
 extern "C" {
     #include "tesselator.h"
-    #include <GLFW/glfw3.h>
+    #include "GLFW/glfw3.h"
 }
 
 using namespace openswf::record;
@@ -201,12 +201,12 @@ namespace openswf
             auto start_idx = 0;
             if( i > 0 ) start_idx = this->contour_indices[i-1];
 
-            auto& color = this->fill_styles[i].color;
+            auto color = cxform * this->fill_styles[i].color;
             glColor4ub(color.r, color.g, color.b, color.a);
             glBegin(GL_TRIANGLES);
             for( int j=start_idx; j<this->contour_indices[i]; j++ )
             {
-                auto& point = this->vertices[this->indices[j]];
+                auto point = matrix * this->vertices[this->indices[j]];
                 glVertex2f(point.x, point.y);
             }
             glEnd();

@@ -15,13 +15,13 @@ static void input_callback(GLFWwindow* window, int key, int scancode, int action
 int main(int argc, char* argv[])
 {
     auto stream = create_from_file("../test/resources/simple-shape-1.swf");
-    auto player = parse(stream);
+    auto player = Player::create(&stream);
     auto size   = player->get_size();
     
     if( !glfwInit() )
         return -1;
 
-    auto window = glfwCreateWindow(size.get_width(), size.get_height(), "01-Simple-Shape", NULL, NULL);
+    auto window = glfwCreateWindow(size.get_width(), size.get_height(), "02-Simple-Shape", NULL, NULL);
     if( !window )
     {
         glfwTerminate();
@@ -32,12 +32,8 @@ int main(int argc, char* argv[])
     glfwMakeContextCurrent(window);
     glfwSetTime(0);
 
-    get_tag_at(stream, 5);
-    auto shape = Shape::create(record::DefineShape::read(stream));
-    if( !shape )
-        return -1;
-
-    while( !glfwWindowShouldClose(window))
+    auto last_time = glfwGetTime();
+    while( !glfwWindowShouldClose(window) )
     {
         glViewport(0, 0, size.get_width(), size.get_height());
         glClearColor(0.3f, 0.3f, 0.32f, 1.0f);
@@ -54,28 +50,18 @@ int main(int argc, char* argv[])
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-        for( int i=shape->contour_indices.size()-1; i>=0; i-- )
-        {
-            auto start_idx = 0;
-            if( i > 0 ) start_idx = shape->contour_indices[i-1];
+        auto now_time = glfwGetTime();
+        player->update(now_time-last_time);
+        last_time = now_time;
 
-            auto& color = shape->fill_styles[i].color;
-            glColor4ub(color.r, color.g, color.b, color.a);
-            glBegin(GL_TRIANGLES);
-            for( int j=start_idx; j<shape->contour_indices[i]; j++ )
-            {
-                auto& point = shape->vertices[shape->indices[j]];
-                glVertex2f(point.x, point.y);
-            }
-            glEnd();
-        }
+        player->render();
 
         glEnable(GL_DEPTH_TEST);
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
-    delete shape;
+    delete player;
     glfwTerminate();
     return 0;
 }

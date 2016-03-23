@@ -154,15 +154,15 @@ ColorTransform Stream::read_cxform_rgb()
     if( has_mult ) // 8.8 fixed-point
     {
         out.set(0, 0, read_bits_as_fixed16(bitcount));
-        out.set(1, 0, read_bits_as_fixed16(bitcount));
-        out.set(2, 0, read_bits_as_fixed16(bitcount));
+        out.set(0, 1, read_bits_as_fixed16(bitcount));
+        out.set(0, 2, read_bits_as_fixed16(bitcount));
     }
 
     if( has_add ) // signed bits
     {
-        out.set(0, 1, (float)read_bits_as_int32(bitcount));
+        out.set(1, 0, (float)read_bits_as_int32(bitcount));
         out.set(1, 1, (float)read_bits_as_int32(bitcount));
-        out.set(2, 1, (float)read_bits_as_int32(bitcount));
+        out.set(1, 2, (float)read_bits_as_int32(bitcount));
     }
 
     return out;
@@ -180,17 +180,17 @@ ColorTransform Stream::read_cxform_rgba()
     if( has_mult ) // 8.8 fixed-point
     {
         out.set(0, 0, read_bits_as_fixed16(bitcount));
-        out.set(1, 0, read_bits_as_fixed16(bitcount));
-        out.set(2, 0, read_bits_as_fixed16(bitcount));
-        out.set(3, 0, read_bits_as_fixed16(bitcount));
+        out.set(0, 1, read_bits_as_fixed16(bitcount));
+        out.set(0, 2, read_bits_as_fixed16(bitcount));
+        out.set(0, 3, read_bits_as_fixed16(bitcount));
     }
 
     if( has_add ) // signed bits
     {
+        out.set(0, 0, (float)read_bits_as_int32(bitcount));
         out.set(0, 1, (float)read_bits_as_int32(bitcount));
-        out.set(1, 1, (float)read_bits_as_int32(bitcount));
-        out.set(2, 1, (float)read_bits_as_int32(bitcount));
-        out.set(3, 1, (float)read_bits_as_int32(bitcount));
+        out.set(0, 2, (float)read_bits_as_int32(bitcount));
+        out.set(0, 3, (float)read_bits_as_int32(bitcount));
     }
 
     return out;

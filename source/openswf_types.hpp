@@ -284,33 +284,34 @@ namespace openswf
     // are calculated as follows: 
     //      x' = x * scale_x + y * rotate_skew_1 + translate_x
     //      y' = x * ratate_skew_0 + y * scale_x + translate_y
-    class Matrix
+    struct Matrix
     {
-    protected:
-        float m_values[2][3];
-
-    public:
         const static Matrix identity;
+
+        float values[2][3];
 
         Matrix() { set_identity(); }
 
         void set_identity()
         {
-            m_values[0][0] = m_values[1][1] = 1;
-            m_values[0][1] = m_values[0][2] = m_values[1][0] = m_values[1][2] = 0;
+            values[0][0] = values[1][1] = 1;
+            values[0][1] = values[0][2] = values[1][0] = values[1][2] = 0;
         }
 
         float get(int r, int c) const
         {
             assert(r>=0 && r<2 && c>=0 && c<3);
-            return m_values[r][c];
+            return values[r][c];
         }
 
         void set(int r, int c, float value)
         {
             assert(r>=0 && r<2 && c>=0 && c<3);
-            m_values[r][c] = value;
+            values[r][c] = value;
         }
+
+        Matrix operator * (const Matrix& rh) const;
+        Point2f operator * (const Point2f& rh) const;
     };
 
     // the cxform record defines a simple transform that can be applied to 
@@ -324,32 +325,33 @@ namespace openswf
     // G' = max(0, min(G * green_mult_term + green_add_term,  255))
     // B' = max(0, min(B * blue_mult_term + blue_add_term,   255))
     // A' = max(0, min(A * alpha_mult_term + alpha_add_term,  255))
-    class ColorTransform
+    struct ColorTransform
     {
-    protected:
-        float m_values[4][2]; // [RGBA][mult, add]
-
-    public:
         const static ColorTransform identity;
+
+        float values[2][4]; // [mult, add][RGBA]
 
         ColorTransform() { set_identity(); }
 
         void set_identity()
         {
-            m_values[0][0] = m_values[1][0] = m_values[2][0] = m_values[3][0] = 1.0f;
-            m_values[0][1] = m_values[1][1] = m_values[2][1] = m_values[3][1] = 0.0f;
+            values[0][0] = values[0][1] = values[0][2] = values[0][3] = 1.0f;
+            values[1][0] = values[1][1] = values[1][2] = values[1][3] = 0.0f;
         }
 
         float get(int r, int c) const
         {
             assert(r>=0 && r<4 && c>=0 && c<=2);
-            return m_values[r][c];
+            return values[r][c];
         }
 
         float set(int r, int c, float value)
         {
             assert(r>=0 && r<4 && c>=0 && c<=2);
-            return m_values[r][c];
+            return values[r][c];
         }
+
+        ColorTransform operator * (const ColorTransform& rh) const;
+        Color operator * (const Color& rh) const;
     };
 }

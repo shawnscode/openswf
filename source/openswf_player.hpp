@@ -20,9 +20,6 @@ namespace openswf
         Directory       m_dictionary;
         Sprite*         m_sprite;
         DisplayList*    m_root;
-        Rect            m_frame_size;
-        float           m_frame_rate;
-        uint32_t        m_frame_count;
 
     public:
         static Player* create(Stream* stream);
@@ -42,9 +39,18 @@ namespace openswf
     };
 
     //// INLINE METHODS of PLAYER
-    inline Rect Player::get_size() const
+    inline void Player::set_charactor(uint16_t cid, ICharactor* ch)
     {
-        return m_frame_size;
+        assert( ch != nullptr );
+        m_dictionary[cid] = ch;
+    }
+
+    inline ICharactor* Player::get_character(uint16_t cid)
+    {
+        auto found = m_dictionary.find(cid);
+        if( found != m_dictionary.end() )
+            return found->second;
+        return nullptr;
     }
 
     inline DisplayList* Player::get_root() const
