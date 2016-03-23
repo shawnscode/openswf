@@ -6,19 +6,19 @@ This project is used to enable ease swf integration into video games. Its far fr
 oammix [at] gmail [dot] com
 
 ### Make
-I'm working on MacOs currently, if so did u, then u can compile openswf by:
-    brew install glfw3
-    cd build/3rd
-    make
-    cd -
-    make
-    cd test
-    make
+I'm working on MacOs currently, if so do u, u can compile openswf by following below:
 
-Then u could find unit-test and some simple examples in path-to-openswf/bin. If u want to generating xcode projection, please install [premake5](http://premake.github.io) first, and then type `premake5 xcode4` at root path of openswf.
+	brew install glfw3
+	cd build/3rd
+	make
+	cd -
+	make
+	cd test
+	make
+
+Then u could find unit-test and some simple examples in `path-to-openswf/bin`. If u prefer a ide based environment, like xcode, please install [premake5](http://premake.github.io), and generate xcode project files with `premake5 xcode4`.
 
 This prject has not much platform specified code right now, so it should be easy to port to other platforms with big-endian bit order.
-
 
 ### Todo
 1. DefineShape::{ CurvedEdgeRecord }
