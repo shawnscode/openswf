@@ -4,115 +4,51 @@
 #include <unordered_map>
 
 #include "openswf_debug.hpp"
-#include "openswf_charactor.hpp"
+#include "openswf_types.hpp"
 
 namespace openswf
 {
-
-    class Player;
-    struct IFrameCommand
-    {
-        virtual void execute(Player* parent) = 0;
-        virtual ~IFrameCommand() {}
-    };
-
+    class ICharactor;
+    class Stream;
+    class Sprite;
+    class DisplayList;
     class Player
     {
+        typedef std::unordered_map<uint16_t, ICharactor*> Directory;
+
     protected:
-        Rect    m_size;
-        float   m_frame_rate, m_frame_count;
-        float   m_timer;
+        Directory       m_dictionary;
+        Sprite*         m_sprite;
+        DisplayList*    m_root;
+        Rect            m_frame_size;
+        float           m_frame_rate;
+        uint32_t        m_frame_count;
 
-        int                                         m_current_frame;
-        std::vector<IFrameCommand*>                 m_records;
-        std::vector<std::vector<IFrameCommand*>>    m_frames;
-        std::unordered_map<uint16_t, ICharactor*>   m_dictionary;
-        std::unordered_map<uint16_t, ICharactor*>   m_displays;
-
-    public: 
-        typedef std::shared_ptr<Player> Ptr;
-        typedef std::weak_ptr<Player>   WeakPtr;
-
-        Player(Rect size, float rate, float frames)
-            : m_size(size), m_frame_rate(rate), m_frame_count(frames), m_current_frame(0) {}
+    public:
+        static Player* create(Stream* stream);
 
         ~Player();
+        bool initialize(Stream* stream);
 
-        //
-        float   get_frame_count() const;
-        float   get_frame_rate() const;
-        Rect    get_size() const;
-
-        //
-        void define(uint16_t cid, ICharactor* ch);
-        void place(uint16_t cid, uint16_t depth, Matrix transform, ColorTransform cxform) {}
-        void remove(uint16_t cid, uint16_t depth) {}
-
-        //
-        void record_frame();
-        void push_command(IFrameCommand* command);
-
-        //
         void update(float dt);
         void render();
-    };
 
-    /// COMMANDS
-    namespace record { struct PlaceObject; }
-    struct PlaceCommand : public IFrameCommand
-    {
-        static PlaceCommand* create(const record::PlaceObject&);
+        //
+        void            set_charactor(uint16_t cid, ICharactor* ch);
+        ICharactor*     get_character(uint16_t cid);
 
-        uint16_t        character_id;
-        uint16_t        depth;
-        Matrix          transform;
-        ColorTransform  cxform;
-
-        PlaceCommand() : character_id(0), depth(0) {}
-        virtual void execute(Player* parent);
-    };
-
-    namespace record { struct RemoveObject; }
-    struct RemoveCommand : public IFrameCommand
-    {
-        static RemoveCommand* create(const record::RemoveObject&);
-
-        uint16_t        character_id;
-        uint16_t        depth;
-
-        RemoveCommand() : character_id(0), depth(0) {}
-        virtual void execute(Player* parent);
+        Rect            get_size() const;
+        DisplayList*    get_root() const;
     };
 
     //// INLINE METHODS of PLAYER
-    inline float Player::get_frame_rate() const
-    {
-        return m_frame_rate;
-    }
-
-    inline float Player::get_frame_count() const
-    {
-        return m_frame_count;
-    }
-
     inline Rect Player::get_size() const
     {
-        return m_size;
+        return m_frame_size;
     }
 
-    inline void Player::define(uint16_t cid, ICharactor* ch)
+    inline DisplayList* Player::get_root() const
     {
-        m_dictionary[cid] = ch;
-    }
-
-    inline void Player::push_command(IFrameCommand* command)
-    {
-        m_records.push_back(command);
-    }
-
-    inline void Player::record_frame()
-    {
-        m_frames.push_back(m_records);
-        m_records.clear();
+        return m_root;
     }
 }

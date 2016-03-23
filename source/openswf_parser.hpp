@@ -3,9 +3,9 @@
 #include <cstdint>
 #include <algorithm>
 #include <vector>
+#include <unordered_map>
 
 #include "openswf_stream.hpp"
-#include "openswf_player.hpp"
 
 // ## TAG Categories
 // there two categories of tags in a SWF file are as follows:
@@ -29,10 +29,6 @@
 
 namespace openswf
 {
-
-    // Movie
-    Player::Ptr parse(Stream& stream);
-
     namespace record // should we hide this details from interface?
     {
         struct Header
@@ -82,6 +78,29 @@ namespace openswf
         // TAG = 32
         // DefineShape3 extends the capabilities of DefineShape2 by extending all
         // of the RGB color fields to support RGBA with opacity information.
+        struct FillStyle
+        {
+            typedef std::vector<FillStyle> Array;
+
+            FillStyleCode   type;
+            Color           color;      // solid fill color with opacity information
+
+            // todo
+            Matrix          gradient;   // matrix for gradient fill
+            uint16_t        bitmap_id;  // ID of bitmap charactor for fill
+            Matrix          bitmap;
+        };
+        // struct FillGradient {};
+        // struct FillBitmap {}; 
+
+        struct LineStyle
+        {
+            typedef std::vector<LineStyle> Array;
+
+            uint16_t    width;
+            Color       color;
+        };
+
         struct ShapeEdge
         {
             typedef std::vector<ShapeEdge> Array;
@@ -126,10 +145,10 @@ namespace openswf
             LineStyle::Array    line_styles;
             ShapePath::Array    paths;
 
-            static DefineShape read(Stream& stream, int type = 1);
+            static DefineShape read(Stream& stream, TagCode type);
 
-            static void read_line_styles(Stream& stream, LineStyle::Array& array, int type);
-            static void read_fill_styles(Stream& stream, FillStyle::Array& array, int type);
+            static void read_line_styles(Stream& stream, LineStyle::Array& array, TagCode type);
+            static void read_fill_styles(Stream& stream, FillStyle::Array& array, TagCode type);
         };
 
         // TAG = 4
@@ -150,8 +169,10 @@ namespace openswf
             uint16_t        clip_depth;     // specifies the top-most depth that will be masked 
 
             PlaceObject() : character_id(0), depth(0), ratio(0), clip_depth(0) {}
-            static PlaceObject read(Stream& stream, int size);
-            static PlaceObject read_ex(Stream& stream);
+            static PlaceObject read(Stream& stream, const TagHeader& header, TagCode type);
+
+            void parse_tag_4(Stream& stream, const TagHeader& header);
+            void parse_tag_26(Stream& stream);
         };
 
         // TAG = 5
@@ -165,7 +186,7 @@ namespace openswf
             uint16_t    character_id;
             uint16_t    depth;
 
-            static RemoveObject read(Stream& stream, int type);
+            static RemoveObject read(Stream& stream, TagCode type);
         };
 
         // TAG = 9
@@ -185,13 +206,14 @@ namespace openswf
         // 1. ShowFrame 2. PlaceObject 3. PlaceObject2 4. RemoveObject 5. RemoveObject2
         // 6. StartSound 7. FrameLabel 8. SoundStreamHead 9. SoundStreamHead2 10. SoundStreamBlock
         // 11. Actions 12. End
-        // struct DefineSprite
-        // {
-        //     uint16_t    character_id;
-        //     uint16_t    frame_count;
 
-        //     std::vector<std::vector<IFrameCommand*>>
-        // };
+        struct DefineSpriteHeader
+        {
+            uint16_t    character_id;
+            uint16_t    frame_count;
+
+            static DefineSpriteHeader read(Stream& stream);
+        };
 
         // TAG = 43
         // the FRAME_LABEL tag gives the specified name to the current frame

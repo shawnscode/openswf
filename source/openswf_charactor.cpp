@@ -4,10 +4,16 @@
 #include "openswf_debug.hpp"
 #include "openswf_charactor.hpp"
 #include "openswf_parser.hpp"
+#include "openswf_node.hpp"
+#include "openswf_stream.hpp"
+#include "openswf_player.hpp"
 
 extern "C" {
     #include "tesselator.h"
+    #include <GLFW/glfw3.h>
 }
+
+using namespace openswf::record;
 
 namespace openswf
 {
@@ -17,28 +23,26 @@ namespace openswf
     const uint32_t  MAX_POOL_SIZE       = 128*1024; // 128 kb
     const uint32_t  MAX_POLYGON_SIZE    = 6;
 
-    void Shape::contour_push_path(Contours& contours, const record::ShapePath& path)
+    typedef std::vector<Point2f>    Segments;
+    typedef std::vector<Segments>   Contours;
+
+    static void contour_add_curve(Segments& segments, const Point2f& prev, const Point2f& ctrl, const Point2f& next, int depth = 0)
     {
-        Segments segments;
-        segments.reserve(path.edges.size() + 1);
-        segments.push_back(path.start);
+        Point2f mid = (prev + next) * 0.5f;
+        Point2f q = (mid + ctrl) * 0.5f;
 
-        Point2f last = path.start;
-        for( auto& edge : path.edges )
+        float dist = std::abs((mid.x - q.x)) + std::abs(mid.y - q.y);
+        if( dist < CURVE_TOLERANCE || depth >= MAX_CURVE_SUBDIVIDE )
+            segments.push_back(next);
+        else
         {
-            if( edge.control == edge.anchor )
-                segments.push_back(edge.anchor);
-            else
-                contour_add_curve(segments, last, edge.control, edge.anchor);
-
-            last = edge.anchor;
+            // subdivide
+            contour_add_curve(segments, prev, (prev + ctrl) * 0.5f, q, depth + 1);
+            contour_add_curve(segments, q, (ctrl + next) * 0.5f, next, depth + 1);
         }
-
-        if( !contour_merge_segments(contours, segments) )
-            contours.push_back(std::move(segments));
     }
 
-    bool Shape::contour_merge_segments(Contours& contours, Segments& next)
+    static bool contour_merge_segments(Contours& contours, Segments& next)
     {
         for( auto& segments : contours )
         {
@@ -82,23 +86,28 @@ namespace openswf
         return false;
     }
 
-    void Shape::contour_add_curve(Segments& segments, const Point2f& prev, const Point2f& ctrl, const Point2f& next, int depth)
+    static void contour_push_path(Contours& contours, const record::ShapePath& path)
     {
-        Point2f mid = (prev + next) * 0.5f;
-        Point2f q = (mid + ctrl) * 0.5f;
+        Segments segments;
+        segments.reserve(path.edges.size() + 1);
+        segments.push_back(path.start);
 
-        float dist = std::abs((mid.x - q.x)) + std::abs(mid.y - q.y);
-        if( dist < CURVE_TOLERANCE || depth >= MAX_CURVE_SUBDIVIDE )
-            segments.push_back(next);
-        else
+        Point2f last = path.start;
+        for( auto& edge : path.edges )
         {
-            // subdivide
-            contour_add_curve(segments, prev, (prev + ctrl) * 0.5f, q, depth + 1);
-            contour_add_curve(segments, q, (ctrl + next) * 0.5f, next, depth + 1);
+            if( edge.control == edge.anchor )
+                segments.push_back(edge.anchor);
+            else
+                contour_add_curve(segments, last, edge.control, edge.anchor);
+
+            last = edge.anchor;
         }
+
+        if( !contour_merge_segments(contours, segments) )
+            contours.push_back(std::move(segments));
     }
 
-    Shape* Shape::create(const record::DefineShape& def)
+    Shape* Shape::create(record::DefineShape& def)
     {
         auto shape = new (std::nothrow) Shape();
         if( shape && shape->initialize(def) )
@@ -109,10 +118,7 @@ namespace openswf
         return nullptr;
     }
 
-    Shape::Shape()
-    {}
-
-    bool Shape::initialize(const record::DefineShape& def)
+    bool Shape::initialize(record::DefineShape& def)
     {
         this->bounds = def.bounds;
         this->fill_styles = def.fill_styles;
@@ -188,4 +194,50 @@ namespace openswf
         return true;
     }
 
+    void Shape::render(const Matrix& matrix, const ColorTransform& cxform)
+    {
+        for( int i=this->contour_indices.size()-1; i>=0; i-- )
+        {
+            auto start_idx = 0;
+            if( i > 0 ) start_idx = this->contour_indices[i-1];
+
+            auto& color = this->fill_styles[i].color;
+            glColor4ub(color.r, color.g, color.b, color.a);
+            glBegin(GL_TRIANGLES);
+            for( int j=start_idx; j<this->contour_indices[i]; j++ )
+            {
+                auto& point = this->vertices[this->indices[j]];
+                glVertex2f(point.x, point.y);
+            }
+            glEnd();
+        }
+    }
+
+    /// SPRITE CHARACTOR
+    void PlaceCommand::execute(DisplayList* display)
+    {
+        display->place(this->depth, this->cid, this->matrix, this->cxform);
+    }
+
+    void ModifyCommand::execute(DisplayList* display)
+    {
+        display->modify(this->depth, this->matrix, this->cxform);
+    }
+
+    void RemoveCommand::execute(DisplayList* display)
+    {
+        display->remove(this->depth);
+    }
+
+    Sprite::~Sprite()
+    {
+        for( auto& frame : frames )
+            for( auto& command : frame )
+                delete command;
+        frames.clear();
+    }
+
+    void Sprite::render(const Matrix& matrix, const ColorTransform& cxform)
+    {
+    }
 }

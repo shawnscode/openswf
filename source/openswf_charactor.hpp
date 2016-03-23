@@ -2,60 +2,87 @@
 
 #include <vector>
 #include "openswf_types.hpp"
+#include "openswf_parser.hpp"
 
 namespace openswf
 {
+
     struct ICharactor 
     {
-        virtual void render() = 0;
-        // virtual void render(const Matrix& transform, const ColorTransform& cxform) = 0;
         virtual ~ICharactor() {}
+        virtual void render(const Matrix& matrix, const ColorTransform& cxform) = 0;
     };
-
-    struct FillStyle
-    {
-        typedef std::vector<FillStyle> Array;
-
-        FillStyleCode   type;
-        Color           color;      // solid fill color with opacity information
-        // Matrix          gradient;   // matrix for gradient fill
-        // uint16_t        bitmap_id;  // ID of bitmap charactor for fill
-        // Matrix          bitmap;
-    };
-
-    // struct FillGradient {};
-    // struct FillBitmap {}; 
-    struct LineStyle
-    {
-        typedef std::vector<LineStyle> Array;
-
-        uint16_t    width;
-        Color       color;
-    };
-
-    typedef std::vector<Point2f>    Segments;
-    typedef std::vector<Segments>   Contours;
-
-    namespace record { class DefineShape; class ShapePath; }
 
     struct Shape : public ICharactor
     {
-        Rect                    bounds;
+        Rect                        bounds;
 
-        FillStyle::Array        fill_styles;
-        std::vector<Point2f>    vertices;
-        std::vector<uint16_t>   indices;
-        std::vector<uint16_t>   contour_indices;
+        record::FillStyle::Array    fill_styles;
+        std::vector<Point2f>        vertices;
+        std::vector<uint16_t>       indices;
+        std::vector<uint16_t>       contour_indices;
 
-        Shape();
-        bool initialize(const record::DefineShape& def);
-        virtual void render() {}
-        // virtual void render(const Matrix& transform, const ColorTransform& cxform);
+        bool initialize(record::DefineShape& def);
+        virtual void render(const Matrix& matrix, const ColorTransform& cxform);
 
-        static Shape* create(const record::DefineShape& def);
+        static Shape* create(record::DefineShape& def);
+    };
 
-        static void contour_push_path(Contours& contours, const record::ShapePath& path);
-        static bool contour_merge_segments(Contours& contours, Segments& segments);
-        static void contour_add_curve(Segments& segments, const Point2f& prev, const Point2f& ctrl, const Point2f& next, int depth = 0);
+    // A sprite corresponds to a movie clip in the Adobe Flash authoring application.
+    // It is a SWF file contained within another SWF file, and supports many of the
+    // features of a regular SWF file, such as the following:
+    // 1. Most of the control tags that can be used in the main file.
+    // 2. A timeline that can stop, start, and play independently of the main file.
+    // 3. A streaming sound track that is automatically mixed with the main sound track.
+    class DisplayList;
+    struct IFrameCommand
+    {
+        virtual ~IFrameCommand() {}
+        virtual void execute(DisplayList* display) = 0;
+    };
+
+    struct PlaceCommand : public IFrameCommand
+    {
+        uint16_t        depth;
+        uint16_t        cid;
+        Matrix          matrix;
+        ColorTransform  cxform;
+
+        PlaceCommand(uint16_t depth, uint16_t cid, const Matrix& matrix, const ColorTransform& cxform)
+        : depth(depth), cid(cid), matrix(matrix), cxform(cxform) {}
+
+        virtual void execute(DisplayList* display);
+    };
+
+    struct ModifyCommand : public IFrameCommand
+    {
+        uint16_t depth;
+        Matrix          matrix;
+        ColorTransform  cxform;
+
+        ModifyCommand(uint16_t depth, const Matrix& matrix, const ColorTransform& cxform)
+        : depth(depth), matrix(matrix), cxform(cxform) {} 
+
+        virtual void execute(DisplayList* display);
+    };
+
+    struct RemoveCommand : public IFrameCommand
+    {
+        uint16_t depth;
+
+        RemoveCommand(uint16_t depth)
+        : depth(depth) {}
+
+        virtual void execute(DisplayList* display);
+    };
+
+    struct Sprite : public ICharactor
+    {
+        Rect                                        bounds;
+        float                                       frame_rate;
+        std::vector<std::vector<IFrameCommand*>>    frames;
+
+        virtual ~Sprite();
+        virtual void render(const Matrix& matrix, const ColorTransform& cxform);
     };
 }

@@ -16,15 +16,15 @@ ifeq ($(config),debug)
   TARGET = $(TARGETDIR)/libopenswf.a
   OBJDIR = obj/debug
   DEFINES += -DDEBUG
-  INCLUDES += -I../3rd/libtess2/Include -I../source
+  INCLUDES += -I../3rd/libtess2/Include -I/usr/local/include -I../source
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g -std=c++11 -stdlib=libc++
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CFLAGS)
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += -ltess2
+  LIBS +=
   LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS) -L../libs/3rd
+  ALL_LDFLAGS += $(LDFLAGS) -L../libs/3rd -L/usr/local/lib
   LINKCMD = $(AR) -rcs "$@" $(OBJECTS)
   define PREBUILDCMDS
   endef
@@ -43,15 +43,15 @@ ifeq ($(config),release)
   TARGET = $(TARGETDIR)/libopenswf.a
   OBJDIR = obj/release
   DEFINES += -DNDEBUG
-  INCLUDES += -I../3rd/libtess2/Include -I../source
+  INCLUDES += -I../3rd/libtess2/Include -I/usr/local/include -I../source
   FORCE_INCLUDE +=
   ALL_CPPFLAGS += $(CPPFLAGS) -MMD -MP $(DEFINES) $(INCLUDES)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -O2 -std=c++11 -stdlib=libc++
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CFLAGS)
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += -ltess2
+  LIBS +=
   LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS) -L../libs/3rd -Wl,-x
+  ALL_LDFLAGS += $(LDFLAGS) -L../libs/3rd -L/usr/local/lib -Wl,-x
   LINKCMD = $(AR) -rcs "$@" $(OBJECTS)
   define PREBUILDCMDS
   endef
@@ -66,6 +66,7 @@ endif
 
 OBJECTS := \
 	$(OBJDIR)/openswf_charactor.o \
+	$(OBJDIR)/openswf_node.o \
 	$(OBJDIR)/openswf_parser.o \
 	$(OBJDIR)/openswf_player.o \
 	$(OBJDIR)/openswf_stream.o \
@@ -128,6 +129,9 @@ $(GCH): $(PCH)
 endif
 
 $(OBJDIR)/openswf_charactor.o: ../source/openswf_charactor.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/openswf_node.o: ../source/openswf_node.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/openswf_parser.o: ../source/openswf_parser.cpp
