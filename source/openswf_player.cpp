@@ -125,7 +125,7 @@ namespace openswf
             tag = TagHeader::read(*stream);
         }
 
-        m_root = new DisplayList(this, m_sprite);
+        m_root = new MovieClip(this, m_sprite);
         return true;
     }
 

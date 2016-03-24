@@ -128,9 +128,14 @@ namespace openswf
             ShapePath() : left_fill(0), right_fill(0), line(0) {}
             void reset()
             {
-                start.x = start.y = 0;
                 left_fill = right_fill = 0;
                 line = 0;
+            }
+
+            void restart(const Point2f& cursor)
+            {
+                start.x = cursor.x;
+                start.y = cursor.y;
                 edges.clear();
             }
         };

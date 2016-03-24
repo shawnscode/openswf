@@ -25,7 +25,7 @@ namespace openswf
     };
 
     class Player;
-    class DisplayList : Node
+    class MovieClip : Node
     {
     protected:
         std::unordered_map<uint16_t, Node*> m_children;
@@ -34,9 +34,11 @@ namespace openswf
         uint32_t                            m_current_frame;
         float                               m_frame_delta;
         float                               m_frame_timer;
+        bool                                m_paused;
 
     public:
-        DisplayList(Player* env, Sprite* sprite);
+        MovieClip(Player* env, Sprite* sprite);
+        virtual ~MovieClip();
         virtual void update(float dt);
         virtual void render(const Matrix& matrix, const ColorTransform& cxform);
 
@@ -49,6 +51,13 @@ namespace openswf
         // removes the specified character at the specified depth.
         // RemoveObject/RemoveObject2
         void remove(uint16_t depth);
+
+        void goto_and_play(uint32_t frame);
+        void goto_and_stop(uint32_t frame);
+        void goto_frame(uint32_t frame);
+
+        uint32_t get_frame_count() const;
+        uint32_t get_current_frame() const;
     };
 
     /// INLINE METHODS
@@ -61,5 +70,15 @@ namespace openswf
     {
         m_matrix = matrix;
         m_cxform = cxform;
+    }
+
+    inline uint32_t MovieClip::get_frame_count() const
+    {
+        return m_sprite->frames.size();
+    }
+
+    inline uint32_t MovieClip::get_current_frame() const
+    {
+        return m_current_frame;
     }
 }

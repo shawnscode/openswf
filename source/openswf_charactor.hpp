@@ -34,11 +34,11 @@ namespace openswf
     // 1. Most of the control tags that can be used in the main file.
     // 2. A timeline that can stop, start, and play independently of the main file.
     // 3. A streaming sound track that is automatically mixed with the main sound track.
-    class DisplayList;
+    class MovieClip;
     struct IFrameCommand
     {
         virtual ~IFrameCommand() {}
-        virtual void execute(DisplayList* display) = 0;
+        virtual void execute(MovieClip* display) = 0;
     };
 
     struct PlaceCommand : public IFrameCommand
@@ -51,7 +51,7 @@ namespace openswf
         PlaceCommand(uint16_t depth, uint16_t cid, const Matrix& matrix, const ColorTransform& cxform)
         : depth(depth), cid(cid), matrix(matrix), cxform(cxform) {}
 
-        virtual void execute(DisplayList* display);
+        virtual void execute(MovieClip* display);
     };
 
     struct ModifyCommand : public IFrameCommand
@@ -63,7 +63,7 @@ namespace openswf
         ModifyCommand(uint16_t depth, const Matrix& matrix, const ColorTransform& cxform)
         : depth(depth), matrix(matrix), cxform(cxform) {} 
 
-        virtual void execute(DisplayList* display);
+        virtual void execute(MovieClip* display);
     };
 
     struct RemoveCommand : public IFrameCommand
@@ -73,7 +73,7 @@ namespace openswf
         RemoveCommand(uint16_t depth)
         : depth(depth) {}
 
-        virtual void execute(DisplayList* display);
+        virtual void execute(MovieClip* display);
     };
 
     struct Sprite : public ICharactor

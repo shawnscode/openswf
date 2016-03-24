@@ -11,7 +11,7 @@ namespace openswf
     class ICharactor;
     class Stream;
     class Sprite;
-    class DisplayList;
+    class MovieClip;
     class Player
     {
         typedef std::unordered_map<uint16_t, ICharactor*> Directory;
@@ -19,7 +19,7 @@ namespace openswf
     protected:
         Directory       m_dictionary;
         Sprite*         m_sprite;
-        DisplayList*    m_root;
+        MovieClip*    m_root;
 
     public:
         static Player* create(Stream* stream);
@@ -35,7 +35,7 @@ namespace openswf
         ICharactor*     get_character(uint16_t cid);
 
         Rect            get_size() const;
-        DisplayList*    get_root() const;
+        MovieClip*    get_root() const;
     };
 
     //// INLINE METHODS of PLAYER
@@ -53,7 +53,7 @@ namespace openswf
         return nullptr;
     }
 
-    inline DisplayList* Player::get_root() const
+    inline MovieClip* Player::get_root() const
     {
         return m_root;
     }

@@ -13,9 +13,10 @@ endif
 ifeq ($(config),debug)
   01_unit_test_config = debug
   02_simple_shape_config = debug
+  03_simple_timeline_config = debug
 endif
 
-PROJECTS := 01-unit-test 02-simple-shape
+PROJECTS := 01-unit-test 02-simple-shape 03-simple-timeline
 
 .PHONY: all clean help $(PROJECTS) 
 
@@ -33,9 +34,16 @@ ifneq (,$(02_simple_shape_config))
 	@${MAKE} --no-print-directory -C . -f 02-simple-shape.make config=$(02_simple_shape_config)
 endif
 
+03-simple-timeline:
+ifneq (,$(03_simple_timeline_config))
+	@echo "==== Building 03-simple-timeline ($(03_simple_timeline_config)) ===="
+	@${MAKE} --no-print-directory -C . -f 03-simple-timeline.make config=$(03_simple_timeline_config)
+endif
+
 clean:
 	@${MAKE} --no-print-directory -C . -f 01-unit-test.make clean
 	@${MAKE} --no-print-directory -C . -f 02-simple-shape.make clean
+	@${MAKE} --no-print-directory -C . -f 03-simple-timeline.make clean
 
 help:
 	@echo "Usage: make [config=name] [target]"
@@ -48,5 +56,6 @@ help:
 	@echo "   clean"
 	@echo "   01-unit-test"
 	@echo "   02-simple-shape"
+	@echo "   03-simple-timeline"
 	@echo ""
 	@echo "For more information, see http://industriousone.com/premake/quick-start"

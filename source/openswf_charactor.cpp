@@ -131,7 +131,7 @@ namespace openswf
         {
             assert( path.edges.size() != 0 );
 
-            if( path.left_fill > 0 ) 
+            if( path.left_fill > 0 )
                 contour_push_path( polygons[path.left_fill-1], path );
 
             if( path.right_fill > 0 )
@@ -214,17 +214,17 @@ namespace openswf
     }
 
     /// SPRITE CHARACTOR
-    void PlaceCommand::execute(DisplayList* display)
+    void PlaceCommand::execute(MovieClip* display)
     {
         display->place(this->depth, this->cid, this->matrix, this->cxform);
     }
 
-    void ModifyCommand::execute(DisplayList* display)
+    void ModifyCommand::execute(MovieClip* display)
     {
         display->modify(this->depth, this->matrix, this->cxform);
     }
 
-    void RemoveCommand::execute(DisplayList* display)
+    void RemoveCommand::execute(MovieClip* display)
     {
         display->remove(this->depth);
     }

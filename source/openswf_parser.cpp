@@ -6,81 +6,6 @@
 
 namespace openswf
 {
-    // Player::Ptr parse(Stream& stream)
-    // {
-    //     stream.set_position(0);
-    //     auto header = Header::read(stream);
-    //     auto player = Player::Ptr(new Player(
-    //         header.frame_size.to_pixel(), 
-    //         header.frame_rate, 
-    //         header.frame_count));
-    //     auto tag = TagHeader::read(stream);
-    //     while( tag.code != TagCode::END )
-    //     {
-    //         switch(tag.code)
-    //         {
-    //             case TagCode::DEFINE_SHAPE:
-    //             {
-    //                 auto def = DefineShape::read(stream, 1);
-    //                 player->define(def.character_id, Shape::create(def));
-    //                 break;
-    //             }
-    //             case TagCode::DEFINE_SHAPE2:
-    //             {
-    //                 auto def = DefineShape::read(stream, 2);
-    //                 player->define(def.character_id, Shape::create(def));
-    //                 break;
-    //             }
-    //             case TagCode::DEFINE_SHAPE3:
-    //             {
-    //                 auto def = DefineShape::read(stream, 3);
-    //                 player->define(def.character_id, Shape::create(def));
-    //                 break;
-    //             }
-    //             case TagCode::PLACE_OBJECT:
-    //             {
-    //                 auto def = PlaceObject::read(stream, tag.size);
-    //                 player->push_command(PlaceCommand::create(def));
-    //                 break;
-    //             }
-    //             case TagCode::PLACE_OBJECT2:
-    //             {
-    //                 auto def = PlaceObject::read_ex(stream);
-    //                 player->push_command(PlaceCommand::create(def));
-    //                 break;
-    //             }
-
-    //             case TagCode::REMOVE_OBJECT:
-    //             {
-    //                 auto def = RemoveObject::read(stream, 1);
-    //                 player->push_command(RemoveCommand::create(def));
-    //                 break;
-    //             }
-
-    //             case TagCode::REMOVE_OBJECT2:
-    //             {
-    //                 auto def = RemoveObject::read(stream, 2);
-    //                 player->push_command(RemoveCommand::create(def));
-    //                 break;
-    //             }
-
-    //             case TagCode::SHOW_FRAME:
-    //             {
-    //                 player->record_frame();
-    //                 break;
-    //             }
-
-    //             default:
-    //                 break;
-    //         }
-
-    //         stream.set_position(tag.end_pos);
-    //         tag = TagHeader::read(stream);
-    //     }
-
-    //     return player;
-    // }
-
     namespace record
     {
         Header Header::read(Stream& stream)
@@ -162,8 +87,11 @@ namespace openswf
                 style.type = (FillStyleCode)stream.read_uint8();
 
                 if( style.type == FillStyleCode::SOLID )
+                {
                     if( type == TagCode::DEFINE_SHAPE3 ) style.color = stream.read_rgba();
                     else style.color = stream.read_rgb();
+                    printf("READ FILL STYLE: %d, %d, %d\n", style.color.r, style.color.b, style.color.a);
+                }
                 else
                     assert(false); // not supported yet
 
@@ -204,15 +132,15 @@ namespace openswf
             Point2f cursor;
 
             ShapePath current_path;
-            auto push_path = [&]()
+            auto push_path = [&](bool reset = false)
             {
                 if( !current_path.edges.empty() )
                 {
                     record.paths.push_back(current_path);
-                    current_path.reset();
                 }
 
-                current_path.start = cursor;
+                current_path.restart(cursor);
+                if( reset ) current_path.reset();
             };
 
             while( true )
@@ -234,7 +162,7 @@ namespace openswf
                         cursor.x = (float)stream.read_bits_as_int32(bits);
                         cursor.y = (float)stream.read_bits_as_int32(bits);
 
-                        push_path();
+                        push_path(true);
                     }
 
                     if( (mask & SHAPE_FILL_STYLE_0) && fill_index_bits > 0 ) // StateFillStyle0
@@ -264,7 +192,6 @@ namespace openswf
                     {
                         assert( type == TagCode::DEFINE_SHAPE3 );
                         push_path();
-                        // ???
 
                         fill_index_base = record.fill_styles.size();
                         line_index_base = record.line_styles.size();
@@ -335,8 +262,6 @@ namespace openswf
 
         void PlaceObject::parse_tag_4(Stream& stream, const TagHeader& header)
         {
-            auto start_pos = stream.get_position();
-
             this->character_id  = stream.read_uint16();
             this->depth         = stream.read_uint16();
             this->matrix        = stream.read_matrix();
