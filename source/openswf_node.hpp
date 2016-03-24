@@ -52,6 +52,7 @@ namespace openswf
         // RemoveObject/RemoveObject2
         void remove(uint16_t depth);
 
+        void reset();
         void goto_and_play(uint32_t frame);
         void goto_and_stop(uint32_t frame);
         void goto_frame(uint32_t frame);

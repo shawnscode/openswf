@@ -28,28 +28,28 @@ namespace openswf
 
     MovieClip::~MovieClip()
     {
-        for( auto& pair : m_children )
-            delete pair.second;
-        m_children.clear();
+        reset();
     }
 
     // INHERITANTED
     void MovieClip::update(float dt)
     {
-        if( m_current_frame >= m_sprite->frames.size() )
-            return;
-
         if( !m_paused )
         {
             m_frame_timer += dt;
             while( m_frame_timer > m_frame_delta )
             {
                 m_frame_timer -= m_frame_delta;
-                for( auto& cmd : m_sprite->frames[m_current_frame] )
-                    cmd->execute(this);
-
-                if( (++m_current_frame) >= m_sprite->frames.size() )
-                    break;
+                if( m_current_frame >= m_sprite->frames.size() )
+                {
+                    goto_frame(0);
+                }
+                else
+                {
+                    for( auto& cmd : m_sprite->frames[m_current_frame] )
+                        cmd->execute(this);
+                    m_current_frame ++;
+                }
             }
         }
 
@@ -99,6 +99,14 @@ namespace openswf
         m_children.erase(iter);
     }
 
+    void MovieClip::reset()
+    {
+        for( auto& pair : m_children )
+            delete pair.second;
+        m_children.clear();
+        m_current_frame = 0;
+    }
+
     void MovieClip::goto_and_play(uint32_t frame)
     {
         m_paused = false;
@@ -114,7 +122,7 @@ namespace openswf
     void MovieClip::goto_frame(uint32_t frame)
     {
         if( (m_current_frame-1) >= frame )
-            m_current_frame = 0;
+            reset();
 
         if( m_current_frame <= frame )
         {
