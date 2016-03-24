@@ -46,7 +46,8 @@ workspace("test")
     targetdir( "bin" )
 
     project( "01-unit-test" )
-        links({ "tess2", "openswf" })
+        links({ "tess2", "glfw3", "openswf" })
+        linkoptions { "-framework OpenGL", "-framework Cocoa", "-framework IOKit", "-framework CoreVideo" }
         files({ "test/01-unit-test/**.cpp", "test/00-common/*.cpp" })
 
     project("02-simple-shape")
@@ -55,6 +56,6 @@ workspace("test")
         files({ "test/02-simple-shape/**.cpp", "test/00-common/*.cpp" })
 
     project("03-simple-timeline")
-        links({ "tess2", "glfw3" })
+        links({ "tess2", "glfw3", "openswf" })
         linkoptions { "-framework OpenGL", "-framework Cocoa", "-framework IOKit", "-framework CoreVideo" }
-        files({ "test/03-simple-timeline/**.cpp", "test/00-common/*.cpp", "source/*.cpp" })
+        files({ "test/03-simple-timeline/**.cpp", "test/00-common/*.cpp" })

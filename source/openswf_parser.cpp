@@ -90,7 +90,6 @@ namespace openswf
                 {
                     if( type == TagCode::DEFINE_SHAPE3 ) style.color = stream.read_rgba();
                     else style.color = stream.read_rgb();
-                    printf("READ FILL STYLE: %d, %d, %d\n", style.color.r, style.color.b, style.color.a);
                 }
                 else
                     assert(false); // not supported yet

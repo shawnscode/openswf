@@ -1,5 +1,4 @@
-#include "catch.hpp"
-#include "openswf_stream.hpp"
+#include "openswf_test.hpp"
 
 TEST_CASE( "STREAM_READ_INTEGER", "[OPENSWF]" )
 {

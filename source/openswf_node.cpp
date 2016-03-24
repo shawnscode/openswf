@@ -18,7 +18,7 @@ namespace openswf
 
     ////
     MovieClip::MovieClip(Player* env, Sprite* sprite)
-    : Node(sprite), m_environment(env), m_sprite(sprite), m_frame_timer(0), m_current_frame(0),
+    : Node(sprite), m_environment(env), m_sprite(sprite), m_frame_timer(0), m_current_frame(-1),
     m_paused(false)
     {
         assert( sprite->frame_rate < 64 );
@@ -40,15 +40,14 @@ namespace openswf
             while( m_frame_timer > m_frame_delta )
             {
                 m_frame_timer -= m_frame_delta;
-                if( m_current_frame >= m_sprite->frames.size() )
+                if( m_current_frame >= (m_sprite->frames.size()-1) )
                 {
                     goto_frame(0);
                 }
                 else
                 {
-                    for( auto& cmd : m_sprite->frames[m_current_frame] )
+                    for( auto& cmd : m_sprite->frames[++m_current_frame] )
                         cmd->execute(this);
-                    m_current_frame ++;
                 }
             }
         }
@@ -104,7 +103,7 @@ namespace openswf
         for( auto& pair : m_children )
             delete pair.second;
         m_children.clear();
-        m_current_frame = 0;
+        m_current_frame = -1;
     }
 
     void MovieClip::goto_and_play(uint32_t frame)
@@ -121,17 +120,20 @@ namespace openswf
 
     void MovieClip::goto_frame(uint32_t frame)
     {
-        if( (m_current_frame-1) >= frame )
+        m_frame_timer = 0.f;
+
+        if( m_current_frame == frame )
+            return;
+
+        if( m_current_frame > frame )
             reset();
 
-        if( m_current_frame <= frame )
+        while(
+            m_current_frame < (int32_t)frame &&
+            m_current_frame < (int32_t)(m_sprite->frames.size()-1) )
         {
-            while( m_current_frame <= frame && m_current_frame < m_sprite->frames.size() )
-            {
-                for( auto& cmd : m_sprite->frames[m_current_frame] )
-                    cmd->execute(this);
-                m_current_frame ++;
-            }
+            for( auto& command : m_sprite->frames[++m_current_frame] )
+                command->execute(this);
         }
     }
 }

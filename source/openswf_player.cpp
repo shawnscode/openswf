@@ -117,12 +117,10 @@ namespace openswf
                 }
 
                 default:
-                    //printf("skip undefined tag: %s\n", get_tag_str(tag.code));
+                    printf("skip undefined tag: %s\n", get_tag_str(tag.code));
                     break;
             }
             
-            printf("reading tag: %s\n", get_tag_str(tag.code));
-
             stream->set_position(tag.end_pos);
             tag = TagHeader::read(*stream);
         }

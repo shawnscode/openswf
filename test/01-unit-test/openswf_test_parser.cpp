@@ -1,4 +1,3 @@
-#include "catch.hpp"
 #include "openswf_test.hpp"
 
 using namespace openswf;
@@ -6,7 +5,7 @@ using namespace openswf::record;
 
 TEST_CASE("PARSE_TAG_HEADER", "[OPENSWF]")
 {
-    auto stream = create_from_file("../test/resources/openswf_test_parser.swf");
+    auto stream = create_from_file("../test/resources/unit-test-parser.swf");
     REQUIRE( stream.get_position() == 0 );
     REQUIRE( stream.get_bit_position() == 0 );
     REQUIRE( stream.get_size() == 1340 );
@@ -100,7 +99,7 @@ TEST_CASE("DEFINE-SHAPE-PARSE", "[OPENSWF]")
         };
         paths.push_back(std::vector<Point2f>(path, path+3));
         fill_0_array.push_back(1);
-        fill_1_array.push_back(0);
+        fill_1_array.push_back(2);
         line_array.push_back(0);
     }
 

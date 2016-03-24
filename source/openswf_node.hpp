@@ -31,7 +31,7 @@ namespace openswf
         std::unordered_map<uint16_t, Node*> m_children;
         Player*                             m_environment;
         Sprite*                             m_sprite;
-        uint32_t                            m_current_frame;
+        int32_t                             m_current_frame;
         float                               m_frame_delta;
         float                               m_frame_timer;
         bool                                m_paused;
@@ -59,6 +59,7 @@ namespace openswf
 
         uint32_t get_frame_count() const;
         uint32_t get_current_frame() const;
+        float get_frame_rate() const;
     };
 
     /// INLINE METHODS
@@ -81,5 +82,10 @@ namespace openswf
     inline uint32_t MovieClip::get_current_frame() const
     {
         return m_current_frame;
+    }
+
+    inline float MovieClip::get_frame_rate() const
+    {
+        return m_sprite->frame_rate;
     }
 }

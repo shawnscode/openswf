@@ -22,9 +22,9 @@ ifeq ($(config),debug)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g -std=c++11 -stdlib=libc++
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CFLAGS)
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += -ltess2 -lopenswf
+  LIBS += -ltess2 -lglfw3 -lopenswf
   LDDEPS +=
-  ALL_LDFLAGS += $(LDFLAGS) -L../../libs/3rd -L../../libs -L/usr/local/lib
+  ALL_LDFLAGS += $(LDFLAGS) -L../../libs/3rd -L../../libs -L/usr/local/lib -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)
   define PREBUILDCMDS
   endef
@@ -40,6 +40,7 @@ endif
 OBJECTS := \
 	$(OBJDIR)/openswf_common.o \
 	$(OBJDIR)/openswf_test.o \
+	$(OBJDIR)/openswf_test_movie.o \
 	$(OBJDIR)/openswf_test_parser.o \
 	$(OBJDIR)/openswf_test_stream.o \
 
@@ -103,6 +104,9 @@ $(OBJDIR)/openswf_common.o: ../../test/00-common/openswf_common.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/openswf_test.o: ../../test/01-unit-test/openswf_test.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/openswf_test_movie.o: ../../test/01-unit-test/openswf_test_movie.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/openswf_test_parser.o: ../../test/01-unit-test/openswf_test_parser.cpp
