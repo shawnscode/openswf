@@ -1,5 +1,5 @@
 #include "openswf_player.hpp"
-#include "openswf_parser.hpp"
+#include "openswf_record.hpp"
 #include "openswf_charactor.hpp"
 #include "openswf_node.hpp"
 

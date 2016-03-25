@@ -40,7 +40,7 @@ namespace openswf
             while( m_frame_timer > m_frame_delta )
             {
                 m_frame_timer -= m_frame_delta;
-                if( m_current_frame >= (m_sprite->frames.size()-1) )
+                if( m_current_frame >= (int32_t)(m_sprite->frames.size()-1) )
                 {
                     goto_frame(0);
                 }

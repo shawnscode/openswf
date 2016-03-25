@@ -57,9 +57,9 @@ namespace openswf
         void goto_and_stop(uint32_t frame);
         void goto_frame(uint32_t frame);
 
-        uint32_t get_frame_count() const;
-        uint32_t get_current_frame() const;
-        float get_frame_rate() const;
+        uint32_t    get_frame_count() const;
+        uint32_t    get_current_frame() const;
+        float       get_frame_rate() const;
     };
 
     /// INLINE METHODS

@@ -67,8 +67,8 @@ endif
 OBJECTS := \
 	$(OBJDIR)/openswf_charactor.o \
 	$(OBJDIR)/openswf_node.o \
-	$(OBJDIR)/openswf_parser.o \
 	$(OBJDIR)/openswf_player.o \
+	$(OBJDIR)/openswf_record.o \
 	$(OBJDIR)/openswf_stream.o \
 	$(OBJDIR)/openswf_types.o \
 
@@ -134,10 +134,10 @@ $(OBJDIR)/openswf_charactor.o: ../source/openswf_charactor.cpp
 $(OBJDIR)/openswf_node.o: ../source/openswf_node.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_parser.o: ../source/openswf_parser.cpp
+$(OBJDIR)/openswf_player.o: ../source/openswf_player.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_player.o: ../source/openswf_player.cpp
+$(OBJDIR)/openswf_record.o: ../source/openswf_record.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/openswf_stream.o: ../source/openswf_stream.cpp

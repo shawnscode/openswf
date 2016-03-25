@@ -3,7 +3,7 @@
 
 #include "openswf_debug.hpp"
 #include "openswf_charactor.hpp"
-#include "openswf_parser.hpp"
+#include "openswf_record.hpp"
 #include "openswf_node.hpp"
 #include "openswf_stream.hpp"
 #include "openswf_player.hpp"

@@ -2,7 +2,7 @@
 
 #include <vector>
 #include "openswf_types.hpp"
-#include "openswf_parser.hpp"
+#include "openswf_record.hpp"
 
 namespace openswf
 {
@@ -13,6 +13,10 @@ namespace openswf
         virtual void render(const Matrix& matrix, const ColorTransform& cxform) = 0;
     };
 
+
+    // The SWF shape architecture is designed to be compact,
+    // flexible and rendered very quickly to the screen. It is similar to most vector
+    // formats in that shapes are defined by a list of edges
     struct Shape : public ICharactor
     {
         Rect                        bounds;
