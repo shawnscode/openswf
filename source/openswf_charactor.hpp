@@ -13,23 +13,92 @@ namespace openswf
         virtual void render(const Matrix& matrix, const ColorTransform& cxform) = 0;
     };
 
-
     // The SWF shape architecture is designed to be compact,
     // flexible and rendered very quickly to the screen. It is similar to most vector
     // formats in that shapes are defined by a list of edges
+    struct IStyleCommand
+    {
+        virtual ~IStyleCommand() {}
+        virtual void execute() = 0;
+    };
+
+    struct SolidFill : public IStyleCommand
+    {
+        Color color;
+        virtual void execute();
+    };
+
+    // * all gradients are defined in a standard space called the gradient square. 
+    // the gradient square is centered at (0,0),
+    // and extends from (-16384,-16384) to (16384,16384).
+    // each gradient is mapped from the gradient square to the display surface
+    // using a standard transformation matrix.
+    struct GradientFill : public IStyleCommand
+    {
+        struct ControlPoint
+        {
+            uint8_t ratio;
+            Color   color;
+        };
+
+        enum class SpreadMode : uint8_t
+        {
+            PAD         = 0,
+            REFLECT     = 1,
+            REPEAT      = 2,
+            RESERVED    = 3
+        };
+
+        enum class InterpolationMode : uint8_t
+        {
+            NORMAL      = 0,
+            LINEAR      = 1,
+            RESERVED_1  = 2,
+            RESERVED_2  = 3
+        };
+
+        SpreadMode                  spread;
+        InterpolationMode           interp;
+        Matrix                      transform;
+        std::vector<ControlPoint>   controls;
+    };
+
+    struct LinearGradientFill : public GradientFill
+    {
+        virtual void execute();
+    };
+
+    struct RadialGradientFill : GradientFill
+    {
+        virtual void execute();
+    };
+
+    struct FocalRadialGradientFill : GradientFill
+    {
+        float focal;
+        virtual void execute();
+    };
+
+
+    struct BitmapFill : IStyleCommand
+    {
+        virtual void execute();
+    };
+
     struct Shape : public ICharactor
     {
         Rect                        bounds;
 
-        record::FillStyle::Array    fill_styles;
+        std::vector<IStyleCommand*> fill_styles;
         std::vector<Point2f>        vertices;
         std::vector<uint16_t>       indices;
         std::vector<uint16_t>       contour_indices;
 
-        bool initialize(record::DefineShape& def);
+        virtual ~Shape();
         virtual void render(const Matrix& matrix, const ColorTransform& cxform);
 
         static Shape* create(record::DefineShape& def);
+        bool initialize(record::DefineShape& def);
     };
 
     // A sprite corresponds to a movie clip in the Adobe Flash authoring application.

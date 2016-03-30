@@ -59,7 +59,7 @@ namespace openswf
         }
 
         // TAG: 2, 22, 32
-        void DefineShape::read_line_styles(Stream& stream, LineStyle::Array& array, TagCode type)
+        static void read_line_styles(Stream& stream, LineStyle::Array& array, TagCode type)
         {
             uint8_t count = stream.read_uint8();
             if( count == 0xFF ) count = stream.read_uint16();
@@ -75,7 +75,38 @@ namespace openswf
             }
         }
 
-        void DefineShape::read_fill_styles(Stream& stream, FillStyle::Array& array, TagCode type)
+        enum class FillStyleCode : uint8_t
+        {
+            SOLID                           = 0x00,
+            LINEAR_GRADIENT                 = 0x10,
+            RADIAL_GRADIENT                 = 0x12,
+            FOCAL_RADIAL_GRADIENT           = 0x13,
+
+            REPEATING_BITMAP                = 0x40,
+            CLIPPED_BITMAP                  = 0x41,
+            NON_SMOOTHED_REPEATING_BITMAP   = 0x42,
+            NON_SMOOTHED_CLIPPED_BITMAP     = 0x43
+        };
+
+        static void read_gradient(Stream& stream, GradientFill& gradient, TagCode tag)
+        {
+            gradient.transform = stream.read_matrix();
+            gradient.spread = (GradientFill::SpreadMode)stream.read_bits_as_uint32(2);
+            gradient.interp = (GradientFill::InterpolationMode)stream.read_bits_as_uint32(2);
+
+            auto count = stream.read_bits_as_uint32(4);
+            gradient.controls.reserve(count);
+            for( auto i=0; i<count; i++ )
+            {
+                GradientFill::ControlPoint ctrl;
+                ctrl.ratio = stream.read_uint8();
+                if( tag == TagCode::DEFINE_SHAPE3 ) ctrl.color = stream.read_rgba();
+                else ctrl.color = stream.read_rgb();
+                gradient.controls.push_back(ctrl);
+            }
+        }
+
+        static void read_fill_styles(Stream& stream, std::vector<IStyleCommand*>& array, TagCode tag)
         {
             uint8_t count = stream.read_uint8();
             if( count == 0xFF ) count = stream.read_uint16();
@@ -83,18 +114,39 @@ namespace openswf
             array.reserve(count + array.size());
             for( auto i=0; i<count; i++ )
             {
-                FillStyle style;
-                style.type = (FillStyleCode)stream.read_uint8();
-
-                if( style.type == FillStyleCode::SOLID )
+                auto type = (FillStyleCode)stream.read_uint8();
+                if( type == FillStyleCode::SOLID )
                 {
-                    if( type == TagCode::DEFINE_SHAPE3 ) style.color = stream.read_rgba();
-                    else style.color = stream.read_rgb();
+                    auto solid = new SolidFill();
+                    if( tag == TagCode::DEFINE_SHAPE3 ) solid->color = stream.read_rgba();
+                    else solid->color = stream.read_rgb();
+                    array.push_back(solid);
+                }
+                else if( type == FillStyleCode::LINEAR_GRADIENT )
+                {
+                    auto linear = new LinearGradientFill();
+                    read_gradient(stream, *linear, tag);
+                    array.push_back(linear);
+                }
+                else if( type == FillStyleCode::RADIAL_GRADIENT )
+                {
+                    auto radial = new RadialGradientFill();
+                    read_gradient(stream, *radial, tag);
+                    array.push_back(radial);
+                }
+                else if( type == FillStyleCode::FOCAL_RADIAL_GRADIENT )
+                {
+                    auto focal = new FocalRadialGradientFill();
+                    read_gradient(stream, *focal, tag);
+                    focal->focal = stream.read_fixed16();
+                    array.push_back(focal);
+                }
+                else if( type == FillStyleCode::REPEATING_BITMAP )
+                {
+
                 }
                 else
                     assert(false); // not supported yet
-
-                array.push_back(style);
             }
         }
 
@@ -110,7 +162,6 @@ namespace openswf
 
         DefineShape DefineShape::read(Stream& stream, TagCode type)
         {
-
             assert( 
                 type == TagCode::DEFINE_SHAPE ||
                 type == TagCode::DEFINE_SHAPE2 ||
@@ -246,12 +297,12 @@ namespace openswf
         }
 
         // TAG: 4, 26
-        PlaceObject PlaceObject::read(Stream& stream, const TagHeader& header, TagCode type)
+        PlaceObject PlaceObject::read(Stream& stream, const TagHeader& header)
         {
-            assert(type == TagCode::PLACE_OBJECT || type == TagCode::PLACE_OBJECT2);
+            assert(header.code == TagCode::PLACE_OBJECT || header.code == TagCode::PLACE_OBJECT2);
 
             PlaceObject record;
-            if( type == TagCode::PLACE_OBJECT )
+            if( header.code == TagCode::PLACE_OBJECT )
                 record.parse_tag_4(stream, header);
             else
                 record.parse_tag_26(stream);

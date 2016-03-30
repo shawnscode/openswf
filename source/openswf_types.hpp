@@ -166,20 +166,6 @@ namespace openswf
         FILE_ATTR_USE_NETWORK       = 0x80,
     };
 
-    enum class FillStyleCode : uint8_t
-    {
-        SOLID                           = 0x00,
-        LINEAR_GRADIENT                 = 0x10,
-        RADIAL_GRADIENT                 = 0x12,
-        FOCAL_RADIAL_GRADIENT           = 0x13,
-
-        REPEATING_BITMAP                = 0x40,
-        CLIPPED_BITMAP                  = 0x41,
-        NON_SMOOTHED_REPEATING_BITMAP   = 0x42,
-        NON_SMOOTHED_CLIPPED_BITMAP     = 0x43
-    };
-
-    
     template<typename T> struct Point
     {
         T x, y;

@@ -100,7 +100,7 @@ namespace openswf
                 case TagCode::PLACE_OBJECT:
                 case TagCode::PLACE_OBJECT2:
                 {
-                    auto info = PlaceObject::read(*stream, tag, tag.code);
+                    auto info = PlaceObject::read(*stream, tag);
                     if( info.character_id == 0 )
                         current_frame.push_back(new ModifyCommand(info.depth, info.matrix, info.cxform));
                     else

@@ -17,7 +17,33 @@ using namespace openswf::record;
 
 namespace openswf
 {
+    // FILL STYLE PARSING
+    void SolidFill::execute()
+    {
+        glColor4ub(color.r, color.g, color.b, color.a);
+    }
 
+    void LinearGradientFill::execute()
+    {
+        // todo
+    }
+
+    void RadialGradientFill::execute()
+    {
+        // todo
+    }
+
+    void FocalRadialGradientFill::execute()
+    {
+        // todo
+    }
+
+    void BitmapFill::execute()
+    {
+
+    }
+
+    // SHAPE PARSING
     const uint32_t  MAX_CURVE_SUBDIVIDE = 20;
     const float     CURVE_TOLERANCE     = 1.0f;
     const uint32_t  MAX_POOL_SIZE       = 128*1024; // 128 kb
@@ -121,9 +147,9 @@ namespace openswf
     bool Shape::initialize(record::DefineShape& def)
     {
         this->bounds = def.bounds;
-        this->fill_styles = def.fill_styles;
+        this->fill_styles = std::move(def.fill_styles);
 
-        auto polygons = std::vector<Contours>(def.fill_styles.size(), Contours());
+        auto polygons = std::vector<Contours>(this->fill_styles.size(), Contours());
         auto lines = std::vector<Contours>(def.line_styles.size(), Contours());
 
         // 
@@ -141,7 +167,7 @@ namespace openswf
                 contour_push_path( lines[path.line-1], path );
         }
 
-        assert( polygons.size() == def.fill_styles.size() );
+        assert( polygons.size() == this->fill_styles.size() );
 
         // tesselate polygons
         for( auto& mesh_set : polygons )
@@ -194,15 +220,20 @@ namespace openswf
         return true;
     }
 
+    Shape::~Shape()
+    {
+        for( auto& command : this->fill_styles )
+            delete command;
+        this->fill_styles.clear();
+    }
+
     void Shape::render(const Matrix& matrix, const ColorTransform& cxform)
     {
-        for( int i=this->contour_indices.size()-1; i>=0; i-- )
+        auto start_idx = 0;
+        for( auto i=0; i<this->contour_indices.size(); i++ )
         {
-            auto start_idx = 0;
-            if( i > 0 ) start_idx = this->contour_indices[i-1];
+            this->fill_styles[i]->execute();
 
-            auto color = cxform * this->fill_styles[i].color;
-            glColor4ub(color.r, color.g, color.b, color.a);
             glBegin(GL_TRIANGLES);
             for( int j=start_idx; j<this->contour_indices[i]; j++ )
             {
@@ -210,6 +241,9 @@ namespace openswf
                 glVertex2f(point.x, point.y);
             }
             glEnd();
+
+            if( i < (this->contour_indices.size()-1) )
+                start_idx = this->contour_indices[i];
         }
     }
 
@@ -237,7 +271,5 @@ namespace openswf
         frames.clear();
     }
 
-    void Sprite::render(const Matrix& matrix, const ColorTransform& cxform)
-    {
-    }
+    void Sprite::render(const Matrix& matrix, const ColorTransform& cxform) {}
 }

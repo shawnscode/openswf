@@ -29,6 +29,8 @@
 
 namespace openswf
 {
+    class IStyleCommand;
+
     namespace record // should we hide this details from interface?
     {
         struct Header
@@ -78,20 +80,8 @@ namespace openswf
         // TAG = 32
         // DefineShape3 extends the capabilities of DefineShape2 by extending all
         // of the RGB color fields to support RGBA with opacity information.
-        struct FillStyle
-        {
-            typedef std::vector<FillStyle> Array;
-
-            FillStyleCode   type;
-            Color           color;      // solid fill color with opacity information
-
-            // todo
-            Matrix          gradient;   // matrix for gradient fill
-            uint16_t        bitmap_id;  // ID of bitmap charactor for fill
-            Matrix          bitmap;
-        };
         // struct FillGradient {};
-        // struct FillBitmap {}; 
+        // struct FillBitmap {};
 
         struct LineStyle
         {
@@ -146,14 +136,11 @@ namespace openswf
             Rect                bounds;         // bounds of shape
 
             // * the style arrays begin at index 1
-            FillStyle::Array    fill_styles;
+            std::vector<IStyleCommand*> fill_styles;
             LineStyle::Array    line_styles;
             ShapePath::Array    paths;
 
             static DefineShape read(Stream& stream, TagCode type);
-
-            static void read_line_styles(Stream& stream, LineStyle::Array& array, TagCode type);
-            static void read_fill_styles(Stream& stream, FillStyle::Array& array, TagCode type);
         };
 
         // TAG = 4
@@ -174,7 +161,7 @@ namespace openswf
             uint16_t        clip_depth;     // specifies the top-most depth that will be masked 
 
             PlaceObject() : character_id(0), depth(0), ratio(0), clip_depth(0) {}
-            static PlaceObject read(Stream& stream, const TagHeader& header, TagCode type);
+            static PlaceObject read(Stream& stream, const TagHeader& header);
 
             void parse_tag_4(Stream& stream, const TagHeader& header);
             void parse_tag_26(Stream& stream);
