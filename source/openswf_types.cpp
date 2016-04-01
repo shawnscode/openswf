@@ -77,6 +77,47 @@ namespace openswf
         }
     }
 
+    template<typename T> T clamp(T value, T min, T max)
+    {
+        assert( min <= max );
+        if( value >= max ) return max;
+        if( value <= min ) return min;
+        return value;
+    }
+
+    Color Color::operator * (float ratio) const
+    {
+        ratio = clamp(ratio, 0.0f, 1.0f);
+        return Color(
+            (uint8_t)(((float)this->r)*ratio),
+            (uint8_t)(((float)this->g)*ratio),
+            (uint8_t)(((float)this->b)*ratio),
+            (uint8_t)(((float)this->a)*ratio) );
+    }
+
+    Color Color::operator + (const Color& rh) const
+    {
+        return Color(
+            (uint8_t)clamp((int)this->r + (int)rh.r, 0, 255),
+            (uint8_t)clamp((int)this->g + (int)rh.g, 0, 255),
+            (uint8_t)clamp((int)this->b + (int)rh.b, 0, 255),
+            (uint8_t)clamp((int)this->a + (int)rh.a, 0, 255) );
+    }
+
+    Color Color::operator - (const Color& rh) const
+    {
+        return Color(
+            (uint8_t)clamp((int)this->r - (int)rh.r, 0, 255),
+            (uint8_t)clamp((int)this->g - (int)rh.g, 0, 255),
+            (uint8_t)clamp((int)this->b - (int)rh.b, 0, 255),
+            (uint8_t)clamp((int)this->a - (int)rh.a, 0, 255) );
+    }
+
+    Color Color::lerp(const Color& from, const Color& to, const float ratio)
+    {
+        return from + (to - from) * ratio;
+    }
+
     const Matrix Matrix::identity = Matrix();
 
     Matrix Matrix::operator * (const Matrix& rh) const

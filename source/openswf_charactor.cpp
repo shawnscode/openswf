@@ -23,9 +23,61 @@ namespace openswf
         glColor4ub(color.r, color.g, color.b, color.a);
     }
 
+    Color LinearGradientFill::sample(int ratio) const
+    {
+        assert( ratio >= 0 && ratio < 256 );
+        assert( this->controls.size() > 0 );
+
+        if( ratio < this->controls[0].ratio )
+            return this->controls[0].color;
+
+        for( auto i=1; i<this->controls.size(); i++ )
+        {
+            if( this->controls[i].ratio >= ratio )
+            {
+                const auto& last = this->controls[i-1];
+                const auto& now = this->controls[i];
+
+                auto percent = 0.0f;
+                if( last.ratio != now.ratio )
+                    percent = (ratio - last.ratio) / (now.ratio - last.ratio);
+
+                return Color::lerp(last.color, now.color, percent);
+            }
+        }
+        return this->controls.back().color;
+    }
+
+    void LinearGradientFill::try_gen_texture()
+    {
+        if( this->bitmap != -1 )
+            return;
+
+        auto source = BitmapRGBA32::create(256, 1);
+        for( auto i=0; i<source->get_width(); i++ )
+            source->set(0, i, sample(i).to_value());
+
+        glGenTextures(1, &this->bitmap);
+        glBindTexture(GL_TEXTURE_2D, this->bitmap);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, source->get_ptr());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+        delete source;
+    }
+
+    void LinearGradientFill::try_bind_texture()
+    {
+        if( this->bitmap == -1 )
+            return;
+
+        glBindTexture(GL_TEXTURE_2D, this->bitmap);
+    }
+
     void LinearGradientFill::execute()
     {
-        // todo
+        try_gen_texture();
+        try_bind_texture();
     }
 
     void RadialGradientFill::execute()

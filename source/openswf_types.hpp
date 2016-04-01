@@ -258,6 +258,22 @@ namespace openswf
         Color() {}
         Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 255)
         : r(r), g(g), b(b), a(a) {}
+
+        Color operator* (float ratio) const;
+        Color operator+ (const Color& rh) const;
+        Color operator- (const Color& rh) const;
+
+        uint32_t to_value() const
+        {
+            uint32_t value = 0;
+            value |= r << 24;
+            value |= g << 16;
+            value |= b << 8;
+            value |= a;
+            return value;
+        }
+
+        static Color lerp(const Color& from, const Color& to, const float ratio);
     };
 
     // the MATRIX record represents a standard 2x3 transformation matrix of 
@@ -340,4 +356,67 @@ namespace openswf
         ColorTransform operator * (const ColorTransform& rh) const;
         Color operator * (const Color& rh) const;
     };
+
+    template<typename T> class Bitmap
+    {
+    protected:
+        uint32_t m_width, m_height;
+        uint8_t* m_source;
+
+    public:
+        static Bitmap<T>* create(uint32_t width, uint32_t height)
+        {
+            auto bitmap = new (std::nothrow) Bitmap<T>();
+            if( bitmap == nullptr ) return nullptr;
+
+            bitmap->m_source = new (std::nothrow) uint8_t[width*height*sizeof(T)];
+            if( bitmap->m_source == nullptr )
+            {
+                delete bitmap;
+                return nullptr;
+            }
+
+            return bitmap;
+        }
+
+        ~Bitmap()
+        {
+            delete m_source;
+            m_source = nullptr;
+        }
+
+        void set(int row, int col, T value)
+        {
+            assert( row >= 0 && row < m_width );
+            assert( col >= 0 && row < m_height );
+
+            T* ref = (T*)(m_source + row*m_width+col);
+            *ref = value;
+        }
+
+        T get(int row, int col) const
+        {
+            assert( row >= 0 && row < m_width );
+            assert( col >= 0 && row < m_height );
+
+            return *((T*)(m_source + row*m_width+col));
+        }
+
+        uint32_t get_width() const
+        {
+            return m_width;
+        }
+
+        uint32_t get_height() const
+        {
+            return m_height;
+        }
+
+        uint8_t* get_ptr() const
+        {
+            return m_source;
+        }
+    };
+
+    typedef Bitmap<uint32_t> BitmapRGBA32;
 }

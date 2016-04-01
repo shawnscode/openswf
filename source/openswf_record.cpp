@@ -95,6 +95,8 @@ namespace openswf
             gradient.interp = (GradientFill::InterpolationMode)stream.read_bits_as_uint32(2);
 
             auto count = stream.read_bits_as_uint32(4);
+            assert( count > 0 );
+
             gradient.controls.reserve(count);
             for( auto i=0; i<count; i++ )
             {
@@ -104,6 +106,8 @@ namespace openswf
                 else ctrl.color = stream.read_rgb();
                 gradient.controls.push_back(ctrl);
             }
+
+            // WARNING: do we need to sort controls by ratio ?
         }
 
         static void read_fill_styles(Stream& stream, std::vector<IStyleCommand*>& array, TagCode tag)

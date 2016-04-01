@@ -61,11 +61,25 @@ namespace openswf
         InterpolationMode           interp;
         Matrix                      transform;
         std::vector<ControlPoint>   controls;
+
+        virtual ~GradientFill() {}
     };
 
     struct LinearGradientFill : public GradientFill
     {
+    protected:
+        uint32_t bitmap;
+
+    public:
+        LinearGradientFill() : bitmap(-1) {}
+
+        virtual ~LinearGradientFill();
         virtual void execute();
+
+    protected:
+        Color sample(int ratio) const;
+        void try_gen_texture();
+        void try_bind_texture();
     };
 
     struct RadialGradientFill : GradientFill
@@ -78,7 +92,6 @@ namespace openswf
         float focal;
         virtual void execute();
     };
-
 
     struct BitmapFill : IStyleCommand
     {
