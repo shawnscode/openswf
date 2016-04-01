@@ -69,6 +69,7 @@ OBJECTS := \
 	$(OBJDIR)/display_list.o \
 	$(OBJDIR)/player.o \
 	$(OBJDIR)/record.o \
+	$(OBJDIR)/render_ogl.o \
 	$(OBJDIR)/stream.o \
 	$(OBJDIR)/types.o \
 
@@ -138,6 +139,9 @@ $(OBJDIR)/player.o: ../source/player.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/record.o: ../source/record.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/render_ogl.o: ../source/render_ogl.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/stream.o: ../source/stream.cpp
