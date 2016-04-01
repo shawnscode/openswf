@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <string>
 
-#include "openswf_debug.hpp"
-#include "openswf_types.hpp"
+#include "debug.hpp"
+#include "types.hpp"
 
 namespace openswf
 {

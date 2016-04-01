@@ -1,4 +1,4 @@
-#include "openswf_stream.hpp"
+#include "stream.hpp"
 
 using namespace openswf;
 

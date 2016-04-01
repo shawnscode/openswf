@@ -65,12 +65,12 @@ all: $(TARGETDIR) $(OBJDIR) prebuild prelink $(TARGET)
 endif
 
 OBJECTS := \
-	$(OBJDIR)/openswf_charactor.o \
-	$(OBJDIR)/openswf_node.o \
-	$(OBJDIR)/openswf_player.o \
-	$(OBJDIR)/openswf_record.o \
-	$(OBJDIR)/openswf_stream.o \
-	$(OBJDIR)/openswf_types.o \
+	$(OBJDIR)/charactor.o \
+	$(OBJDIR)/display_list.o \
+	$(OBJDIR)/player.o \
+	$(OBJDIR)/record.o \
+	$(OBJDIR)/stream.o \
+	$(OBJDIR)/types.o \
 
 RESOURCES := \
 
@@ -128,22 +128,22 @@ $(GCH): $(PCH)
 	$(SILENT) $(CXX) -x c++-header $(ALL_CXXFLAGS) -o "$@" -MF "$(@:%.gch=%.d)" -c "$<"
 endif
 
-$(OBJDIR)/openswf_charactor.o: ../source/openswf_charactor.cpp
+$(OBJDIR)/charactor.o: ../source/charactor.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_node.o: ../source/openswf_node.cpp
+$(OBJDIR)/display_list.o: ../source/display_list.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_player.o: ../source/openswf_player.cpp
+$(OBJDIR)/player.o: ../source/player.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_record.o: ../source/openswf_record.cpp
+$(OBJDIR)/record.o: ../source/record.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_stream.o: ../source/openswf_stream.cpp
+$(OBJDIR)/stream.o: ../source/stream.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/openswf_types.o: ../source/openswf_types.cpp
+$(OBJDIR)/types.o: ../source/types.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 

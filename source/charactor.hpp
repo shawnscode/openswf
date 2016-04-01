@@ -1,8 +1,8 @@
 #pragma once
 
 #include <vector>
-#include "openswf_types.hpp"
-#include "openswf_record.hpp"
+#include "types.hpp"
+#include "record.hpp"
 
 namespace openswf
 {
@@ -73,7 +73,7 @@ namespace openswf
     public:
         LinearGradientFill() : bitmap(-1) {}
 
-        virtual ~LinearGradientFill();
+        virtual ~LinearGradientFill() {}
         virtual void execute();
 
     protected:

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "openswf_debug.hpp"
+#include "debug.hpp"
 #define PIXEL_TO_TWIPS 20.f
 #define TWIPS_TO_PIXEL 0.05f
 

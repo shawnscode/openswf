@@ -1,7 +1,7 @@
-#include "openswf_player.hpp"
-#include "openswf_record.hpp"
-#include "openswf_charactor.hpp"
-#include "openswf_node.hpp"
+#include "player.hpp"
+#include "record.hpp"
+#include "charactor.hpp"
+#include "display_list.hpp"
 
 using namespace openswf::record;
 

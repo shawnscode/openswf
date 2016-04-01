@@ -1,12 +1,12 @@
 #include <memory>
 #include <algorithm>
 
-#include "openswf_debug.hpp"
-#include "openswf_charactor.hpp"
-#include "openswf_record.hpp"
-#include "openswf_node.hpp"
-#include "openswf_stream.hpp"
-#include "openswf_player.hpp"
+#include "debug.hpp"
+#include "charactor.hpp"
+#include "record.hpp"
+#include "display_list.hpp"
+#include "stream.hpp"
+#include "player.hpp"
 
 extern "C" {
     #include "tesselator.h"

@@ -1,5 +1,5 @@
-#include "openswf_node.hpp"
-#include "openswf_player.hpp"
+#include "player.hpp"
+#include "display_list.hpp"
 
 extern "C" {
 #include "GLFW/glfw3.h"

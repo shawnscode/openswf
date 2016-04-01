@@ -1,6 +1,6 @@
-#include "openswf_debug.hpp"
-#include "openswf_record.hpp"
-#include "openswf_charactor.hpp"
+#include "debug.hpp"
+#include "record.hpp"
+#include "charactor.hpp"
 
 #include <unordered_map>
 

@@ -2,8 +2,8 @@
 
 #include <vector>
 #include <unordered_map>
-#include "openswf_debug.hpp"
-#include "openswf_charactor.hpp"
+#include "debug.hpp"
+#include "charactor.hpp"
 
 namespace openswf
 {

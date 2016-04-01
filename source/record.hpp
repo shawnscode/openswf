@@ -5,7 +5,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include "openswf_stream.hpp"
+#include "stream.hpp"
 
 // ## TAG Categories
 // there two categories of tags in a SWF file are as follows:

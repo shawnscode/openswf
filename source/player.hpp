@@ -3,8 +3,8 @@
 #include <memory>
 #include <unordered_map>
 
-#include "openswf_debug.hpp"
-#include "openswf_types.hpp"
+#include "debug.hpp"
+#include "types.hpp"
 
 namespace openswf
 {
