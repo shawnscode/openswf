@@ -98,7 +98,6 @@ namespace openswf
     // SHAPE PARSING
     const uint32_t  MAX_CURVE_SUBDIVIDE = 20;
     const float     CURVE_TOLERANCE     = 1.0f;
-    const uint32_t  MAX_POOL_SIZE       = 128*1024; // 128 kb
     const uint32_t  MAX_POLYGON_SIZE    = 6;
 
     typedef std::vector<Point2f>    Segments;

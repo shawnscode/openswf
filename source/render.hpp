@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+// low-level graphic interface used to keep details of platform-specified codes from users.
 namespace openswf
 {
     typedef uint32_t Rid;
@@ -9,26 +10,36 @@ namespace openswf
     enum class RenderObject : uint8_t
     {
         INVALID         = 0,
-        VERTEX_LAYOUT,
+        SHADER,
         VERTEX_BUFFER,
         INDEX_BUFFER,
         TEXTURE,
         TARGET,
-        SHADER,
     };
 
     enum class TextureFormat : uint8_t
     {
         INVALID = 0,
-        RGBA8 ,
-        RGBA4 ,
-        RGB   ,
+        RGBA8,
+        RGBA4,
+        RGB,
         RGB565,
-        A8    ,
-        DEPTH ,  // use for render target
-        PVR2  ,
-        PVR4  ,
-        ETC1  ,
+        A8,
+        DEPTH,  // use for render target
+        PVR2,
+        PVR4,
+        ETC1,
+    };
+
+    enum class ElementFormat : uint8_t
+    {
+        BYTE = 0,
+        UNSIGNED_BYTE,
+        SHORT,
+        UNSIGNED_SHORT,
+        INT,
+        UNSIGNED_INT,
+        FLOAT,
     };
 
     enum class UniformFormat : uint8_t
@@ -58,7 +69,8 @@ namespace openswf
         SRC_ALPHA_SATURATE,
     };
 
-    enum class DepthFormat : uint8_t {
+    enum class DepthFormat : uint8_t
+    {
         DISABLE = 0,
         LESS_EQUAL,
         LESS,
@@ -68,7 +80,8 @@ namespace openswf
         ALWAYS,
     };
 
-    enum ClearMask {
+    enum ClearMask
+    {
         CLEAR_COLOR   = 0x1,
         CLEAR_DEPTH   = 0x2,
         CLEAR_STENCIL = 0x4,
@@ -80,10 +93,19 @@ namespace openswf
         LINE,
     };
 
-    enum class CullMode : uint8_t {
+    enum class CullMode : uint8_t
+    {
         DISABLE = 0,
         FRONT,
         BACK,
+    };
+
+    struct VertexAttribute
+    {
+        int vbslot;
+
+        int n;
+        ElementFormat format;
     };
 
     class RenderInstance;
@@ -94,40 +116,42 @@ namespace openswf
 
     public:
         static Render& get_instance();
-        static bool initilize(int32_t buffer, int32_t layout, int32_t target, int32_t shader, int32_t texture);
+        static bool initilize();
         static void dispose();
 
-        int  get_version() const;
-        int  get_size() const;
         void set_viewport(int x, int y, int width, int height);
         void set_scissor(int x, int y, int width, int height);
         void set_blend(BlendFormat src, BlendFormat dst);
         void set_depth(DepthFormat format);
         void set_cull(CullMode mode);
 
-        void enable_blend(bool enable);
+        void enable_depth_mask(bool enable);
         void enable_scissor(bool enable);
         void state_reset();
+        void state_commit();
 
-        void clear(ClearMask mask, unsigned long argb);
+        void clear(uint32_t mask, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
         void draw(DrawMode mode, int from_index, int number_index);
 
-        void attach(RenderObject what, Rid id, int slot);
-        void unattach(RenderObject what, Rid id);
+        void bind(RenderObject what, Rid id, int slot = -1);
 
-        void bind_shader(Rid rid);
-        int  get_shader_uniform_index(const char* name);
-        void set_shader_uniform(int index, UniformFormat format, const float* v);
+        // int  get_shader_uniform_index(const char* name);
+        // void set_shader_uniform(int index, UniformFormat format, const float* v);
+        // Rid create_vertex_layout(const char* name, int vbslot, int n, int size, int offset);
 
-        Rid create_vertex_layout(const char* name, int vbslot, int n, int size, int offset);
-        Rid create_buffer(RenderObject what, const void* data, int n, int stride);
-        Rid create_texture(int width, int height, TextureFormat format, int mipmap);
-        Rid create_target(int width, int height, TextureFormat format);
-        Rid create_shader(const char* vs, const char* fs, int texture, const char** texture_uniform);
+        Rid create_shader(
+            const char* vs, const char* fs, 
+            int attribute_n, const VertexAttribute* attributes);
+        Rid create_vertex_buffer(const void* data, int data_size);
+        Rid create_index_buffer(const void* data, int data_size, ElementFormat format);
+        // Rid create_texture(int width, int height, TextureFormat format, int mipmap);
+        // Rid create_target(int width, int height, TextureFormat format);
 
-        void update_buffer(Rid id, const void* data, int n);
-        void update_texture(Rid id, int width, int height, const void* pixels, int slice, int miplevel);
-        void subupdate_texture(Rid id, const void* pixels, int x, int y, int w, int h);
+        void release(RenderObject what);
+
+        // void update_buffer(Rid id, const void* data, int n);
+        // void update_texture(Rid id, int width, int height, const void* pixels, int slice, int miplevel);
+        // void subupdate_texture(Rid id, const void* pixels, int x, int y, int w, int h);
     };
 
 }

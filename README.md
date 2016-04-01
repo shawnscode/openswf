@@ -9,6 +9,7 @@ oammix [at] gmail [dot] com
 I'm working on MacOs currently, if so do u, u can compile openswf by following below:
 
 	brew install glfw3
+    brew install glew
 	cd build/3rd
 	make
 	cd -
