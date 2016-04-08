@@ -5,6 +5,7 @@ compiler: clang
 before_install:
     - brew install wget
     - brew install glfw3
+    - brew install glew
     - wget https://github.com/premake/premake-core/releases/download/v5.0.0-alpha7/premake-5.0.0-alpha7-macosx.tar.gz
     - tar -xf premake-5.0.0-alpha7-macosx.tar.gz
 
