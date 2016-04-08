@@ -91,6 +91,7 @@ namespace openswf
         static void read_gradient(Stream& stream, GradientFill& gradient, TagCode tag)
         {
             gradient.transform = stream.read_matrix();
+
             gradient.spread = (GradientFill::SpreadMode)stream.read_bits_as_uint32(2);
             gradient.interp = (GradientFill::InterpolationMode)stream.read_bits_as_uint32(2);
 

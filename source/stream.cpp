@@ -139,6 +139,7 @@ Matrix Stream::read_matrix()
     out.set(0, 2, (float)read_bits_as_int32(bitcount));
     out.set(1, 2, (float)read_bits_as_int32(bitcount));
 
+    align();
     return out;
 }
 
@@ -165,6 +166,7 @@ ColorTransform Stream::read_cxform_rgb()
         out.set(1, 2, (float)read_bits_as_int32(bitcount));
     }
 
+    align();
     return out;
 }
 
@@ -193,6 +195,7 @@ ColorTransform Stream::read_cxform_rgba()
         out.set(0, 3, (float)read_bits_as_int32(bitcount));
     }
 
+    align();
     return out;
 }
 
@@ -200,9 +203,11 @@ Rect Stream::read_rect()
 {
     align();
     auto bitcount = read_bits_as_uint32(5); 
-    return Rect(
+    auto rect = Rect(
         read_bits_as_int32(bitcount),   // x_min
         read_bits_as_int32(bitcount),   // x_max
         read_bits_as_int32(bitcount),   // y_min
         read_bits_as_int32(bitcount));  // y_max
+    align();
+    return rect;
 }
