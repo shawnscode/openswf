@@ -22,13 +22,13 @@ namespace openswf
         INVALID = 0,
         RGBA8,
         RGBA4,
-        RGB,
+        RGB8,
         RGB565,
-        A8,
-        DEPTH,  // use for render target
-        PVR2,
-        PVR4,
-        ETC1,
+        ALPHA8,
+        DEPTH8,  // use for render target
+        // PVR2,
+        // PVR4,
+        // ETC1,
     };
 
     enum class ElementFormat : uint8_t
@@ -106,6 +106,11 @@ namespace openswf
 
         int n;
         ElementFormat format;
+
+        int stride;
+        int offset;
+
+        VertexAttribute() : stride(0), offset(0) {}
     };
 
     class RenderInstance;
@@ -141,10 +146,11 @@ namespace openswf
 
         Rid create_shader(
             const char* vs, const char* fs, 
-            int attribute_n, const VertexAttribute* attributes);
+            int attribute_n, const VertexAttribute* attributes,
+            int texture_n, const char** textures);
         Rid create_vertex_buffer(const void* data, int data_size);
         Rid create_index_buffer(const void* data, int data_size, ElementFormat format);
-        // Rid create_texture(int width, int height, TextureFormat format, int mipmap);
+        Rid create_texture(const void* data, int width, int height, TextureFormat format, int mipmap);
         // Rid create_target(int width, int height, TextureFormat format);
 
         void release(RenderObject what);

@@ -8,8 +8,8 @@ extern "C" {
 #define CHECK_GL_ERROR \
     do { \
         GLenum err = glGetError(); \
-        if( err != GL_NO_ERROR && err != GL_INVALID_ENUM ) { \
-            printf("GL_%s - %s:%d\n", get_opengl_error(err), __FILE__, __LINE__); \
+        if( err != GL_NO_ERROR ) { \
+            printf("GL_%s - \n[%s :%d]\n", get_opengl_error(err), __FILE__, __LINE__); \
             assert(false); \
         } \
     } while(false);
@@ -32,7 +32,6 @@ get_opengl_error(GLenum err)
     }
     return "";
 }
-
 
 using namespace openswf;
 
@@ -127,8 +126,6 @@ int main(int argc, char* argv[])
         glfwTerminate();
         return -1;
     }
-    
-    printf("GL_VERSION: %s\n", glGetString(GL_VERSION));
 
     glfwSetKeyCallback(window, input_callback);
     glfwMakeContextCurrent(window);
@@ -140,53 +137,86 @@ int main(int argc, char* argv[])
         return -1;
     }
 
+    CHECK_GL_ERROR
+    
     auto& render = Render::get_instance();
 
-    static float vertices[][2] = {
-        { -0.90, -0.90 },  // Triangle 1
-        {  0.85, -0.90 },
-        { -0.90,  0.85 },
-        {  0.90, -0.85 },  // Triangle 2
-        {  0.90,  0.90 },
-        { -0.85,  0.90 }
+    // The following is an 8x8 checkerboard pattern using // GL_RED, GL_UNSIGNED_BYTE data.
+    static const GLubyte tex_checkerboard[] =
+    {
+        0x55, 0x00, 0x55, 0x00, 0x55, 0x00, 0x55, 0x00,
+        0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+        0x55, 0x00, 0x55, 0x00, 0x55, 0x00, 0x55, 0x00,
+        0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+        0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
+        0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+        0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00,
+        0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
+    };
+
+    static float vertices[] = {
+        -0.85f, -0.85f,
+        0.85f, -0.85f,
+        0.85f, 0.85f,
+        -0.85f, 0.85f,
+
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f,
     };
 
     static uint8_t indices[] = {
         0, 1, 2, 
-        3, 4, 5,
+        2, 3, 0,
     };
 
     static const char* vs =
         "#version 330 core\n"
-        "layout(location = 0) in vec4 vertexPosition;\n"
+        "layout(location = 0) in vec4 in_position;\n"
+        "layout(location = 1) in vec2 in_tex_coord;\n"
+        "out vec2 vs_tex_coord;"
         "void main()\n"
         "{\n"
-        "    gl_Position = vertexPosition;\n"
+        "  gl_Position = in_position;\n"
+        "  vs_tex_coord = in_tex_coord;\n"
         "}\n";
 
     static const char* fs =
         "#version 330 core\n"
+        "uniform sampler2D in_texture;\n"
+        "in vec2 vs_tex_coord;\n"
         "out vec3 color;\n"
         "void main()\n"
         "{\n"
-        "    color = vec3(1,0,0);\n"
+        "  color = texture(in_texture, vs_tex_coord).rgb;\n"
         "}\n";
     
-    VertexAttribute attribute;
-    attribute.vbslot = 0;
-    
-    attribute.n = 2;
-    attribute.format = ElementFormat::FLOAT;
- 
+    VertexAttribute attributes[2];
+    attributes[0].vbslot = 0;
+    attributes[0].n = 2;
+    attributes[0].format = ElementFormat::FLOAT;
+
+    attributes[1].vbslot = 0;
+    attributes[1].n = 2,
+    attributes[1].format = ElementFormat::FLOAT;
+    attributes[1].offset = sizeof(float) * 4 * 2;
+
+    const char* textures[] = { "in_texture" };
+
     auto vid = render.create_vertex_buffer(vertices, sizeof(vertices));
     auto iid = render.create_index_buffer(indices, sizeof(indices), ElementFormat::UNSIGNED_BYTE);
-
-    auto pid = render.create_shader(vs, fs, 1, &attribute);
-
+    auto tid = render.create_texture(tex_checkerboard, 8, 8, TextureFormat::ALPHA8, 0);
+    auto pid = render.create_shader(vs, fs, 2, attributes, 1, textures);
+    
     //auto last_time = glfwGetTime();
+
     while( !glfwWindowShouldClose(window) )
     {
-        render.set_viewport(0, 0, size.get_width(), size.get_height());
+        int width, height;
+        glfwGetWindowSize(window, &width, &height);
+
+        render.set_viewport(0, 0, width, height);
         render.clear(CLEAR_COLOR | CLEAR_DEPTH, 100, 100, 100, 255);
 
         // auto now_time = glfwGetTime();
@@ -197,6 +227,7 @@ int main(int argc, char* argv[])
         render.bind(RenderObject::SHADER, pid);
         render.bind(RenderObject::VERTEX_BUFFER, vid, 0);
         render.bind(RenderObject::INDEX_BUFFER, iid, 0);
+        render.bind(RenderObject::TEXTURE, tid, 0);
         render.draw(DrawMode::TRIANGLE, 0, 6);
         
         glfwSwapBuffers(window);

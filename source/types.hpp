@@ -412,7 +412,7 @@ namespace openswf
             return m_height;
         }
 
-        uint8_t* get_ptr() const
+        const uint8_t* get_ptr() const
         {
             return m_source;
         }

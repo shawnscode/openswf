@@ -4,7 +4,6 @@
 #include <vector>
 extern "C" {
     #include "GL/glew.h"
-    #include "GLFW/glfw3.h"
 }
 
 #define CHECK_GL_ERROR \
@@ -73,9 +72,38 @@ namespace openswf
         }
     }
 
+    static GLint get_sizeof_texture(TextureFormat format, int width, int height)
+    {
+        switch( format )
+        {
+            case TextureFormat::RGBA8:
+                return width * height * 4;
+
+            case TextureFormat::RGB565:
+            case TextureFormat::RGBA4:
+                return width * height * 2;
+
+            case TextureFormat::RGB8:
+                return width * height * 3;
+
+            case TextureFormat::ALPHA8:
+            case TextureFormat::DEPTH8:
+                return width * height;
+
+//            case TextureFormat::PVR2:
+//                return width * height  / 4;
+//            case TextureFormat::PVR4:
+//            case TextureFormat::ETC1:
+//                return width * height / 2;
+            default:
+                assert(false);
+                return 0;
+        }
+    }
+
     enum ChangeFlagMask
     {
-        CHANGE_SHADER      = 0x1,
+        CHANGE_SHADER       = 0x1,
         CHANGE_VERTEXARRAY  = 0x2,
         CHANGE_TEXTURE      = 0x4,
         CHANGE_TARGET       = 0x8,
@@ -112,8 +140,9 @@ namespace openswf
 
         int             width;
         int             height;
-        int             mipmap;
         TextureFormat   format;
+
+        int             mipmap;
         int             memsize;
 
         Texture() : handle(0) {}
@@ -128,7 +157,7 @@ namespace openswf
         VertexAttribute attributes[MaxAttribute];
 
         int             texture_n;
-        int             texture_uniforms[MaxTexture];
+        int             textures[MaxTexture];
 
         Program() : handle(0) {}
     };
@@ -140,7 +169,6 @@ namespace openswf
         Rid         textures[MaxTexture];
         Rid         vertex_buffers[MaxVertexBufferSlot];
         Rid         index_buffer;
-
 
         BlendFormat blend_src;
         BlendFormat blend_dst;
@@ -218,8 +246,8 @@ namespace openswf
         glDisable(GL_BLEND);
         glDisable(GL_SCISSOR_TEST);
         glDepthMask(GL_FALSE);
-        glDisable( GL_DEPTH_TEST );
-        glDisable( GL_CULL_FACE );
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_CULL_FACE);
         glBindFramebuffer(GL_FRAMEBUFFER, this->framebuffer);
         CHECK_GL_ERROR
     }
@@ -287,16 +315,11 @@ namespace openswf
             }
             else
             {
-                CHECK_GL_ERROR
                 glUseProgram(program->handle);
-                CHECK_GL_ERROR
                 glBindVertexArray(program->vao);
-                CHECK_GL_ERROR
-//                for( int i=0; i<program.texture_n; i++ )
-//                {
-//                    int location = program.texture_uniforms[i];
-//                    if( location >= 0 ) glUniform1i(location, i);
-//                }
+
+                for( int i=0; i<program->texture_n; i++ )
+                    glUniform1i(program->textures[i], i);
             }
 
             this->last.program = pid;
@@ -316,7 +339,6 @@ namespace openswf
         if( program == nullptr || program->handle == 0 ) return;
 
         Rid last = 0;
-
         for( int i=0; i<program->attribute_n; i++ )
         {
             auto& attribute = program->attributes[i];
@@ -337,9 +359,11 @@ namespace openswf
 
             glEnableVertexAttribArray(i);
             glVertexAttribPointer(i,
-                attribute.n, 
+                attribute.n,
                 ElementFormatTable[(int)attribute.format],
-                GL_FALSE, 0, 0);
+                GL_FALSE,
+                attribute.stride,
+                (uint8_t*)0+attribute.offset);
         }
 
         auto index_buffer = array_get(this->index_buffers, this->current.index_buffer);
@@ -350,24 +374,31 @@ namespace openswf
 
     void RenderInstance::apply_textures()
     {
+        if( this->current.program == 0 )
+            return;
+
+        assert( this->current.program <= this->programs.size() );
+        auto program = array_get(this->programs, this->current.program);
+        if( program == nullptr || program->handle == 0 ) return;
+
         for( int i=0; i<MaxTexture; i++ )
         {
-            auto current_idx = this->current.textures[i];
-            auto last_idx = this->last.textures[i];
-            if( current_idx != last_idx )
+            auto index = this->current.textures[i];
+            if( index != this->last.textures[i] )
             {
-                if( current_idx != 0 )
+                auto texture = array_get(this->textures, index);
+                if( texture != nullptr )
                 {
-                    if( this->textures[current_idx-1].handle != 0 )
-                    {
-                        glActiveTexture(GL_TEXTURE0+i);
-                        glBindTexture(GL_TEXTURE_2D, this->textures[current_idx-1].handle);
-                    }
-                }
+                    glActiveTexture(GL_TEXTURE0+i);
+                    glBindTexture(GL_TEXTURE_2D, texture->handle);
 
-                this->last.textures[i] = current_idx;
+                    this->last.textures[i] = index;
+                }
+                else
+                    this->last.textures[i] = 0;
             }
         }
+        CHECK_GL_ERROR
     }
 
     void RenderInstance::apply_blend()
@@ -471,7 +502,6 @@ namespace openswf
         assert( s_instance == nullptr );
         s_instance = new (std::nothrow) Render();
         if( !s_instance ) return false;
-        CHECK_GL_ERROR
 
         s_instance->m_state = new (std::nothrow) RenderInstance();
         if( !s_instance->m_state )
@@ -480,7 +510,6 @@ namespace openswf
             return false;
         }
 
-        CHECK_GL_ERROR
         glewExperimental = GL_TRUE;
         if( glewInit() != GLEW_OK )
         {
@@ -687,7 +716,10 @@ namespace openswf
         return shader;
     }
 
-    Rid Render::create_shader(const char* vs_src, const char* fs_src, int attribute_n, const VertexAttribute* attributes)
+    Rid Render::create_shader(
+        const char* vs_src, const char* fs_src, 
+        int attribute_n, const VertexAttribute* attributes,
+        int texture_n, const char** textures)
     {
         auto program = array_alloc(m_state->programs);
         if( program == nullptr ) 
@@ -729,6 +761,14 @@ namespace openswf
         program->attribute_n = attribute_n;
         memcpy(&program->attributes, attributes, sizeof(VertexAttribute)*attribute_n);
 
+        assert( texture_n >= 0 && texture_n < MaxTexture );
+        program->texture_n = texture_n;
+        for( int i=0; i<texture_n; i++ )
+        {
+            program->textures[i] = glGetUniformLocation(prog, textures[i]);
+            assert( program->textures[i] >= 0 );
+        }
+
         CHECK_GL_ERROR
         return array_id(m_state->programs, program);
     }
@@ -760,6 +800,79 @@ namespace openswf
         if( data && data_size > 0 )
             glBufferData(GL_ARRAY_BUFFER, data_size, data, GL_STATIC_DRAW);
 
+        CHECK_GL_ERROR
         return array_id(m_state->index_buffers, buffer);
+    }
+
+    Rid Render::create_texture(const void* data, int width, int height, TextureFormat format, int mipmap)
+    {
+        assert(mipmap >= 0 && width > 0 && height > 0);
+
+        auto texture = array_alloc(m_state->textures);
+        if( texture == nullptr ) return 0;
+
+        glGenTextures(1, &texture->handle);
+        texture->width = width;
+        texture->height = height;
+        texture->format = format;
+        texture->mipmap = mipmap;
+        texture->memsize = get_sizeof_texture(format, width, height);
+        if( mipmap > 0 ) texture->memsize += texture->memsize / 3;
+
+        // use last texture slot
+        glActiveTexture(GL_TEXTURE0+MaxTexture);
+        glBindTexture(GL_TEXTURE_2D, texture->handle);
+
+        //
+        GLint   nformat = 0;
+        GLenum  element = GL_UNSIGNED_BYTE;
+
+        switch(format)
+        {
+            case TextureFormat::RGBA8:
+                nformat = GL_RGBA;
+                element = GL_UNSIGNED_BYTE;
+                break;
+            case TextureFormat::RGBA4:
+                nformat = GL_RGBA;
+                element = GL_UNSIGNED_SHORT_4_4_4_4;
+                break;
+            case TextureFormat::RGB8:
+                nformat = GL_RGB;
+                element = GL_UNSIGNED_BYTE;
+                break;
+            case TextureFormat::RGB565:
+                nformat = GL_RGB;
+                element = GL_UNSIGNED_SHORT_5_6_5;
+                break;
+            case TextureFormat::ALPHA8:
+            case TextureFormat::DEPTH8:
+                nformat = GL_RED;
+                element = GL_UNSIGNED_BYTE;
+                break;
+            default:
+                assert(0);
+                return 0;
+        }
+
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage2D(GL_TEXTURE_2D, 0, nformat, width, height, 0, nformat, element, data);
+
+        //
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        if( mipmap > 0 )
+        {
+            // we got 4 mipmap level by defaults
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+            glGenerateMipmap(GL_TEXTURE_2D);
+            CHECK_GL_ERROR
+        }
+        else
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+        CHECK_GL_ERROR
+        return array_id(m_state->textures, texture);
     }
 }
