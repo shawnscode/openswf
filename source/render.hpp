@@ -49,8 +49,12 @@ namespace openswf
         FLOAT2,
         FLOAT3,
         FLOAT4,
-        FLOAT33,
-        FLOAT44,
+        VECTOR_F1,
+        VECTOR_F2,
+        VECTOR_F3,
+        VECTOR_F4,
+        MATRIX_F33,
+        MATRIX_F44,
     };
 
     enum class BlendFormat : uint8_t
@@ -102,15 +106,19 @@ namespace openswf
 
     struct VertexAttribute
     {
-        int vbslot;
-
         int n;
         ElementFormat format;
+        VertexAttribute() {}
+    };
 
+    struct BufferLayout
+    {
+        Rid rid;
         int stride;
         int offset;
 
-        VertexAttribute() : stride(0), offset(0) {}
+        BufferLayout(Rid rid = 0, int stride = 0, int offset = 0)
+        : rid(rid), stride(stride), offset(offset){}
     };
 
     class RenderInstance;
@@ -133,21 +141,19 @@ namespace openswf
         void enable_depth_mask(bool enable);
         void enable_scissor(bool enable);
         void state_reset();
-        void state_commit();
+        void flush();
 
         void clear(uint32_t mask, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
         void draw(DrawMode mode, int from_index, int number_index);
 
-        void bind(RenderObject what, Rid id, int slot = -1);
+        // void bind(RenderObject what, Rid id, int slot = -1, int stride = 0, int offset = 0);
 
-        // int  get_shader_uniform_index(const char* name);
-        // void set_shader_uniform(int index, UniformFormat format, const float* v);
-        // Rid create_vertex_layout(const char* name, int vbslot, int n, int size, int offset);
+        void bind_vertex_buffer(Rid id, int slot, int stride, int offset);
+        void bind_index_buffer(Rid id, int stride, int offset);
+        void bind_texture(Rid id, int slot);
+        void bind(RenderObject what, Rid id);
 
-        Rid create_shader(
-            const char* vs, const char* fs, 
-            int attribute_n, const VertexAttribute* attributes,
-            int texture_n, const char** textures);
+        Rid create_shader(const char* vs, const char* fs, int attribute_n, const VertexAttribute* attributes, int texture_n, const char** textures);
         Rid create_vertex_buffer(const void* data, int data_size);
         Rid create_index_buffer(const void* data, int data_size, ElementFormat format);
         Rid create_texture(const void* data, int width, int height, TextureFormat format, int mipmap);
@@ -155,6 +161,8 @@ namespace openswf
 
         void release(RenderObject what);
 
+        int  get_shader_uniform_index(const char* name);
+        void set_shader_uniform(int index, UniformFormat format, const float* v);
         // void update_buffer(Rid id, const void* data, int n);
         // void update_texture(Rid id, int width, int height, const void* pixels, int slice, int miplevel);
         // void subupdate_texture(Rid id, const void* pixels, int x, int y, int w, int h);

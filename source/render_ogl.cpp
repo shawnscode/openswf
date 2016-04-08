@@ -164,11 +164,12 @@ namespace openswf
 
     struct RenderState
     {
-        Rid         target;
-        Rid         program;
-        Rid         textures[MaxTexture];
-        Rid         vertex_buffers[MaxVertexBufferSlot];
-        Rid         index_buffer;
+        Rid             target;
+        Rid             program;
+        Rid             textures[MaxTexture];
+
+        BufferLayout    vertex_buffers[MaxVertexBufferSlot];
+        BufferLayout    index_buffer;
 
         BlendFormat blend_src;
         BlendFormat blend_dst;
@@ -330,11 +331,6 @@ namespace openswf
 
     void RenderInstance::apply_vertex_array()
     {
-        if( this->current.program == 0 )
-            return;
-
-        assert( this->current.program <= this->programs.size() );
-
         auto program = array_get(this->programs, this->current.program);
         if( program == nullptr || program->handle == 0 ) return;
 
@@ -342,11 +338,11 @@ namespace openswf
         for( int i=0; i<program->attribute_n; i++ )
         {
             auto& attribute = program->attributes[i];
-            Rid index = this->current.vertex_buffers[attribute.vbslot];
+            auto& layout = this->current.vertex_buffers[i];
 
-            if( index != last )
+            if( layout.rid != last )
             {
-                auto buffer = array_get(this->vertex_buffers, index);
+                auto buffer = array_get(this->vertex_buffers, layout.rid);
                 if( buffer == nullptr || buffer->handle == 0 )
                 {
                     assert( false );
@@ -354,7 +350,7 @@ namespace openswf
                 }
 
                 glBindBuffer(GL_ARRAY_BUFFER, buffer->handle);
-                last = index;
+                last = layout.rid;
             }
 
             glEnableVertexAttribArray(i);
@@ -362,11 +358,11 @@ namespace openswf
                 attribute.n,
                 ElementFormatTable[(int)attribute.format],
                 GL_FALSE,
-                attribute.stride,
-                (uint8_t*)0+attribute.offset);
+                layout.stride,
+                (uint8_t*)0+layout.offset);
         }
 
-        auto index_buffer = array_get(this->index_buffers, this->current.index_buffer);
+        auto index_buffer = array_get(this->index_buffers, this->current.index_buffer.rid);
         if( index_buffer != nullptr && index_buffer->handle != 0 )
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer->handle);
         CHECK_GL_ERROR
@@ -374,10 +370,6 @@ namespace openswf
 
     void RenderInstance::apply_textures()
     {
-        if( this->current.program == 0 )
-            return;
-
-        assert( this->current.program <= this->programs.size() );
         auto program = array_get(this->programs, this->current.program);
         if( program == nullptr || program->handle == 0 ) return;
 
@@ -595,7 +587,7 @@ namespace openswf
         this->m_state->reset();
     }
 
-    void Render::state_commit()
+    void Render::flush()
     {
         this->m_state->commit();
     }
@@ -632,14 +624,34 @@ namespace openswf
 
         m_state->commit();
 
-        auto index_buffer = array_get(m_state->index_buffers, m_state->current.index_buffer);
+        auto index_buffer = array_get(m_state->index_buffers, m_state->current.index_buffer.rid);
         assert(index_buffer != nullptr && index_buffer->handle != 0);
         
         auto offset = from_index*get_sizeof_format(index_buffer->format);
         glDrawElements(draw_mode[(int)mode], number, index_buffer->format, (char*)0+offset);
     }
 
-    void Render::bind(RenderObject what, Rid id, int slot)
+    void Render::bind_vertex_buffer(Rid id, int slot, int stride, int offset)
+    {
+        assert( slot >= 0 && slot < MaxVertexBufferSlot );
+        m_state->current.vertex_buffers[slot] = BufferLayout(id, stride, offset);
+        m_state->change_flags |= CHANGE_VERTEXARRAY;
+    }
+
+    void Render::bind_index_buffer(Rid id, int stride, int offset)
+    {
+        m_state->current.index_buffer = BufferLayout(id, stride, offset);
+        m_state->change_flags |= CHANGE_VERTEXARRAY;
+    }
+
+    void Render::bind_texture(Rid id, int slot)
+    {
+        assert( slot >= 0 && slot < MaxTexture );
+        m_state->current.textures[slot] = id;
+        m_state->change_flags |= CHANGE_TEXTURE;
+    }
+
+    void Render::bind(RenderObject what, Rid id)
     {
         switch(what)
         {
@@ -647,29 +659,6 @@ namespace openswf
             {
                 m_state->current.program = id;
                 m_state->change_flags |= CHANGE_SHADER;
-                break;
-            }
-
-            case RenderObject::VERTEX_BUFFER:
-            {
-                assert( slot >= 0 && slot < MaxVertexBufferSlot );
-                m_state->current.vertex_buffers[slot] = id;
-                m_state->change_flags |= CHANGE_VERTEXARRAY;
-                break;
-            }
-
-            case RenderObject::INDEX_BUFFER:
-            {
-                m_state->current.index_buffer = id;
-                m_state->change_flags |= CHANGE_VERTEXARRAY;
-                break;
-            }
-
-            case RenderObject::TEXTURE:
-            {
-                assert( slot >= 0 && slot < MaxTexture );
-                m_state->current.textures[slot] = id;
-                m_state->change_flags |= CHANGE_TEXTURE;
                 break;
             }
 
@@ -874,5 +863,69 @@ namespace openswf
 
         CHECK_GL_ERROR
         return array_id(m_state->textures, texture);
+    }
+
+    int Render::get_shader_uniform_index(const char* name)
+    {
+        auto program = array_get(m_state->programs, m_state->current.program);
+        if( program == nullptr || program->handle == 0 ) 
+            return -1;
+
+        return glGetUniformLocation(program->handle, name);
+    }
+
+    void Render::set_shader_uniform(int index, UniformFormat format, const float* v)
+    {
+        
+        CHECK_GL_ERROR
+        
+        switch(format)
+        {
+            case UniformFormat::FLOAT1:
+                glUniform1f(index, v[0]);
+                break;
+
+            case UniformFormat::FLOAT2:
+                glUniform2f(index, v[0], v[1]);
+                break;
+
+            case UniformFormat::FLOAT3:
+                glUniform3f(index, v[0], v[1], v[2]);
+                break;
+
+            case UniformFormat::FLOAT4:
+                glUniform4f(index, v[0], v[1], v[2], v[3]);
+                break;
+
+            case UniformFormat::VECTOR_F1:
+                glUniform1fv(index, 1, v);
+                break;
+
+            case UniformFormat::VECTOR_F2:
+                glUniform2fv(index, 1, v);
+                break;
+
+            case UniformFormat::VECTOR_F3:
+                glUniform3fv(index, 1, v);
+                break;
+
+            case UniformFormat::VECTOR_F4:
+                glUniform4fv(index, 1, v);
+                break;
+
+            case UniformFormat::MATRIX_F33:
+                glUniformMatrix3fv(index, 1, GL_FALSE, v);
+                break;
+
+            case UniformFormat::MATRIX_F44:
+                glUniformMatrix4fv(index, 1, GL_FALSE, v);
+                break;
+
+            default:
+                assert(0);
+                return;
+        }
+
+        CHECK_GL_ERROR
     }
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
 #include "debug.hpp"
 #define PIXEL_TO_TWIPS 20.f
@@ -274,6 +275,8 @@ namespace openswf
         }
 
         static Color lerp(const Color& from, const Color& to, const float ratio);
+        static const Color white;
+        static const Color black;
     };
 
     // the MATRIX record represents a standard 2x3 transformation matrix of 

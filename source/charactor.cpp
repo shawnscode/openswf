@@ -7,10 +7,10 @@
 #include "display_list.hpp"
 #include "stream.hpp"
 #include "player.hpp"
+#include "shaders.hpp"
 
 extern "C" {
     #include "tesselator.h"
-    #include "GLFW/glfw3.h"
 }
 
 using namespace openswf::record;
@@ -20,7 +20,8 @@ namespace openswf
     // FILL STYLE PARSING
     void SolidFill::execute()
     {
-        glColor4ub(color.r, color.g, color.b, color.a);
+        DefaultShader::get_instance().set_color(color);
+        DefaultShader::get_instance().set_texture(0);
     }
 
     Color LinearGradientFill::sample(int ratio) const
@@ -50,34 +51,26 @@ namespace openswf
 
     void LinearGradientFill::try_gen_texture()
     {
-        if( this->bitmap != -1 )
+        if( this->bitmap != 0 )
             return;
 
-        auto source = BitmapRGBA32::create(256, 1);
+        static const int width = 256;
+        static const int height = 1;
+
+        auto source = BitmapRGBA32::create(width, height);
         for( auto i=0; i<source->get_width(); i++ )
             source->set(0, i, sample(i).to_value());
 
-        glGenTextures(1, &this->bitmap);
-        glBindTexture(GL_TEXTURE_2D, this->bitmap);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 256, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, source->get_ptr());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
+        this->bitmap = Render::get_instance().create_texture(source->get_ptr(), width, height, TextureFormat::RGBA8, 1);
         delete source;
-    }
-
-    void LinearGradientFill::try_bind_texture()
-    {
-        if( this->bitmap == -1 )
-            return;
-
-        glBindTexture(GL_TEXTURE_2D, this->bitmap);
     }
 
     void LinearGradientFill::execute()
     {
         try_gen_texture();
-        try_bind_texture();
+
+        DefaultShader::get_instance().set_color(Color::white);
+        DefaultShader::get_instance().set_texture(this->bitmap);
     }
 
     void RadialGradientFill::execute()
@@ -197,7 +190,7 @@ namespace openswf
 
     bool Shape::initialize(record::DefineShape& def)
     {
-        this->bounds = def.bounds;
+        this->bounds = def.bounds.to_pixel();
         this->fill_styles = std::move(def.fill_styles);
 
         auto polygons = std::vector<Contours>(this->fill_styles.size(), Contours());
@@ -240,10 +233,16 @@ namespace openswf
             const TESSindex nelems = tessGetElementCount(tess);
             const TESSindex* elems = tessGetElements(tess);
 
-            auto vert_base_size = this->vertices.size();
-            this->vertices.reserve(vert_base_size+vcount);
+            auto vert_base_size = this->vertices.size() >> 1;
+            this->vertices.reserve((vert_base_size+vcount) << 1);
             for( int i=0; i<vcount; i++ )
-                this->vertices.push_back( Point2f(vertices[i*2], vertices[i*2+1]).to_pixel() );
+            {
+                auto position = Point2f(vertices[i*2], vertices[i*2+1]).to_pixel();
+                this->vertices.push_back( position );   // position
+                this->vertices.push_back( Point2f(      // texcoord
+                    (position.x - this->bounds.xmin) / this->bounds.get_width(),
+                    (position.y - this->bounds.ymin) / this->bounds.get_height()) );
+            }
 
             auto ind_base_size = this->indices.size();
             this->indices.reserve(ind_base_size+nelems*(MAX_POLYGON_SIZE-2)*3);
@@ -268,6 +267,13 @@ namespace openswf
         assert( polygons.size() == this->contour_indices.size() );
         assert( this->contour_indices.back() == this->indices.size() );
 
+        auto& render = Render::get_instance();
+        this->vertices_rid = render.create_vertex_buffer(this->vertices.data(),
+            this->vertices.size()*sizeof(Point2f));
+        this->indices_rid = render.create_index_buffer(this->indices.data(),
+            this->indices.size()*sizeof(uint16_t),
+            ElementFormat::UNSIGNED_SHORT);
+
         return true;
     }
 
@@ -280,18 +286,18 @@ namespace openswf
 
     void Shape::render(const Matrix& matrix, const ColorTransform& cxform)
     {
+        auto& shader = DefaultShader::get_instance();
+        shader.set_indices(this->indices_rid, 0, 0);
+        shader.set_positions(this->vertices_rid, sizeof(Point2f)*2, 0);
+        shader.set_texcoords(this->vertices_rid, sizeof(Point2f)*2, sizeof(Point2f));
+
         auto start_idx = 0;
         for( auto i=0; i<this->contour_indices.size(); i++ )
         {
             this->fill_styles[i]->execute();
-
-            glBegin(GL_TRIANGLES);
-            for( int j=start_idx; j<this->contour_indices[i]; j++ )
-            {
-                auto point = matrix * this->vertices[this->indices[j]];
-                glVertex2f(point.x, point.y);
-            }
-            glEnd();
+            shader.bind(matrix, cxform);
+            Render::get_instance().draw(DrawMode::TRIANGLE, 
+                start_idx, this->contour_indices[i] - start_idx);
 
             if( i < (this->contour_indices.size()-1) )
                 start_idx = this->contour_indices[i];

@@ -3,6 +3,7 @@
 #include <vector>
 #include "types.hpp"
 #include "record.hpp"
+#include "render.hpp"
 
 namespace openswf
 {
@@ -71,7 +72,7 @@ namespace openswf
         uint32_t bitmap;
 
     public:
-        LinearGradientFill() : bitmap(-1) {}
+        LinearGradientFill() : bitmap(0) {}
 
         virtual ~LinearGradientFill() {}
         virtual void execute();
@@ -101,11 +102,13 @@ namespace openswf
     struct Shape : public ICharactor
     {
         Rect                        bounds;
-
         std::vector<IStyleCommand*> fill_styles;
         std::vector<Point2f>        vertices;
         std::vector<uint16_t>       indices;
         std::vector<uint16_t>       contour_indices;
+
+        Rid                         indices_rid;
+        Rid                         vertices_rid;
 
         virtual ~Shape();
         virtual void render(const Matrix& matrix, const ColorTransform& cxform);
