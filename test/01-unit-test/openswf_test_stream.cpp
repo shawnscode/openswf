@@ -107,7 +107,8 @@ TEST_CASE( "STREAM_READ_BITS", "[OPENSWF]" )
         REQUIRE( records.read_bits_as_fixed32(10) == Approx((double)0x223/(double)65536.0) );
 
         int32_t value = 0x3fe16; // sign expansion
-        if( value & (1<<(18-1)) ) value |= (-1 << 18);
+        int32_t negative = -1;
+        if( value & (1<<(18-1)) ) value |= (negative << 18);
         REQUIRE( records.read_bits_as_fixed32(18) == Approx(value/(double)65536.0) );
         REQUIRE( records.read_bits_as_int32(6) == 18 );
     }
@@ -131,7 +132,8 @@ TEST_CASE( "STREAM_READ_BITS", "[OPENSWF]" )
         REQUIRE( records.read_bits_as_fixed32(10) == Approx((double)0x223/(double)65536.0) );
 
         int32_t value = 0x3fe16; // sign expansion
-        if( value & (1<<(18-1)) ) value |= (-1 << 18);
+        int32_t negative = -1;
+        if( value & (1<<(18-1)) ) value |= (negative << 18);
         REQUIRE( records.read_bits_as_fixed32(18) == Approx(value/(double)65536.0) );
         REQUIRE( records.read_bits_as_int32(6) == -22 );
     }

@@ -10,6 +10,7 @@ I'm working on MacOs currently, if so do u, u can compile openswf by following b
 
 	brew install glfw3
     brew install glew
+    brew install glm
 	cd build/3rd
 	make
 	cd -
@@ -21,7 +22,3 @@ Then u could find unit-test and some simple examples in `path-to-openswf/bin`. I
 
 This prject has not much platform specified code right now, so it should be easy to port to other platforms with big-endian bit order.
 
-### Todo
-1. DefineShape::{ CurvedEdgeRecord }
-1. FillStyle::{ Gradient, Bitmap }
-1. LineStyle::{ Joins, Caps } (DefineShape4)
