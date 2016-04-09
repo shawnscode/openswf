@@ -241,7 +241,7 @@ namespace openswf
         this->fill_styles = std::move(def.fill_styles);
 
         auto polygons = std::vector<Contours>(this->fill_styles.size(), Contours());
-        auto lines = std::vector<Contours>(def.line_styles.size(), Contours());
+//        auto lines = std::vector<Contours>(def.line_styles.size(), Contours());
 
         // 
         for( auto& path : def.paths )
@@ -254,8 +254,8 @@ namespace openswf
             if( path.right_fill > 0 )
                 contour_push_path( polygons[path.right_fill-1], path );
 
-            if( path.line > 0 )
-                contour_push_path( lines[path.line-1], path );
+//            if( path.line > 0 )
+//                contour_push_path( lines[path.line-1], path );
         }
 
         assert( polygons.size() == this->fill_styles.size() );

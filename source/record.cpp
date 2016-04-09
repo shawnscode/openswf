@@ -58,7 +58,7 @@ namespace openswf
             return ShowFrame();
         }
 
-        // TAG: 2, 22, 32
+        // TAG: 2, 22, 32, 83
         enum class FillStyleCode : uint8_t
         {
             SOLID                           = 0x00,
@@ -86,12 +86,48 @@ namespace openswf
             {
                 GradientFill::ControlPoint ctrl;
                 ctrl.ratio = stream.read_uint8();
-                if( tag == TagCode::DEFINE_SHAPE3 ) ctrl.color = stream.read_rgba();
-                else ctrl.color = stream.read_rgb();
+                if( tag == TagCode::DEFINE_SHAPE3 || tag == TagCode::DEFINE_SHAPE4 )
+                    ctrl.color = stream.read_rgba();
+                else 
+                    ctrl.color = stream.read_rgb();
                 gradient->controls.push_back(ctrl);
             }
 
             // WARNING: do we need to sort controls by ratio ?
+        }
+
+        static FillStyle* read_fill_style(Stream& stream, TagCode tag)
+        {
+            auto type = (FillStyleCode)stream.read_uint8();
+            if( type == FillStyleCode::SOLID )
+            {
+                auto solid = new SolidFill();
+                if( tag == TagCode::DEFINE_SHAPE3 || tag == TagCode::DEFINE_SHAPE4 )
+                    solid->color = stream.read_rgba();
+                else 
+                    solid->color = stream.read_rgb();
+                return solid;
+            }
+            else if( type == FillStyleCode::LINEAR_GRADIENT )
+            {
+                auto linear = new LinearGradientFill();
+                read_gradient(stream, linear, tag);
+                return linear;
+            }
+            else if( type == FillStyleCode::RADIAL_GRADIENT )
+            {
+                auto radial = new RadialGradientFill();
+                read_gradient(stream, radial, tag);
+                return radial;
+            }
+            else if( type == FillStyleCode::FOCAL_RADIAL_GRADIENT )
+            {
+                auto focal = new FocalRadialGradientFill();
+                read_gradient(stream, focal, tag);
+                focal->focal = stream.read_fixed16();
+                return focal;
+            }
+                assert(false); // not supported yet
         }
 
         static void read_line_styles(Stream& stream, LineStyle::Array& array, TagCode type)
@@ -102,59 +138,50 @@ namespace openswf
             array.reserve(count + array.size());
             for( auto i=0; i<count; i++ )
             {
-                LineStyle style;
-                style.width = stream.read_uint8();
+                LineStyle line;
+                line.width = stream.read_uint16();
 
                 if( type == TagCode::DEFINE_SHAPE4 )
-                    assert(false);
-                else if( type == TagCode::DEFINE_SHAPE3 ) style.color = stream.read_rgba();
-                else style.color = stream.read_rgb();
-                array.push_back(style);
+                {   // line style 2
+                    line.start_cap  = (Capcode)stream.read_bits_as_uint32(2);
+                    line.join       = (Joincode)stream.read_bits_as_uint32(2);
+                    line.has_fill   = stream.read_bits_as_uint32(1) > 0;
+                    line.no_hscale  = stream.read_bits_as_uint32(1) > 0;
+                    line.no_vscale  = stream.read_bits_as_uint32(1) > 0;
+                    line.pixel_hinting = stream.read_bits_as_uint32(1) > 0;
+
+                    assert( stream.read_bits_as_uint32(5) == 0 ); //reserved bits
+                    
+                    line.no_close    = stream.read_bits_as_uint32(1) > 0;
+                    line.end_cap    = (Capcode)stream.read_bits_as_uint32(2);
+                    line.miter_limit_factor = line.join == Joincode::MITER ? stream.read_uint16() : 0;
+                    
+                    line.fill = nullptr;
+                    if( line.has_fill )
+                        read_fill_style(stream, type);
+                    else
+                        line.color = stream.read_rgba();
+                }
+                else
+                {   // line style
+                    if( type == TagCode::DEFINE_SHAPE3 )
+                        line.color = stream.read_rgba();
+                    else
+                        line.color = stream.read_rgb();
+                }
+                array.push_back(line);
             }
         }
 
-        static void read_fill_styles(Stream& stream, std::vector<IStyleCommand*>& array, TagCode tag)
+        static void read_fill_styles(Stream& stream, std::vector<FillStyle*>& array, TagCode tag)
         {
             uint8_t count = stream.read_uint8();
             if( count == 0xFF ) count = stream.read_uint16();
 
             array.reserve(count + array.size());
+            printf("%d\n", count);
             for( auto i=0; i<count; i++ )
-            {
-                auto type = (FillStyleCode)stream.read_uint8();
-                if( type == FillStyleCode::SOLID )
-                {
-                    auto solid = new SolidFill();
-                    if( tag == TagCode::DEFINE_SHAPE3 ) solid->color = stream.read_rgba();
-                    else solid->color = stream.read_rgb();
-                    array.push_back(solid);
-                }
-                else if( type == FillStyleCode::LINEAR_GRADIENT )
-                {
-                    auto linear = new LinearGradientFill();
-                    read_gradient(stream, linear, tag);
-                    array.push_back(linear);
-                }
-                else if( type == FillStyleCode::RADIAL_GRADIENT )
-                {
-                    auto radial = new RadialGradientFill();
-                    read_gradient(stream, radial, tag);
-                    array.push_back(radial);
-                }
-                else if( type == FillStyleCode::FOCAL_RADIAL_GRADIENT )
-                {
-                    auto focal = new FocalRadialGradientFill();
-                    read_gradient(stream, focal, tag);
-                    focal->focal = stream.read_fixed16();
-                    array.push_back(focal);
-                }
-                else if( type == FillStyleCode::REPEATING_BITMAP )
-                {
-
-                }
-                else
-                    assert(false); // not supported yet
-            }
+                array.push_back(read_fill_style(stream, tag));
         }
 
         enum DefineShapeMask
@@ -172,15 +199,27 @@ namespace openswf
             assert( 
                 type == TagCode::DEFINE_SHAPE ||
                 type == TagCode::DEFINE_SHAPE2 ||
-                type == TagCode::DEFINE_SHAPE3 );
+                type == TagCode::DEFINE_SHAPE3 ||
+                type == TagCode::DEFINE_SHAPE4 );
 
             DefineShape record;
 
             record.character_id = stream.read_uint16();
             record.bounds       = stream.read_rect();
 
+            if( type == TagCode::DEFINE_SHAPE4 )
+            {
+                record.edge_bounds = stream.read_rect();
+                stream.read_bits_as_uint32(5);
+                stream.read_bits_as_uint32(1);
+                stream.read_bits_as_uint32(1);
+                stream.read_bits_as_uint32(1);
+            }
+
             read_fill_styles(stream, record.fill_styles, type);
-            read_line_styles(stream, record.line_styles, type);
+
+            std::vector<LineStyle> line_styles;
+            read_line_styles(stream, line_styles, type);
 
             // parse shape records
             uint32_t fill_index_bits = stream.read_bits_as_uint32(4);
@@ -247,13 +286,13 @@ namespace openswf
 
                     if( mask & SHAPE_NEW_STYLE ) // StateNewStyles, used by DefineShape2, DefineShape3 only.
                     {
-                        assert( type == TagCode::DEFINE_SHAPE3 );
+                        assert( type == TagCode::DEFINE_SHAPE3 || type == TagCode::DEFINE_SHAPE4 );
                         push_path();
 
                         fill_index_base = record.fill_styles.size();
-                        line_index_base = record.line_styles.size();
+                        line_index_base = line_styles.size();
                         read_fill_styles(stream, record.fill_styles, type);
-                        read_line_styles(stream, record.line_styles, type);
+                        read_line_styles(stream, line_styles, type);
                         fill_index_bits = stream.read_bits_as_uint32(4);
                         line_index_bits = stream.read_bits_as_uint32(4);
                     }

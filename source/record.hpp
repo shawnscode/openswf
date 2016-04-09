@@ -29,7 +29,7 @@
 
 namespace openswf
 {
-    class IStyleCommand;
+    class FillStyle;
 
     namespace record // should we hide this details from interface?
     {
@@ -80,16 +80,11 @@ namespace openswf
         // TAG = 32
         // DefineShape3 extends the capabilities of DefineShape2 by extending all
         // of the RGB color fields to support RGBA with opacity information.
-        // struct FillGradient {};
-        // struct FillBitmap {};
 
-        struct LineStyle
-        {
-            typedef std::vector<LineStyle> Array;
-
-            uint16_t    width;
-            Color       color;
-        };
+        // TAG = 83
+        // DefineShape4 extends the capabilities of DefineShape3 by using a new line style
+        // record in the shape. LINESTYLE2 allows new types of joins and caps as well as
+        // scaling options and the ability to fill a stroke.
 
         struct ShapeEdge
         {
@@ -134,11 +129,12 @@ namespace openswf
         {
             uint16_t            character_id;
             Rect                bounds;         // bounds of shape
+            Rect                edge_bounds;
 
             // * the style arrays begin at index 1
-            std::vector<IStyleCommand*> fill_styles;
-            LineStyle::Array    line_styles;
-            ShapePath::Array    paths;
+            std::vector<FillStyle*> fill_styles;
+            // LineStyle::Array        line_styles;
+            ShapePath::Array        paths;
 
             static DefineShape read(Stream& stream, TagCode type);
         };

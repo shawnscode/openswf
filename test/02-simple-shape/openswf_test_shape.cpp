@@ -43,9 +43,8 @@ int main(int argc, char* argv[])
     auto& render = Render::get_instance();
     auto& shader = DefaultShader::get_instance();
 
-    auto stream = create_from_file("../test/resources/simple-shape-1.swf");
+    auto stream = create_from_file("../test/resources/simple-shape-2.swf");
     auto player = Player::create(&stream);
-    auto size   = player->get_size();
 
     while( !glfwWindowShouldClose(window) )
     {

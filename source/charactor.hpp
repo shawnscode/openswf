@@ -17,14 +17,14 @@ namespace openswf
     // The SWF shape architecture is designed to be compact,
     // flexible and rendered very quickly to the screen. It is similar to most vector
     // formats in that shapes are defined by a list of edges
-    struct IStyleCommand
+    struct FillStyle
     {
-        virtual ~IStyleCommand() {}
+        virtual ~FillStyle() {}
         virtual void execute() = 0;
         virtual Point2f get_texcoord(const Point2f&) = 0;
     };
 
-    struct SolidFill : public IStyleCommand
+    struct SolidFill : public FillStyle
     {
         Color color;
         virtual void execute();
@@ -36,7 +36,7 @@ namespace openswf
     // and extends from (-16384,-16384) to (16384,16384).
     // each gradient is mapped from the gradient square to the display surface
     // using a standard transformation matrix.
-    struct GradientFill : public IStyleCommand
+    struct GradientFill : public FillStyle
     {
         struct ControlPoint
         {
@@ -104,15 +104,49 @@ namespace openswf
         virtual void execute();
     };
 
-    struct BitmapFill : IStyleCommand
+    struct BitmapFill : FillStyle
     {
         virtual void execute();
+    };
+
+    enum class Capcode : uint8_t {
+        ROUND = 0,
+        NO = 1,
+        SQUARE = 2,
+    };
+
+    enum class Joincode : uint8_t {
+        ROUND = 0,
+        BEVEL = 1,
+        MITER = 2,
+    };
+
+    struct LineStyle
+    {
+        typedef std::vector<LineStyle> Array;
+
+        uint16_t    width;
+
+        Capcode     start_cap, end_cap;
+        Joincode    join;
+
+        bool        has_fill;
+        bool        no_hscale;
+        bool        no_vscale;
+        bool        no_close;
+        bool        pixel_hinting;
+
+        float       miter_limit_factor;
+        Color       color;
+        FillStyle*  fill;
+
+        ~LineStyle() { if( fill ) delete fill; }
     };
 
     struct Shape : public ICharactor
     {
         Rect                        bounds;
-        std::vector<IStyleCommand*> fill_styles;
+        std::vector<FillStyle*>     fill_styles;
         std::vector<Point2f>        vertices;
         std::vector<uint16_t>       indices;
         std::vector<uint16_t>       contour_indices;

@@ -90,6 +90,7 @@ namespace openswf
                 case TagCode::DEFINE_SHAPE:
                 case TagCode::DEFINE_SHAPE2:
                 case TagCode::DEFINE_SHAPE3:
+                case TagCode::DEFINE_SHAPE4:
                 {
                     auto info = DefineShape::read(*stream, tag.code);
                     auto shape = Shape::create(info);

@@ -53,7 +53,7 @@ workspace("test")
     project("02-simple-shape")
         links({ "tess2", "glfw3", "glew", "openswf" })
         linkoptions { "-framework OpenGL", "-framework Cocoa", "-framework IOKit", "-framework CoreVideo" }
-        files({ "test/02-simple-shape/*.cpp", "test/00-common/*.cpp" })
+        files({ "test/02-simple-shape/*.cpp", "test/00-common/*.cpp", "source/*.cpp" })
 
     project("03-simple-timeline")
         links({ "tess2", "glfw3", "glew", "openswf" })
