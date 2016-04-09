@@ -118,7 +118,12 @@ namespace openswf
 
     Color Color::lerp(const Color& from, const Color& to, const float ratio)
     {
-        return from + (to - from) * ratio;
+        float fixed = clamp(ratio, 0.f, 1.f);
+        return Color(
+            (uint8_t)((float)from.r + ((float)to.r - (float)from.r)*fixed),
+            (uint8_t)((float)from.g + ((float)to.g - (float)from.g)*fixed),
+            (uint8_t)((float)from.b + ((float)to.b - (float)from.b)*fixed),
+            (uint8_t)((float)from.a + ((float)to.a - (float)from.a)*fixed));
     }
 
     const Matrix Matrix::identity = Matrix();

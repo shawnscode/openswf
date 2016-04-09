@@ -267,10 +267,10 @@ namespace openswf
         uint32_t to_value() const
         {
             uint32_t value = 0;
-            value |= r << 24;
-            value |= g << 16;
-            value |= b << 8;
-            value |= a;
+            value |= r << 0;
+            value |= g << 8;
+            value |= b << 16;
+            value |= a << 24;
             return value;
         }
 
@@ -372,6 +372,8 @@ namespace openswf
             auto bitmap = new (std::nothrow) Bitmap<T>();
             if( bitmap == nullptr ) return nullptr;
 
+            bitmap->m_width = width;
+            bitmap->m_height = height;
             bitmap->m_source = new (std::nothrow) uint8_t[width*height*sizeof(T)];
             if( bitmap->m_source == nullptr )
             {
@@ -393,7 +395,7 @@ namespace openswf
             assert( row >= 0 && row < m_width );
             assert( col >= 0 && row < m_height );
 
-            T* ref = (T*)(m_source + row*m_width+col);
+            T* ref = ((T*)m_source) + row*m_width+col;
             *ref = value;
         }
 

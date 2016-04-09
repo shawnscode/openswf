@@ -383,11 +383,14 @@ namespace openswf
                 {
                     glActiveTexture(GL_TEXTURE0+i);
                     glBindTexture(GL_TEXTURE_2D, texture->handle);
-
                     this->last.textures[i] = index;
                 }
                 else
+                {
+                    glActiveTexture(GL_TEXTURE0+i);
+                    glBindTexture(GL_TEXTURE_2D, 0);
                     this->last.textures[i] = 0;
+                }
             }
         }
         CHECK_GL_ERROR
@@ -850,7 +853,7 @@ namespace openswf
         //
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         if( mipmap > 0 )
         {
             // we got 4 mipmap level by defaults
@@ -876,9 +879,6 @@ namespace openswf
 
     void Render::set_shader_uniform(int index, UniformFormat format, const float* v)
     {
-        
-        CHECK_GL_ERROR
-        
         switch(format)
         {
             case UniformFormat::FLOAT1:

@@ -21,12 +21,14 @@ namespace openswf
     {
         virtual ~IStyleCommand() {}
         virtual void execute() = 0;
+        virtual Point2f get_texcoord(const Point2f&) = 0;
     };
 
     struct SolidFill : public IStyleCommand
     {
         Color color;
         virtual void execute();
+        virtual Point2f get_texcoord(const Point2f&);
     };
 
     // * all gradients are defined in a standard space called the gradient square. 
@@ -64,6 +66,7 @@ namespace openswf
         std::vector<ControlPoint>   controls;
 
         virtual ~GradientFill() {}
+        virtual Point2f get_texcoord(const Point2f&);
     };
 
     struct LinearGradientFill : public GradientFill

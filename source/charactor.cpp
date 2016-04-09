@@ -24,6 +24,21 @@ namespace openswf
         DefaultShader::get_instance().set_texture(0);
     }
 
+    Point2f SolidFill::get_texcoord(const Point2f& position)
+    {
+        return Point2f();
+    }
+
+    Point2f GradientFill::get_texcoord(const Point2f& position)
+    {
+        static const Rect coordinates = Rect(-16384, 16384, -16384, 16384);
+
+        Point2f ll = (this->transform * Point2f(coordinates.xmin, coordinates.ymin)).to_pixel();
+        Point2f ru = (this->transform * Point2f(coordinates.xmax, coordinates.ymax)).to_pixel();
+
+        return Point2f( (position.x-ll.x) / (ru.x - ll.x), (position.y-ll.y) / (ru.y - ll.y) );
+    }
+
     Color LinearGradientFill::sample(int ratio) const
     {
         assert( ratio >= 0 && ratio < 256 );
@@ -41,11 +56,12 @@ namespace openswf
 
                 auto percent = 0.0f;
                 if( last.ratio != now.ratio )
-                    percent = (ratio - last.ratio) / (now.ratio - last.ratio);
+                    percent = (float)(ratio - last.ratio) / (float)(now.ratio - last.ratio);
 
                 return Color::lerp(last.color, now.color, percent);
             }
         }
+
         return this->controls.back().color;
     }
 
@@ -58,10 +74,11 @@ namespace openswf
         static const int height = 1;
 
         auto source = BitmapRGBA32::create(width, height);
-        for( auto i=0; i<source->get_width(); i++ )
-            source->set(0, i, sample(i).to_value());
+        for( auto i=0; i<source->get_height(); i++ )
+            for( auto j=0; j<source->get_width(); j++ )
+                source->set(i, j, sample(j).to_value());
 
-        this->bitmap = Render::get_instance().create_texture(source->get_ptr(), width, height, TextureFormat::RGBA8, 1);
+        this->bitmap = Render::get_instance().create_texture(source->get_ptr(), width, height, TextureFormat::RGBA8, 0);
         delete source;
     }
 
@@ -69,7 +86,7 @@ namespace openswf
     {
         try_gen_texture();
 
-        DefaultShader::get_instance().set_color(Color::white);
+        DefaultShader::get_instance().set_color(Color::black);
         DefaultShader::get_instance().set_texture(this->bitmap);
     }
 
@@ -216,6 +233,12 @@ namespace openswf
         // tesselate polygons
         for( auto& mesh_set : polygons )
         {
+            if( mesh_set.size() == 0 )
+            {
+                this->contour_indices.push_back(this->indices.size());
+                continue;
+            }
+
             auto tess = tessNewTess(nullptr);
             if( !tess ) return false;
 
@@ -239,9 +262,9 @@ namespace openswf
             {
                 auto position = Point2f(vertices[i*2], vertices[i*2+1]).to_pixel();
                 this->vertices.push_back( position );   // position
-                this->vertices.push_back( Point2f(      // texcoord
-                    (position.x - this->bounds.xmin) / this->bounds.get_width(),
-                    (position.y - this->bounds.ymin) / this->bounds.get_height()) );
+
+                auto texcoord = this->fill_styles[this->contour_indices.size()]->get_texcoord(position);
+                this->vertices.push_back( texcoord );
             }
 
             auto ind_base_size = this->indices.size();
@@ -294,13 +317,19 @@ namespace openswf
         auto start_idx = 0;
         for( auto i=0; i<this->contour_indices.size(); i++ )
         {
-            this->fill_styles[i]->execute();
-            shader.bind(matrix, cxform);
-            Render::get_instance().draw(DrawMode::TRIANGLE, 
-                start_idx, this->contour_indices[i] - start_idx);
+            auto count = this->contour_indices[i] - start_idx;
+            assert( count >=0 );
 
-            if( i < (this->contour_indices.size()-1) )
-                start_idx = this->contour_indices[i];
+            if( count > 0 )
+            {
+                this->fill_styles[i]->execute();
+                shader.bind(matrix, cxform);
+                Render::get_instance().draw(DrawMode::TRIANGLE,
+                    start_idx, this->contour_indices[i] - start_idx);
+
+                if( i < (this->contour_indices.size()-1) )
+                    start_idx = this->contour_indices[i];
+            }
         }
     }
 

@@ -88,24 +88,23 @@ namespace openswf
             NON_SMOOTHED_CLIPPED_BITMAP     = 0x43
         };
 
-        static void read_gradient(Stream& stream, GradientFill& gradient, TagCode tag)
+        static void read_gradient(Stream& stream, GradientFill* gradient, TagCode tag)
         {
-            gradient.transform = stream.read_matrix();
-
-            gradient.spread = (GradientFill::SpreadMode)stream.read_bits_as_uint32(2);
-            gradient.interp = (GradientFill::InterpolationMode)stream.read_bits_as_uint32(2);
+            gradient->transform = stream.read_matrix();
+            gradient->spread = (GradientFill::SpreadMode)stream.read_bits_as_uint32(2);
+            gradient->interp = (GradientFill::InterpolationMode)stream.read_bits_as_uint32(2);
 
             auto count = stream.read_bits_as_uint32(4);
             assert( count > 0 );
 
-            gradient.controls.reserve(count);
+            gradient->controls.reserve(count);
             for( auto i=0; i<count; i++ )
             {
                 GradientFill::ControlPoint ctrl;
                 ctrl.ratio = stream.read_uint8();
                 if( tag == TagCode::DEFINE_SHAPE3 ) ctrl.color = stream.read_rgba();
                 else ctrl.color = stream.read_rgb();
-                gradient.controls.push_back(ctrl);
+                gradient->controls.push_back(ctrl);
             }
 
             // WARNING: do we need to sort controls by ratio ?
@@ -130,19 +129,19 @@ namespace openswf
                 else if( type == FillStyleCode::LINEAR_GRADIENT )
                 {
                     auto linear = new LinearGradientFill();
-                    read_gradient(stream, *linear, tag);
+                    read_gradient(stream, linear, tag);
                     array.push_back(linear);
                 }
                 else if( type == FillStyleCode::RADIAL_GRADIENT )
                 {
                     auto radial = new RadialGradientFill();
-                    read_gradient(stream, *radial, tag);
+                    read_gradient(stream, radial, tag);
                     array.push_back(radial);
                 }
                 else if( type == FillStyleCode::FOCAL_RADIAL_GRADIENT )
                 {
                     auto focal = new FocalRadialGradientFill();
-                    read_gradient(stream, *focal, tag);
+                    read_gradient(stream, focal, tag);
                     focal->focal = stream.read_fixed16();
                     array.push_back(focal);
                 }
