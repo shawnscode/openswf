@@ -59,22 +59,6 @@ namespace openswf
         }
 
         // TAG: 2, 22, 32
-        static void read_line_styles(Stream& stream, LineStyle::Array& array, TagCode type)
-        {
-            uint8_t count = stream.read_uint8();
-            if( count == 0xFF ) count = stream.read_uint16();
-
-            array.reserve(count + array.size());
-            for( auto i=0; i<count; i++ )
-            {
-                LineStyle style;
-                style.width = stream.read_uint8();
-                if( type == TagCode::DEFINE_SHAPE3 ) style.color = stream.read_rgba();
-                else style.color = stream.read_rgb();
-                array.push_back(style);
-            }
-        }
-
         enum class FillStyleCode : uint8_t
         {
             SOLID                           = 0x00,
@@ -108,6 +92,25 @@ namespace openswf
             }
 
             // WARNING: do we need to sort controls by ratio ?
+        }
+
+        static void read_line_styles(Stream& stream, LineStyle::Array& array, TagCode type)
+        {
+            uint8_t count = stream.read_uint8();
+            if( count == 0xFF ) count = stream.read_uint16();
+
+            array.reserve(count + array.size());
+            for( auto i=0; i<count; i++ )
+            {
+                LineStyle style;
+                style.width = stream.read_uint8();
+
+                if( type == TagCode::DEFINE_SHAPE4 )
+                    assert(false);
+                else if( type == TagCode::DEFINE_SHAPE3 ) style.color = stream.read_rgba();
+                else style.color = stream.read_rgb();
+                array.push_back(style);
+            }
         }
 
         static void read_fill_styles(Stream& stream, std::vector<IStyleCommand*>& array, TagCode tag)

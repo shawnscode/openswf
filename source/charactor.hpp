@@ -67,6 +67,9 @@ namespace openswf
 
         virtual ~GradientFill() {}
         virtual Point2f get_texcoord(const Point2f&);
+
+    protected:
+        Color sample(int ratio) const;
     };
 
     struct LinearGradientFill : public GradientFill
@@ -76,19 +79,23 @@ namespace openswf
 
     public:
         LinearGradientFill() : bitmap(0) {}
-
-        virtual ~LinearGradientFill() {}
         virtual void execute();
 
     protected:
-        Color sample(int ratio) const;
         void try_gen_texture();
-        void try_bind_texture();
     };
 
     struct RadialGradientFill : GradientFill
     {
+    protected:
+        uint32_t bitmap;
+
+    public:
+        RadialGradientFill() : bitmap(0) {}
         virtual void execute();
+
+    protected:
+        void try_gen_texture();
     };
 
     struct FocalRadialGradientFill : GradientFill

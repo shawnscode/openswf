@@ -39,7 +39,7 @@ namespace openswf
         return Point2f( (position.x-ll.x) / (ru.x - ll.x), (position.y-ll.y) / (ru.y - ll.y) );
     }
 
-    Color LinearGradientFill::sample(int ratio) const
+    Color GradientFill::sample(int ratio) const
     {
         assert( ratio >= 0 && ratio < 256 );
         assert( this->controls.size() > 0 );
@@ -70,13 +70,13 @@ namespace openswf
         if( this->bitmap != 0 )
             return;
 
-        static const int width = 256;
+        static const int width = 64;
         static const int height = 1;
 
         auto source = BitmapRGBA32::create(width, height);
         for( auto i=0; i<source->get_height(); i++ )
             for( auto j=0; j<source->get_width(); j++ )
-                source->set(i, j, sample(j).to_value());
+                source->set(i, j, sample(255*(float)j/(float)width).to_value());
 
         this->bitmap = Render::get_instance().create_texture(source->get_ptr(), width, height, TextureFormat::RGBA8, 0);
         delete source;
@@ -90,14 +90,44 @@ namespace openswf
         DefaultShader::get_instance().set_texture(this->bitmap);
     }
 
+    void RadialGradientFill::try_gen_texture()
+    {
+        if( this->bitmap != 0 )
+            return;
+
+        static const int width = 16;
+        static const int height = 16;
+
+        auto source = BitmapRGBA32::create(width, height);
+        for( auto i=0; i<height; i++ )
+        {
+            for( auto j=0; j<width; j++ )
+            {
+                float radius = (height - 1) / 2.0f;
+                float y = (j - radius) / radius;
+                float x = (i - radius) / radius;
+                int ratio = (int) floorf(255.5f * sqrt(x * x + y * y));
+                if( ratio > 255 ) ratio = 255;
+                source->set(i, j, sample(ratio).to_value());
+            }
+        }
+
+        this->bitmap = Render::get_instance().create_texture(source->get_ptr(), width, height, TextureFormat::RGBA8, 0);
+        delete source;
+    }
+
     void RadialGradientFill::execute()
     {
-        // todo
+        try_gen_texture();
+
+        DefaultShader::get_instance().set_color(Color::black);
+        DefaultShader::get_instance().set_texture(this->bitmap);
     }
 
     void FocalRadialGradientFill::execute()
     {
         // todo
+        assert(false);
     }
 
     void BitmapFill::execute()
