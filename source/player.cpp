@@ -87,17 +87,6 @@ namespace openswf
                     break;
                 }
 
-                case TagCode::DEFINE_SHAPE:
-                case TagCode::DEFINE_SHAPE2:
-                case TagCode::DEFINE_SHAPE3:
-                case TagCode::DEFINE_SHAPE4:
-                {
-                    auto info = DefineShape::read(*stream, tag.code);
-                    auto shape = Shape::create(info);
-                    set_charactor(info.character_id, shape);
-                    break;
-                }
-
                 case TagCode::PLACE_OBJECT:
                 case TagCode::PLACE_OBJECT2:
                 {
@@ -114,6 +103,17 @@ namespace openswf
                 {
                     auto info = RemoveObject::read(*stream, tag.code);
                     current_frame.push_back(new RemoveCommand(info.depth));
+                    break;
+                }
+
+                case TagCode::DEFINE_SHAPE:
+                case TagCode::DEFINE_SHAPE2:
+                case TagCode::DEFINE_SHAPE3:
+                case TagCode::DEFINE_SHAPE4:
+                {
+                    auto info = DefineShape::read(*stream, tag.code);
+                    auto shape = Shape::create(info);
+                    set_charactor(info.character_id, shape);
                     break;
                 }
 

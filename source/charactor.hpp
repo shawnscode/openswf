@@ -145,14 +145,14 @@ namespace openswf
 
     struct Shape : public ICharactor
     {
-        Rect                        bounds;
-        std::vector<FillStyle*>     fill_styles;
-        std::vector<Point2f>        vertices;
-        std::vector<uint16_t>       indices;
-        std::vector<uint16_t>       contour_indices;
+        Rect                    bounds;
+        std::vector<FillPtr>    fill_styles;
+        std::vector<Point2f>    vertices;
+        std::vector<uint16_t>   indices;
+        std::vector<uint16_t>   contour_indices;
 
-        Rid                         indices_rid;
-        Rid                         vertices_rid;
+        Rid                     indices_rid;
+        Rid                     vertices_rid;
 
         virtual ~Shape();
         virtual void render(const Matrix& matrix, const ColorTransform& cxform);

@@ -9,6 +9,8 @@
 
 namespace openswf
 {
+    typedef std::unique_ptr<uint8_t[]> Bytes;
+
     enum class LanguageCode : uint8_t
     {
         // the western languages covered by Latin-1: English, French, German, and so on

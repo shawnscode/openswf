@@ -46,18 +46,6 @@ namespace openswf
             return record;
         }
 
-        // TAG: 0
-        End End::read(Stream& stream)
-        {
-            return End();
-        }
-
-        // TAG: 1
-        ShowFrame ShowFrame::read(Stream& stream)
-        {
-            return ShowFrame();
-        }
-
         // TAG: 2, 22, 32, 83
         enum class FillStyleCode : uint8_t
         {
@@ -173,15 +161,14 @@ namespace openswf
             }
         }
 
-        static void read_fill_styles(Stream& stream, std::vector<FillStyle*>& array, TagCode tag)
+        static void read_fill_styles(Stream& stream, std::vector<FillPtr>& array, TagCode tag)
         {
             uint8_t count = stream.read_uint8();
             if( count == 0xFF ) count = stream.read_uint16();
 
             array.reserve(count + array.size());
-            printf("%d\n", count);
             for( auto i=0; i<count; i++ )
-                array.push_back(read_fill_style(stream, tag));
+                array.push_back(std::unique_ptr<FillStyle>(read_fill_style(stream, tag)));
         }
 
         enum DefineShapeMask

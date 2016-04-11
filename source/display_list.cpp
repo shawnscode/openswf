@@ -8,18 +8,20 @@ extern "C" {
 namespace openswf
 {
     ////
-    Node::Node(ICharactor* ch) : m_character(ch) {}
+    Primitive::Primitive(Shape* shape) : m_shape(shape) {}
 
-    void Node::update(float dt) {}
-    void Node::render(const Matrix& matrix, const ColorTransform& cxform)
+    Primitive::~Primitive() {}
+
+    void Primitive::update(float dt) {}
+
+    void Primitive::render(const Matrix& matrix, const ColorTransform& cxform)
     {
-        m_character->render(matrix, cxform);
+        m_shape->render(m_matrix*matrix, m_cxform*cxform);
     }
 
     ////
     MovieClip::MovieClip(Player* env, Sprite* sprite)
-    : Node(sprite), m_environment(env), m_sprite(sprite), m_frame_timer(0), m_current_frame(-1),
-    m_paused(false)
+    : m_environment(env), m_sprite(sprite), m_frame_timer(0), m_current_frame(-1), m_paused(false)
     {
         assert( sprite->frame_rate < 64 );
         m_frame_delta = 1.f / sprite->frame_rate;
@@ -74,8 +76,11 @@ namespace openswf
         {
             if( typeid(ch) == typeid(Sprite*) )
                 m_children[depth] = new MovieClip(m_environment, static_cast<Sprite*>(ch));
+            // else if( typeid(ch) == typeid(Shape*) )
             else
-                m_children[depth] = new Node(ch);
+                m_children[depth] = new Primitive(static_cast<Shape*>(ch));
+            //else
+            //    assert(0);
         }
     }
 

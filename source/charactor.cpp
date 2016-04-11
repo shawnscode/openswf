@@ -330,12 +330,7 @@ namespace openswf
         return true;
     }
 
-    Shape::~Shape()
-    {
-        for( auto& command : this->fill_styles )
-            delete command;
-        this->fill_styles.clear();
-    }
+    Shape::~Shape() {}
 
     void Shape::render(const Matrix& matrix, const ColorTransform& cxform)
     {

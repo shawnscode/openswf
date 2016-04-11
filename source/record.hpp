@@ -30,6 +30,10 @@
 namespace openswf
 {
     class FillStyle;
+    class LineStyle;
+
+    typedef std::unique_ptr<FillStyle> FillPtr;
+    typedef std::unique_ptr<LineStyle> LinePtr;
 
     namespace record // should we hide this details from interface?
     {
@@ -57,18 +61,12 @@ namespace openswf
 
         // TAG = 0
         // the End tag indicates the end of file
-        struct End
-        {
-            static End read(Stream& stream);
-        };
+        struct End {};
 
         // TAG = 1
         // the ShowFrame tag instructs us to display the contents of the display list. 
         // the file is paused for the duration of a single frame.
-        struct ShowFrame
-        {
-            static ShowFrame read(Stream& stream);
-        };
+        struct ShowFrame {};
 
         // TAG = 2
         // The DefineShape tag defines a shape for later use by control tags such as PlaceObject.
@@ -132,8 +130,8 @@ namespace openswf
             Rect                edge_bounds;
 
             // * the style arrays begin at index 1
-            std::vector<FillStyle*> fill_styles;
-            // LineStyle::Array        line_styles;
+            std::vector<FillPtr> fill_styles;
+            // std::vector<LinePtr> line_styles;
             ShapePath::Array        paths;
 
             static DefineShape read(Stream& stream, TagCode type);
@@ -166,6 +164,60 @@ namespace openswf
         // TAG = 5
         // the RemoveObject tag removes the specified character (at the 
         // specified depth) from the display list.
+
+
+        // TAG = 6
+        // the DefineBits defines a bitmap character with JPEG compression.
+        // It contains only the JPEG compressed image data (from the Frame Header onward).
+        // A separate JPEGTables tag contains the JPEG encoding data used to encode this
+        // image (the Tables/Misc segment).
+
+        // TAG = 21
+        // the DefineBitsJPEG2 defines a bitmap character with JPEG compression.
+        // It differs from DefineBits in that it contains both the JPEG encoding table
+        // and the JPEG image data. This tag allows multiple JPEG images with differing
+        // encoding tables to be defined within a single SWF file.
+
+        // TAG = 35
+        // the DefineBitsJPEG3 defines a bitmap character with JPEG compression.
+        // This tag extends DefineBitsJPEG2, adding alpha channel (opacity) data.
+        // Opacity/transparency information is not a standard feature in JPEG images,
+        // so the alpha channel information is encoded separately from the JPEG data,
+        // and compressed using the ZLIB standard for compression.
+        struct DefineBits
+        {
+            uint16_t    character_id;   // id for this character
+            uint32_t    alpha_offset;   // count of bytes in image
+            Bytes       image; // compressed image data in either JPEG, PNG, GIF89a format
+            Bytes       alpha; // zlib compressed array of alpha data.
+        };
+
+        struct DefineBitsLossless
+        {
+            uint16_t    character_id;
+            uint8_t     bitmap_format;
+            uint16_t    width;
+            uint16_t    height;
+            uint8_t     color_table_size;
+            Bytes       color_table;
+            Bytes       pixel;
+        };
+
+        // TAG = 8
+        // the JPEGTables defines the JPEG encoding table (the Tables/Misc segment) for
+        // all JPEG images defined using the DefineBits tag.
+        // There may only be one JPEGTables tag in a SWF file.
+        struct JPEGTables
+        {
+            Bytes encodings;
+        };
+
+        // TAG = 21
+        struct DefineBitsJPEG
+        {
+            uint16_t    character_id;
+            Bytes       image;          // compressed image data in either JPEG, PNG, GIF89a format
+        };
 
         // Tag = 28
         // The RemoveObject2 tag removes the character at the specified depth from the display list.

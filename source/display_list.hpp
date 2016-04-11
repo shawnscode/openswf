@@ -12,22 +12,30 @@ namespace openswf
     protected:
         Matrix          m_matrix;
         ColorTransform  m_cxform;
-        ICharactor*     m_character;
 
     public:
-        Node(ICharactor* ch);
         virtual ~Node() {}
+        virtual void update(float dt) = 0;
+        virtual void render(const Matrix& matrix, const ColorTransform& cxform) = 0;
+        virtual void reset(const Matrix& matrix, const ColorTransform& cxform);
+    };
+
+    class Shape;
+    class Primitive : public Node
+    {
+    protected:
+        Shape*      m_shape;
+
+    public:
+        Primitive(Shape* shape);
+        virtual ~Primitive();
         virtual void update(float dt);
         virtual void render(const Matrix& matrix, const ColorTransform& cxform);
-
-        void reset(const Matrix& matrix, const ColorTransform& cxform);
-        ICharactor* get_character() const;
     };
 
     class Player;
-    class MovieClip : Node
+    class MovieClip : public Node
     {
-    protected:
         std::unordered_map<uint16_t, Node*> m_children;
         Player*                             m_environment;
         Sprite*                             m_sprite;
@@ -63,11 +71,6 @@ namespace openswf
     };
 
     /// INLINE METHODS
-    inline ICharactor* Node::get_character() const
-    {
-        return m_character;
-    }
-
     inline void Node::reset(const Matrix& matrix, const ColorTransform& cxform)
     {
         m_matrix = matrix;
