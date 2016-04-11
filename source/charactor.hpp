@@ -12,6 +12,7 @@ namespace openswf
     {
         virtual ~ICharactor() {}
         virtual void render(const Matrix& matrix, const ColorTransform& cxform) = 0;
+        virtual uint16_t get_character_id() const = 0;
     };
 
     // The SWF shape architecture is designed to be compact,
@@ -165,7 +166,7 @@ namespace openswf
 
         virtual void render(const Matrix& matrix, const ColorTransform& cxform);
         virtual uint16_t get_character_id() const;
-        const Rect& get_bounds() const;
+        const   Rect& get_bounds() const;
     };
 
     // A sprite corresponds to a movie clip in the Adobe Flash authoring application.
@@ -184,24 +185,34 @@ namespace openswf
     struct PlaceCommand : public IFrameCommand
     {
         uint16_t        depth;
-        uint16_t        cid;
+
+        bool            has_character_id;
+        uint16_t        character_id;
+
+        bool            has_matrix;
         Matrix          matrix;
+
+        bool            has_cxform;
         ColorTransform  cxform;
 
-        PlaceCommand(uint16_t depth, uint16_t cid, const Matrix& matrix, const ColorTransform& cxform)
-        : depth(depth), cid(cid), matrix(matrix), cxform(cxform) {}
+        bool            has_ratio;
+        uint16_t        ratio;
 
-        virtual void execute(MovieClip& display);
-    };
+        bool            has_name;
+        std::string     name;
 
-    struct ModifyCommand : public IFrameCommand
-    {
-        uint16_t        depth;
-        Matrix          matrix;
-        ColorTransform  cxform;
+        bool            has_clip;
+        uint16_t        clip_depth;
 
-        ModifyCommand(uint16_t depth, const Matrix& matrix, const ColorTransform& cxform)
-        : depth(depth), matrix(matrix), cxform(cxform) {} 
+        bool            has_actions;
+
+        PlaceCommand(uint16_t depth) : depth(depth),
+            has_character_id(false), character_id(0),
+            has_matrix(false), has_cxform(false),
+            has_ratio(false), ratio(0),
+            has_name(false),
+            has_clip(false), clip_depth(0),
+            has_actions(false) {}
 
         virtual void execute(MovieClip& display);
     };
@@ -217,25 +228,27 @@ namespace openswf
     };
 
     typedef std::unique_ptr<IFrameCommand> CommandPtr;
-
     struct Sprite : public ICharactor
     {
     protected:
+        uint16_t                m_character_id;
         float                   m_frame_rate;
         std::vector<CommandPtr> m_commands;
         std::vector<uint32_t>   m_indices;
 
     public:
         static Sprite* create(
+            uint16_t character_id,
             float frame_rate,
             std::vector<CommandPtr>& commands,
             std::vector<uint32_t>& indices);
 
         virtual void render(const Matrix& matrix, const ColorTransform& cxform);
+        virtual uint16_t get_character_id() const;
 
-        void execute(MovieClip& display, uint32_t frame);
+        void    execute(MovieClip& display, uint32_t frame);
         int32_t get_frame_count() const;
-        float get_frame_rate() const;
+        float   get_frame_rate() const;
     };
 
     inline int32_t Sprite::get_frame_count() const

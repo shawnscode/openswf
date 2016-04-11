@@ -10,7 +10,13 @@ extern "C" {
 namespace openswf
 {
     ////
-    Primitive::Primitive(Shape* shape) : m_shape(shape) {}
+    uint16_t Node::get_character_id() const
+    {
+        return m_character->get_character_id();
+    }
+
+    ////
+    Primitive::Primitive(Shape* shape) : Node(shape), m_shape(shape) {}
 
     Primitive::~Primitive() {}
 
@@ -23,7 +29,7 @@ namespace openswf
 
     ////
     MovieClip::MovieClip(Player* env, Sprite* sprite)
-    : m_environment(env), m_sprite(sprite), m_frame_timer(0), m_current_frame(0), m_paused(false)
+    : Node(sprite), m_environment(env), m_sprite(sprite), m_frame_timer(0), m_current_frame(0), m_paused(false)
     {
         assert( sprite->get_frame_rate() < 64 && sprite->get_frame_rate() > 0.1f );
         m_frame_delta = 1.f / sprite->get_frame_rate();
@@ -68,11 +74,29 @@ namespace openswf
     }
 
     // PROTECTED METHODS
-    void MovieClip::place(uint16_t depth, uint16_t cid, const Matrix& matrix, const ColorTransform& cxform)
+    Node* MovieClip::get(uint16_t depth)
     {
         auto iter = m_children.find(depth);
         if( iter != m_children.end() )
-            delete iter->second;
+            return iter->second;
+        return nullptr;
+    }
+
+    Node* MovieClip::set(uint16_t depth, uint16_t cid)
+    {
+        auto iter = m_children.find(depth);
+        if( iter != m_children.end() )
+        {
+            if( iter->second->get_character_id() == cid )
+            {
+                return iter->second;
+            }
+            else
+            {
+                delete iter->second;
+                m_children.erase(iter);
+            }
+        }
 
         auto ch = m_environment->get_character(cid);
         if( ch != nullptr )
@@ -81,16 +105,9 @@ namespace openswf
                 m_children[depth] = new MovieClip(m_environment, static_cast<Sprite*>(ch));
             else
                 m_children[depth] = new Primitive(static_cast<Shape*>(ch));
+            return m_children[depth];
         }
-    }
-
-    void MovieClip::modify(uint16_t depth, const Matrix& matrix, const ColorTransform& cxform)
-    {
-        auto iter = m_children.find(depth);
-        if( iter == m_children.end() )
-            return;
-
-        iter->second->reset(matrix, cxform);
+        return nullptr;
     }
 
     void MovieClip::erase(uint16_t depth)

@@ -32,9 +32,11 @@ namespace openswf
     class Shape;
     class FillStyle;
     class LineStyle;
+    class IFrameCommand;
 
     typedef std::unique_ptr<FillStyle> FillPtr;
     typedef std::unique_ptr<LineStyle> LinePtr;
+    typedef std::unique_ptr<IFrameCommand> CommandPtr;
 
     namespace record // should we hide this details from interface?
     {
@@ -92,32 +94,29 @@ namespace openswf
 
         // TAG = 4
         // the PlaceObject tag adds a character to the display list.
+        struct PlaceObject
+        {
+            static CommandPtr create(Stream& stream, const TagHeader& header);
+        };
 
         // TAG = 26
         // the PlaceObject2 tag can both add a character to the display list,
         // and modify the attributes of a character that is already on the display list.
-        struct PlaceObject
+        struct PlaceObject2
         {
-            uint16_t        character_id;   // ID of character to place
-            uint16_t        depth;          // depth of character
-            Matrix          matrix;         // transform matrix data
-            ColorTransform  cxform;         // color transform data
-
-            uint16_t        ratio;          // morph ratio
-            std::string     name;           // name of sprite
-            uint16_t        clip_depth;     // specifies the top-most depth that will be masked 
-
-            PlaceObject() : character_id(0), depth(0), ratio(0), clip_depth(0) {}
-            static PlaceObject read(Stream& stream, const TagHeader& header);
-
-            void parse_tag_4(Stream& stream, const TagHeader& header);
-            void parse_tag_26(Stream& stream);
+            static CommandPtr create(Stream& stream, const TagHeader& header);
         };
 
         // TAG = 5
         // the RemoveObject tag removes the specified character (at the 
         // specified depth) from the display list.
 
+        // Tag = 28
+        // The RemoveObject2 tag removes the character at the specified depth from the display list.
+        struct RemoveObject
+        {
+            static CommandPtr create(Stream& stream, TagCode type);
+        };
 
         // TAG = 6
         // the DefineBits defines a bitmap character with JPEG compression.
@@ -170,16 +169,6 @@ namespace openswf
         {
             uint16_t    character_id;
             Bytes       image;          // compressed image data in either JPEG, PNG, GIF89a format
-        };
-
-        // Tag = 28
-        // The RemoveObject2 tag removes the character at the specified depth from the display list.
-        struct RemoveObject
-        {
-            uint16_t    character_id;
-            uint16_t    depth;
-
-            static RemoveObject read(Stream& stream, TagCode type);
         };
 
         // TAG = 9

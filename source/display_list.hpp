@@ -1,23 +1,37 @@
 #pragma once
 
-#include <vector>
-#include <unordered_map>
 #include "debug.hpp"
 #include "charactor.hpp"
+
+#include <vector>
+#include <unordered_map>
+#include <string>
 
 namespace openswf
 {
     class Node
     {
     protected:
+        ICharactor*     m_character;
         Matrix          m_matrix;
         ColorTransform  m_cxform;
+        uint16_t        m_ratio;
+        std::string     m_name;
+        uint16_t        m_clip_depth;
 
     public:
+        Node(ICharactor* ch) : m_character(ch) {}
+
         virtual ~Node() {}
         virtual void update(float dt) = 0;
         virtual void render(const Matrix& matrix, const ColorTransform& cxform) = 0;
-        virtual void reset(const Matrix& matrix, const ColorTransform& cxform);
+        virtual uint16_t get_character_id() const;
+
+        void set_transform(const Matrix& matrix);
+        void set_cxform(const ColorTransform& cxform);
+        void set_ratio(uint16_t ratio);
+        void set_name(const std::string& name);
+        void set_clip_depth(uint16_t clip_depth);
     };
 
     class Shape;
@@ -50,15 +64,9 @@ namespace openswf
         virtual void update(float dt);
         virtual void render(const Matrix& matrix, const ColorTransform& cxform);
 
-        // a new character (with ID of CharacterId) is placed on the display list at the specified depth. 
-        // PlaceObjec/PlaceObject2
-        void place(uint16_t depth, uint16_t cid, const Matrix& matrix, const ColorTransform& cxform);
-        // the character at the specified depth is modified.
-        // PlaceObject2
-        void modify(uint16_t depth, const Matrix& matrix, const ColorTransform& cxform);
-        // erase the specified character at the specified depth.
-        // RemoveObject/RemoveObject2
-        void erase(uint16_t depth);
+        Node* set(uint16_t depth, uint16_t cid);
+        Node* get(uint16_t depth);
+        void  erase(uint16_t depth);
 
         void reset();
         void goto_and_play(uint32_t frame);
@@ -71,10 +79,29 @@ namespace openswf
     };
 
     /// INLINE METHODS
-    inline void Node::reset(const Matrix& matrix, const ColorTransform& cxform)
+    inline void Node::set_transform(const Matrix& matrix)
     {
         m_matrix = matrix;
+    }
+
+    inline void Node::set_cxform(const ColorTransform& cxform)
+    {
         m_cxform = cxform;
+    }
+
+    inline void Node::set_ratio(uint16_t ratio)
+    {
+        m_ratio = ratio;
+    }
+
+    inline void Node::set_name(const std::string& name)
+    {
+        m_name = name;
+    }
+
+    inline void Node::set_clip_depth(uint16_t clip_depth)
+    {
+        m_clip_depth = clip_depth;
     }
 
     inline uint32_t MovieClip::get_frame_count() const

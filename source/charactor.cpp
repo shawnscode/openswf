@@ -216,12 +216,21 @@ namespace openswf
     /// SPRITE CHARACTOR
     void PlaceCommand::execute(MovieClip& display)
     {
-        display.place(this->depth, this->cid, this->matrix, this->cxform);
-    }
+        Node* node = display.get(this->depth);
+        if( node == nullptr )
+        {
+            if( this->has_character_id )
+                node = display.set(this->depth, this->character_id);
 
-    void ModifyCommand::execute(MovieClip& display)
-    {
-        display.modify(this->depth, this->matrix, this->cxform);
+            if( node == nullptr )
+                return;
+        }
+
+        if( this->has_matrix ) node->set_transform(this->matrix);
+        if( this->has_cxform ) node->set_cxform(this->cxform);
+        if( this->has_ratio ) node->set_ratio(this->ratio);
+        if( this->has_name ) node->set_name(this->name);
+        if( this->has_clip ) node->set_clip_depth(this->clip_depth);
     }
 
     void RemoveCommand::execute(MovieClip& display)
@@ -230,6 +239,7 @@ namespace openswf
     }
 
     Sprite* Sprite::create(
+        uint16_t cid,
         float frame_rate,
         std::vector<CommandPtr>& commands,
         std::vector<uint32_t>& indices)
@@ -237,6 +247,7 @@ namespace openswf
         auto sprite = new (std::nothrow) Sprite();
         if( sprite )
         {
+            sprite->m_character_id = cid;
             sprite->m_frame_rate = frame_rate;
             sprite->m_commands = std::move(commands);
             sprite->m_indices = std::move(indices);
@@ -250,6 +261,11 @@ namespace openswf
 
     void Sprite::render(const Matrix& matrix, const ColorTransform& cxform) 
     {
+    }
+
+    uint16_t Sprite::get_character_id() const
+    {
+        return m_character_id;
     }
 
     void Sprite::execute(MovieClip& display, uint32_t frame)

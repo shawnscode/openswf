@@ -47,27 +47,25 @@ namespace openswf
         }
 
         // TAG: 4, 26
-        PlaceObject PlaceObject::read(Stream& stream, const TagHeader& header)
+        CommandPtr PlaceObject::create(Stream& stream, const TagHeader& header)
         {
-            assert(header.code == TagCode::PLACE_OBJECT || header.code == TagCode::PLACE_OBJECT2);
+            auto character_id   = stream.read_uint16();
+            auto depth          = stream.read_uint16();
+            auto command        = new PlaceCommand(depth);
 
-            PlaceObject record;
-            if( header.code == TagCode::PLACE_OBJECT )
-                record.parse_tag_4(stream, header);
-            else
-                record.parse_tag_26(stream);
+            command->has_character_id = true;
+            command->character_id = character_id;
 
-            return record;
-        }
-
-        void PlaceObject::parse_tag_4(Stream& stream, const TagHeader& header)
-        {
-            this->character_id  = stream.read_uint16();
-            this->depth         = stream.read_uint16();
-            this->matrix        = stream.read_matrix();
+            command->has_matrix = true;
+            command->matrix = stream.read_matrix();
 
             if( stream.get_position() < header.end_pos )
-                this->cxform    = stream.read_cxform_rgb();
+            {
+                command->has_cxform = true;
+                command->cxform = stream.read_cxform_rgb();
+            }
+
+            return CommandPtr(command);
         }
 
         enum Place2Mask
@@ -82,55 +80,66 @@ namespace openswf
             PLACE_2_HAS_CLIP_ACTIONS= 0x80
         };
 
-        void PlaceObject::parse_tag_26(Stream& stream)
+        CommandPtr PlaceObject2::create(Stream& stream, const TagHeader& header)
         {
             auto mask = stream.read_uint8();
+            auto depth = stream.read_uint16();
+            auto command = new PlaceCommand(depth);
 
-            this->depth        = stream.read_uint16();
-            this->character_id = mask & PLACE_2_HAS_CHARACTOR ? stream.read_uint16() : 0;
+            command->has_character_id = mask & PLACE_2_HAS_CHARACTOR;
+            if( command->has_character_id ) command->character_id = stream.read_uint16();
 
-            if( mask & PLACE_2_HAS_MATRIX ) this->matrix = stream.read_matrix();
-            if( mask & PLACE_2_HAS_CXFORM ) this->cxform = stream.read_cxform_rgba();
+            command->has_matrix = mask & PLACE_2_HAS_MATRIX;
+            if( command->has_matrix ) command->matrix = stream.read_matrix();
 
-            this->ratio = mask & PLACE_2_HAS_RATIO ? stream.read_uint16() : 0;
+            command->has_cxform = mask & PLACE_2_HAS_CXFORM;
+            if( command->has_cxform ) command->cxform = stream.read_cxform_rgba();
 
-            if( mask & PLACE_2_HAS_NAME ) this->name = stream.read_string();
-            if( mask & PLACE_2_HAS_CLIP_DEPTH ) this->clip_depth = stream.read_uint16();
-            
+            command->has_ratio = mask & PLACE_2_HAS_RATIO;
+            if( command->has_ratio ) command->ratio = stream.read_uint16();
+
+            command->has_name = mask & PLACE_2_HAS_NAME;
+            if( command->has_name ) command->name = stream.read_string();
+
+            command->has_clip = mask & PLACE_2_HAS_CLIP_DEPTH;
+            if( command->has_clip ) command->clip_depth = stream.read_uint16();
+
             // if( mask & PLACE_HAS_CLIP_ACTIONS )
                 // record.clip_actions = RecordClipActionList::read(stream);
+            return CommandPtr(command);
         }
 
-        enum Place3Mask
+        // enum Place3Mask
+        // {
+        //     PLACE_3_HAS_FILTERS         = 0x0001,
+        //     PLACE_3_HAS_BLEND_MODE      = 0x0002,
+        //     PLACE_3_HAS_CACHE_AS_BITMAP = 0x0004,
+        //     PLACE_3_HAS_CLASS_NAME      = 0x0008,
+        //     PLACE_3_HAS_IMAGE           = 0x0010,
+
+        //     PLACE_3_RESERVED_1          = 0x0020,
+        //     PLACE_3_RESERVED_2          = 0x0040,
+        //     PLACE_3_RESERVED_3          = 0x0080,
+        //     PLACE_3_MOVE                = 0x0100,
+        //     PLACE_3_HAS_CHARACTOR       = 0x0200,
+        //     PLACE_3_HAS_MATRIX          = 0x0400,
+        //     PLACE_3_HAS_CXFORM          = 0x0800,
+        //     PLACE_3_HAS_RATIO           = 0x1000,
+        //     PLACE_3_HAS_NAME            = 0x2000,
+        //     PLACE_3_HAS_CLIP_DEPTH      = 0x4000,
+        //     PLACE_3_HAS_CLIPS           = 0x8000
+        // };
+
+        // IFrameCommand* PlaceObject3::create(Stream& stream, const TagHeader& header)
+        // {
+
+        // }
+
+        // TAG: 5, 28
+        CommandPtr RemoveObject::create(Stream& stream, TagCode type)
         {
-            PLACE_3_HAS_FILTERS         = 0x0001,
-            PLACE_3_HAS_BLEND_MODE      = 0x0002,
-            PLACE_3_HAS_CACHE_AS_BITMAP = 0x0004,
-            PLACE_3_HAS_CLASS_NAME      = 0x0008,
-            PLACE_3_HAS_IMAGE           = 0x0010,
-
-            PLACE_3_RESERVED_1          = 0x0020,
-            PLACE_3_RESERVED_2          = 0x0040,
-            PLACE_3_RESERVED_3          = 0x0080,
-            PLACE_3_MOVE                = 0x0100,
-            PLACE_3_HAS_CHARACTOR       = 0x0200,
-            PLACE_3_HAS_MATRIX          = 0x0400,
-            PLACE_3_HAS_CXFORM          = 0x0800,
-            PLACE_3_HAS_RATIO           = 0x1000,
-            PLACE_3_HAS_NAME            = 0x2000,
-            PLACE_3_HAS_CLIP_DEPTH      = 0x4000,
-            PLACE_3_HAS_CLIPS           = 0x8000
-        };
-
-        // TAG: 5
-        RemoveObject RemoveObject::read(Stream& stream, TagCode type)
-        {
-            assert( type == TagCode::REMOVE_OBJECT || type == TagCode::REMOVE_OBJECT2 );
-
-            RemoveObject record;
-            record.character_id = type == TagCode::REMOVE_OBJECT ? stream.read_uint16() : 0;
-            record.depth        = stream.read_uint16();
-            return record;
+            if( type == TagCode::REMOVE_OBJECT ) stream.read_uint16();
+            return CommandPtr(new RemoveCommand(stream.read_uint16()));
         }
 
         // TAG: 9

@@ -64,6 +64,7 @@ namespace openswf
                     assert( current_sprite.frame_count == indices.size() );
 
                     auto sprite = Sprite::create(
+                        current_sprite.character_id,
                         header.frame_rate,
                         commands,
                         indices);
@@ -72,7 +73,7 @@ namespace openswf
                     commands = std::move(interrupted_commands);
                     indices = std::move(interrupted_indices);
 
-                    set_charactor(current_sprite.character_id, sprite);
+                    set_character(current_sprite.character_id, sprite);
                     break;
                 }
 
@@ -94,23 +95,21 @@ namespace openswf
                 }
 
                 case TagCode::PLACE_OBJECT:
+                {
+                    commands.push_back(PlaceObject::create(*stream, tag));
+                    break;
+                }
+
                 case TagCode::PLACE_OBJECT2:
                 {
-                    auto info = PlaceObject::read(*stream, tag);
-                    if( info.character_id == 0 )
-                        commands.push_back(CommandPtr(
-                            new ModifyCommand(info.depth, info.matrix, info.cxform)));
-                    else
-                        commands.push_back(CommandPtr(
-                            new PlaceCommand(info.depth, info.character_id, info.matrix, info.cxform)));
+                    commands.push_back(PlaceObject2::create(*stream, tag));
                     break;
                 }
 
                 case TagCode::REMOVE_OBJECT:
                 case TagCode::REMOVE_OBJECT2:
                 {
-                    auto info = RemoveObject::read(*stream, tag.code);
-                    commands.push_back(CommandPtr(new RemoveCommand(info.depth)));
+                    commands.push_back(RemoveObject::create(*stream, tag.code));
                     break;
                 }
 
@@ -121,7 +120,7 @@ namespace openswf
                 {
                     auto shape = DefineShape::create(*stream, tag.code);
                     if( shape != nullptr )
-                        set_charactor(shape->get_character_id(), shape);
+                        set_character(shape->get_character_id(), shape);
                     break;
                 }
 
@@ -135,11 +134,7 @@ namespace openswf
         }
 
         assert( header.frame_count == indices.size() );
-        m_sprite = Sprite::create(
-            header.frame_rate, 
-            commands,
-            indices);
-
+        m_sprite = Sprite::create(0, header.frame_rate, commands, indices);
         m_size = header.frame_size;
         m_root = new MovieClip(this, m_sprite);
         return true;

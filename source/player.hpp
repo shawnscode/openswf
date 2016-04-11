@@ -32,7 +32,7 @@ namespace openswf
         void render();
 
         //
-        void            set_charactor(uint16_t, ICharactor* ch);
+        void            set_character(uint16_t, ICharactor* ch);
         ICharactor*     get_character(uint16_t cid);
 
         const Rect&     get_size() const;
@@ -40,7 +40,7 @@ namespace openswf
     };
 
     //// INLINE METHODS of PLAYER
-    inline void Player::set_charactor(uint16_t cid, ICharactor* ch)
+    inline void Player::set_character(uint16_t cid, ICharactor* ch)
     {
         assert( ch != nullptr );
         m_dictionary[cid] = ch;
