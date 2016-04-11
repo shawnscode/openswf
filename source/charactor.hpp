@@ -123,8 +123,6 @@ namespace openswf
 
     struct LineStyle
     {
-        typedef std::vector<LineStyle> Array;
-
         uint16_t    width;
 
         Capcode     start_cap, end_cap;
@@ -138,9 +136,7 @@ namespace openswf
 
         float       miter_limit_factor;
         Color       color;
-        FillStyle*  fill;
-
-        ~LineStyle() { if( fill ) delete fill; }
+        FillPtr     fill;
     };
 
     struct Shape : public ICharactor

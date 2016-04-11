@@ -160,9 +160,8 @@ namespace record
                 line->end_cap    = (Capcode)stream.read_bits_as_uint32(2);
                 line->miter_limit_factor = line->join == Joincode::MITER ? stream.read_uint16() : 0;
                 
-                line->fill = nullptr;
                 if( line->has_fill )
-                    read_fill_style(stream, type);
+                    line->fill = FillPtr(read_fill_style(stream, type));
                 else
                     line->color = stream.read_rgba();
             }
