@@ -32,11 +32,11 @@ namespace openswf
     class Shape;
     class FillStyle;
     class LineStyle;
-    class IFrameCommand;
+    class FrameCommand;
 
     typedef std::unique_ptr<FillStyle> FillPtr;
     typedef std::unique_ptr<LineStyle> LinePtr;
-    typedef std::unique_ptr<IFrameCommand> CommandPtr;
+    typedef std::unique_ptr<FrameCommand> CommandPtr;
 
     namespace record // should we hide this details from interface?
     {
@@ -92,32 +92,6 @@ namespace openswf
             static Shape* create(Stream& stream, TagCode code);
         };
 
-        // TAG = 4
-        // the PlaceObject tag adds a character to the display list.
-        struct PlaceObject
-        {
-            static CommandPtr create(Stream& stream, const TagHeader& header);
-        };
-
-        // TAG = 26
-        // the PlaceObject2 tag can both add a character to the display list,
-        // and modify the attributes of a character that is already on the display list.
-        struct PlaceObject2
-        {
-            static CommandPtr create(Stream& stream, const TagHeader& header);
-        };
-
-        // TAG = 5
-        // the RemoveObject tag removes the specified character (at the 
-        // specified depth) from the display list.
-
-        // Tag = 28
-        // The RemoveObject2 tag removes the character at the specified depth from the display list.
-        struct RemoveObject
-        {
-            static CommandPtr create(Stream& stream, TagCode type);
-        };
-
         // TAG = 6
         // the DefineBits defines a bitmap character with JPEG compression.
         // It contains only the JPEG compressed image data (from the Frame Header onward).
@@ -144,17 +118,6 @@ namespace openswf
             Bytes       alpha; // zlib compressed array of alpha data.
         };
 
-        struct DefineBitsLossless
-        {
-            uint16_t    character_id;
-            uint8_t     bitmap_format;
-            uint16_t    width;
-            uint16_t    height;
-            uint8_t     color_table_size;
-            Bytes       color_table;
-            Bytes       pixel;
-        };
-
         // TAG = 8
         // the JPEGTables defines the JPEG encoding table (the Tables/Misc segment) for
         // all JPEG images defined using the DefineBits tag.
@@ -169,6 +132,18 @@ namespace openswf
         {
             uint16_t    character_id;
             Bytes       image;          // compressed image data in either JPEG, PNG, GIF89a format
+        };
+
+        //
+        struct DefineBitsLossless
+        {
+            uint16_t    character_id;
+            uint8_t     bitmap_format;
+            uint16_t    width;
+            uint16_t    height;
+            uint8_t     color_table_size;
+            Bytes       color_table;
+            Bytes       pixel;
         };
 
         // TAG = 9

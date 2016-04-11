@@ -8,10 +8,10 @@
 namespace openswf
 {
 
-    struct ICharactor 
+    class ICharactor
     {
+    public:
         virtual ~ICharactor() {}
-        virtual void render(const Matrix& matrix, const ColorTransform& cxform) = 0;
         virtual uint16_t get_character_id() const = 0;
     };
 
@@ -140,7 +140,7 @@ namespace openswf
         FillPtr     fill;
     };
 
-    struct Shape : public ICharactor
+    class Shape : public ICharactor
     {
     protected:
         uint16_t                m_cid;
@@ -176,59 +176,20 @@ namespace openswf
     // 2. A timeline that can stop, start, and play independently of the main file.
     // 3. A streaming sound track that is automatically mixed with the main sound track.
     class MovieClip;
-    struct IFrameCommand
+    class FrameCommand
     {
-        virtual ~IFrameCommand() {}
-        virtual void execute(MovieClip& display) = 0;
+    protected:
+        record::TagHeader   m_header;
+        Bytes       m_bytes;
+
+    public:
+        static std::unique_ptr<FrameCommand> create(record::TagHeader header, Bytes bytes);
+
+        void execute(MovieClip& display);
     };
 
-    struct PlaceCommand : public IFrameCommand
-    {
-        uint16_t        depth;
-
-        bool            has_character_id;
-        uint16_t        character_id;
-
-        bool            has_matrix;
-        Matrix          matrix;
-
-        bool            has_cxform;
-        ColorTransform  cxform;
-
-        bool            has_ratio;
-        uint16_t        ratio;
-
-        bool            has_name;
-        std::string     name;
-
-        bool            has_clip;
-        uint16_t        clip_depth;
-
-        bool            has_actions;
-
-        PlaceCommand(uint16_t depth) : depth(depth),
-            has_character_id(false), character_id(0),
-            has_matrix(false), has_cxform(false),
-            has_ratio(false), ratio(0),
-            has_name(false),
-            has_clip(false), clip_depth(0),
-            has_actions(false) {}
-
-        virtual void execute(MovieClip& display);
-    };
-
-    struct RemoveCommand : public IFrameCommand
-    {
-        uint16_t depth;
-
-        RemoveCommand(uint16_t depth)
-        : depth(depth) {}
-
-        virtual void execute(MovieClip& display);
-    };
-
-    typedef std::unique_ptr<IFrameCommand> CommandPtr;
-    struct Sprite : public ICharactor
+    typedef std::unique_ptr<FrameCommand> CommandPtr;
+    class Sprite : public ICharactor
     {
     protected:
         uint16_t                m_character_id;
@@ -243,7 +204,6 @@ namespace openswf
             std::vector<CommandPtr>& commands,
             std::vector<uint32_t>& indices);
 
-        virtual void render(const Matrix& matrix, const ColorTransform& cxform);
         virtual uint16_t get_character_id() const;
 
         void    execute(MovieClip& display, uint32_t frame);

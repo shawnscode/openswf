@@ -114,6 +114,7 @@ namespace openswf
         uint32_t    get_size() const;
         bool        is_finished() const;
 
+        Bytes       extract(uint32_t size) const;
     };
 
     inline uint8_t Stream::read_uint8() 
@@ -252,5 +253,12 @@ namespace openswf
     inline bool Stream::is_finished() const
     {
         return m_offset >= m_size && m_unused_bits <= 0;
+    }
+
+    inline Bytes Stream::extract(uint32_t size) const
+    {
+        auto bytes = new (std::nothrow) uint8_t[size];
+        memcpy(bytes, this->m_data+m_offset, size);
+        return Bytes(bytes);
     }
 }

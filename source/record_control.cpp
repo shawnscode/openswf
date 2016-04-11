@@ -46,69 +46,6 @@ namespace openswf
             return record;
         }
 
-        // TAG: 4, 26
-        CommandPtr PlaceObject::create(Stream& stream, const TagHeader& header)
-        {
-            auto character_id   = stream.read_uint16();
-            auto depth          = stream.read_uint16();
-            auto command        = new PlaceCommand(depth);
-
-            command->has_character_id = true;
-            command->character_id = character_id;
-
-            command->has_matrix = true;
-            command->matrix = stream.read_matrix();
-
-            if( stream.get_position() < header.end_pos )
-            {
-                command->has_cxform = true;
-                command->cxform = stream.read_cxform_rgb();
-            }
-
-            return CommandPtr(command);
-        }
-
-        enum Place2Mask
-        {
-            PLACE_2_HAS_MOVE        = 0x01,
-            PLACE_2_HAS_CHARACTOR   = 0x02,
-            PLACE_2_HAS_MATRIX      = 0x04,
-            PLACE_2_HAS_CXFORM      = 0x08,
-            PLACE_2_HAS_RATIO       = 0x10,
-            PLACE_2_HAS_NAME        = 0x20,
-            PLACE_2_HAS_CLIP_DEPTH  = 0x40,
-            PLACE_2_HAS_CLIP_ACTIONS= 0x80
-        };
-
-        CommandPtr PlaceObject2::create(Stream& stream, const TagHeader& header)
-        {
-            auto mask = stream.read_uint8();
-            auto depth = stream.read_uint16();
-            auto command = new PlaceCommand(depth);
-
-            command->has_character_id = mask & PLACE_2_HAS_CHARACTOR;
-            if( command->has_character_id ) command->character_id = stream.read_uint16();
-
-            command->has_matrix = mask & PLACE_2_HAS_MATRIX;
-            if( command->has_matrix ) command->matrix = stream.read_matrix();
-
-            command->has_cxform = mask & PLACE_2_HAS_CXFORM;
-            if( command->has_cxform ) command->cxform = stream.read_cxform_rgba();
-
-            command->has_ratio = mask & PLACE_2_HAS_RATIO;
-            if( command->has_ratio ) command->ratio = stream.read_uint16();
-
-            command->has_name = mask & PLACE_2_HAS_NAME;
-            if( command->has_name ) command->name = stream.read_string();
-
-            command->has_clip = mask & PLACE_2_HAS_CLIP_DEPTH;
-            if( command->has_clip ) command->clip_depth = stream.read_uint16();
-
-            // if( mask & PLACE_HAS_CLIP_ACTIONS )
-                // record.clip_actions = RecordClipActionList::read(stream);
-            return CommandPtr(command);
-        }
-
         // enum Place3Mask
         // {
         //     PLACE_3_HAS_FILTERS         = 0x0001,
@@ -129,18 +66,6 @@ namespace openswf
         //     PLACE_3_HAS_CLIP_DEPTH      = 0x4000,
         //     PLACE_3_HAS_CLIPS           = 0x8000
         // };
-
-        // IFrameCommand* PlaceObject3::create(Stream& stream, const TagHeader& header)
-        // {
-
-        // }
-
-        // TAG: 5, 28
-        CommandPtr RemoveObject::create(Stream& stream, TagCode type)
-        {
-            if( type == TagCode::REMOVE_OBJECT ) stream.read_uint16();
-            return CommandPtr(new RemoveCommand(stream.read_uint16()));
-        }
 
         // TAG: 9
         SetBackgroundColor SetBackgroundColor::read(Stream& stream)

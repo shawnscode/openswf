@@ -95,21 +95,11 @@ namespace openswf
                 }
 
                 case TagCode::PLACE_OBJECT:
-                {
-                    commands.push_back(PlaceObject::create(*stream, tag));
-                    break;
-                }
-
                 case TagCode::PLACE_OBJECT2:
-                {
-                    commands.push_back(PlaceObject2::create(*stream, tag));
-                    break;
-                }
-
                 case TagCode::REMOVE_OBJECT:
                 case TagCode::REMOVE_OBJECT2:
                 {
-                    commands.push_back(RemoveObject::create(*stream, tag.code));
+                    commands.push_back(FrameCommand::create(tag, stream->extract(tag.size)));
                     break;
                 }
 

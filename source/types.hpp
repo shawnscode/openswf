@@ -425,5 +425,6 @@ namespace openswf
         }
     };
 
-    typedef Bitmap<uint32_t> BitmapRGBA32;
+    typedef Bitmap<uint32_t> BitmapRGBA8;
+    typedef Bitmap<uint16_t> BitmapRGB565;
 }

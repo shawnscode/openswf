@@ -11,6 +11,7 @@ I'm working on MacOs currently, if so do u, u can compile openswf by following b
 	brew install glfw3
     brew install glew
     brew install glm
+    brew install zlib
 	cd build/3rd
 	make
 	cd -

@@ -73,7 +73,7 @@ namespace openswf
         static const int width = 64;
         static const int height = 1;
 
-        auto source = BitmapRGBA32::create(width, height);
+        auto source = BitmapRGBA8::create(width, height);
         for( auto i=0; i<source->get_height(); i++ )
             for( auto j=0; j<source->get_width(); j++ )
                 source->set(i, j, sample(255*(float)j/(float)width).to_value());
@@ -98,7 +98,7 @@ namespace openswf
         static const int width = 16;
         static const int height = 16;
 
-        auto source = BitmapRGBA32::create(width, height);
+        auto source = BitmapRGBA8::create(width, height);
         for( auto i=0; i<height; i++ )
         {
             for( auto j=0; j<width; j++ )
@@ -214,28 +214,86 @@ namespace openswf
     }
 
     /// SPRITE CHARACTOR
-    void PlaceCommand::execute(MovieClip& display)
+    enum Place2Mask
     {
-        Node* node = display.get(this->depth);
-        if( node == nullptr )
-        {
-            if( this->has_character_id )
-                node = display.set(this->depth, this->character_id);
+        PLACE_2_HAS_MOVE        = 0x01,
+        PLACE_2_HAS_CHARACTOR   = 0x02,
+        PLACE_2_HAS_MATRIX      = 0x04,
+        PLACE_2_HAS_CXFORM      = 0x08,
+        PLACE_2_HAS_RATIO       = 0x10,
+        PLACE_2_HAS_NAME        = 0x20,
+        PLACE_2_HAS_CLIP_DEPTH  = 0x40,
+        PLACE_2_HAS_CLIP_ACTIONS= 0x80
+    };
 
-            if( node == nullptr )
-                return;
+    CommandPtr FrameCommand::create(record::TagHeader header, Bytes bytes)
+    {
+        auto command = new (std::nothrow) FrameCommand();
+        if( command )
+        {
+            assert(
+                header.code == TagCode::PLACE_OBJECT ||
+                header.code == TagCode::PLACE_OBJECT2 ||
+                header.code == TagCode::REMOVE_OBJECT ||
+                header.code == TagCode::REMOVE_OBJECT2);
+
+            command->m_header = header;
+            command->m_bytes = std::move(bytes);
+            return CommandPtr(command);
         }
 
-        if( this->has_matrix ) node->set_transform(this->matrix);
-        if( this->has_cxform ) node->set_cxform(this->cxform);
-        if( this->has_ratio ) node->set_ratio(this->ratio);
-        if( this->has_name ) node->set_name(this->name);
-        if( this->has_clip ) node->set_clip_depth(this->clip_depth);
+        return CommandPtr();
     }
 
-    void RemoveCommand::execute(MovieClip& display)
+    void FrameCommand::execute(MovieClip& display)
     {
-        display.erase(this->depth);
+        auto stream = Stream(m_bytes.get(), m_header.size);
+        if( m_header.code == TagCode::PLACE_OBJECT )
+        {
+            auto character_id   = stream.read_uint16();
+            auto depth          = stream.read_uint16();
+            auto node = display.set(depth, character_id);
+            if( node == nullptr ) return;
+            node->set_transform(stream.read_matrix());
+
+            if( stream.get_position() < m_header.size )
+                node->set_cxform(stream.read_cxform_rgb());
+        }
+        else if( m_header.code == TagCode::PLACE_OBJECT2 )
+        {
+            auto mask = stream.read_uint8();
+            auto depth = stream.read_uint16();
+
+            Node* node = nullptr;
+            if( mask & PLACE_2_HAS_CHARACTOR )
+                node = display.set(depth, stream.read_uint16());
+            else
+                node = display.get(depth);
+
+            if( mask & PLACE_2_HAS_MATRIX )
+                node->set_transform(stream.read_matrix());
+
+            if( mask & PLACE_2_HAS_CXFORM )
+                node->set_cxform(stream.read_cxform_rgba());
+
+            if( mask & PLACE_2_HAS_RATIO )
+                node->set_ratio(stream.read_uint16());
+
+            if( mask & PLACE_2_HAS_NAME )
+                node->set_name(stream.read_string());
+
+            if( mask & PLACE_2_HAS_CLIP_DEPTH )
+                node->set_clip_depth(stream.read_uint16());
+        }
+        else if( m_header.code == TagCode::REMOVE_OBJECT )
+        {
+            stream.read_uint16();
+            display.erase(stream.read_uint16());
+        }
+        else if( m_header.code == TagCode::REMOVE_OBJECT2 )
+        {
+            display.erase(stream.read_uint16());
+        }
     }
 
     Sprite* Sprite::create(
@@ -257,10 +315,6 @@ namespace openswf
         LWARNING("failed to initialize sprite!");
         if( sprite ) delete sprite;
         return nullptr;
-    }
-
-    void Sprite::render(const Matrix& matrix, const ColorTransform& cxform) 
-    {
     }
 
     uint16_t Sprite::get_character_id() const
