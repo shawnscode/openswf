@@ -48,7 +48,7 @@ namespace record
         ShapeEdge(const Point2f& anchor)
             : control(anchor), anchor(anchor) {}
 
-        ShapeEdge(int32_t cx, int32_t cy, int32_t ax, int32_t ay)
+        ShapeEdge(int32_t ax, int32_t ay, int32_t cx, int32_t cy)
             : control(Point2f(cx, cy)), anchor(Point2f(ax, ay)){}
 
         Point2f control, anchor;
@@ -406,12 +406,12 @@ namespace record
                 else // CurvedEdgeRecord
                 {
                     auto bits   = stream.read_bits_as_uint32(4) + 2;
-                    auto cx     = (float)stream.read_bits_as_int32(bits);
-                    auto cy     = (float)stream.read_bits_as_int32(bits);
-                    auto ax     = (float)stream.read_bits_as_int32(bits);
-                    auto ay     = (float)stream.read_bits_as_int32(bits);
+                    auto cx     = cursor.x + (float)stream.read_bits_as_int32(bits);
+                    auto cy     = cursor.y + (float)stream.read_bits_as_int32(bits);
+                    auto ax     = cx + (float)stream.read_bits_as_int32(bits);
+                    auto ay     = cy + (float)stream.read_bits_as_int32(bits);
 
-                    current_path.edges.push_back(ShapeEdge(cx, cy, ax, ay));
+                    current_path.edges.push_back(ShapeEdge(ax, ay, cx, cy));
                     cursor.x = ax;
                     cursor.y = ay;
                 }
