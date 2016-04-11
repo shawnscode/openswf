@@ -1,6 +1,8 @@
 #include "player.hpp"
 #include "display_list.hpp"
 
+#include <algorithm>
+
 extern "C" {
 #include "GLFW/glfw3.h"
 }
@@ -21,11 +23,11 @@ namespace openswf
 
     ////
     MovieClip::MovieClip(Player* env, Sprite* sprite)
-    : m_environment(env), m_sprite(sprite), m_frame_timer(0), m_current_frame(-1), m_paused(false)
+    : m_environment(env), m_sprite(sprite), m_frame_timer(0), m_current_frame(0), m_paused(false)
     {
-        assert( sprite->frame_rate < 64 );
-        m_frame_delta = 1.f / sprite->frame_rate;
-        goto_and_play(0);
+        assert( sprite->get_frame_rate() < 64 && sprite->get_frame_rate() > 0.1f );
+        m_frame_delta = 1.f / sprite->get_frame_rate();
+        goto_and_play(1);
     }
 
     MovieClip::~MovieClip()
@@ -39,18 +41,19 @@ namespace openswf
         if( !m_paused )
         {
             m_frame_timer += dt;
-            while( m_frame_timer > m_frame_delta )
+            if( m_frame_timer > m_frame_delta )
             {
-                m_frame_timer -= m_frame_delta;
-                if( m_current_frame >= (int32_t)(m_sprite->frames.size()-1) )
+                auto frame = m_current_frame;
+                while( m_frame_timer > m_frame_delta )
                 {
-                    goto_frame(0);
+                    m_frame_timer -= m_frame_delta;
+
+                    if( frame >= m_sprite->get_frame_count() )
+                        frame = 0;
+                    frame ++;
                 }
-                else
-                {
-                    for( auto& cmd : m_sprite->frames[++m_current_frame] )
-                        cmd->execute(this);
-                }
+
+                goto_frame(frame);
             }
         }
 
@@ -76,11 +79,8 @@ namespace openswf
         {
             if( typeid(ch) == typeid(Sprite*) )
                 m_children[depth] = new MovieClip(m_environment, static_cast<Sprite*>(ch));
-            // else if( typeid(ch) == typeid(Shape*) )
             else
                 m_children[depth] = new Primitive(static_cast<Shape*>(ch));
-            //else
-            //    assert(0);
         }
     }
 
@@ -93,7 +93,7 @@ namespace openswf
         iter->second->reset(matrix, cxform);
     }
 
-    void MovieClip::remove(uint16_t depth)
+    void MovieClip::erase(uint16_t depth)
     {
         auto iter = m_children.find(depth);
         if( iter == m_children.end() )
@@ -108,7 +108,7 @@ namespace openswf
         for( auto& pair : m_children )
             delete pair.second;
         m_children.clear();
-        m_current_frame = -1;
+        m_current_frame = 0;
     }
 
     void MovieClip::goto_and_play(uint32_t frame)
@@ -126,19 +126,21 @@ namespace openswf
     void MovieClip::goto_frame(uint32_t frame)
     {
         m_frame_timer = 0.f;
-
+        
+        if( frame < 1 ) frame = 1;
         if( m_current_frame == frame )
             return;
 
-        if( m_current_frame > frame )
+        if( m_current_frame > (int)frame )
             reset();
 
         while(
-            m_current_frame < (int32_t)frame &&
-            m_current_frame < (int32_t)(m_sprite->frames.size()-1) )
+            m_current_frame < frame &&
+            m_current_frame < m_sprite->get_frame_count() )
         {
-            for( auto& command : m_sprite->frames[++m_current_frame] )
-                command->execute(this);
+            m_sprite->execute(*this, ++m_current_frame);
         }
+        
+        m_current_frame = frame;
     }
 }

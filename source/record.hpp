@@ -29,6 +29,7 @@
 
 namespace openswf
 {
+    class Shape;
     class FillStyle;
     class LineStyle;
 
@@ -84,57 +85,9 @@ namespace openswf
         // record in the shape. LINESTYLE2 allows new types of joins and caps as well as
         // scaling options and the ability to fill a stroke.
 
-        struct ShapeEdge
-        {
-            typedef std::vector<ShapeEdge> Array;
-
-            ShapeEdge(const Point2f& anchor)
-                : control(anchor), anchor(anchor) {}
-
-            ShapeEdge(int32_t cx, int32_t cy, int32_t ax, int32_t ay)
-                : control(Point2f(cx, cy)), anchor(Point2f(ax, ay)){}
-
-            Point2f control, anchor;
-        };
-
-        struct ShapePath
-        {
-            typedef std::vector<ShapePath> Array;
-
-            uint32_t            left_fill;
-            uint32_t            right_fill;
-            uint32_t            line;
-
-            Point2f             start;
-            ShapeEdge::Array    edges;
-
-            ShapePath() : left_fill(0), right_fill(0), line(0) {}
-            void reset()
-            {
-                left_fill = right_fill = 0;
-                line = 0;
-            }
-
-            void restart(const Point2f& cursor)
-            {
-                start.x = cursor.x;
-                start.y = cursor.y;
-                edges.clear();
-            }
-        };
-
         struct DefineShape
         {
-            uint16_t            character_id;
-            Rect                bounds;         // bounds of shape
-            Rect                edge_bounds;
-
-            // * the style arrays begin at index 1
-            std::vector<FillPtr> fill_styles;
-            // std::vector<LinePtr> line_styles;
-            ShapePath::Array        paths;
-
-            static DefineShape read(Stream& stream, TagCode type);
+            static Shape* create(Stream& stream, TagCode code);
         };
 
         // TAG = 4
@@ -252,6 +205,7 @@ namespace openswf
             uint16_t    character_id;
             uint16_t    frame_count;
 
+            DefineSpriteHeader() : character_id(0) {}
             static DefineSpriteHeader read(Stream& stream);
         };
 

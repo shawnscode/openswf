@@ -45,45 +45,51 @@ namespace openswf
     {
         stream->set_position(0);
         auto header = Header::read(*stream);
+        
+        DefineSpriteHeader current_sprite;
+        auto commands = std::vector<CommandPtr>();
+        auto indices = std::vector<uint32_t>();
 
-        m_sprite = new Sprite();
-        m_sprite->bounds     = header.frame_size.to_pixel();
-        m_sprite->frame_rate = header.frame_rate;
-
-        auto current_sprite = m_sprite;
-        auto current_frame  = std::vector<IFrameCommand*>();
-        auto interrupted_frame = std::vector<IFrameCommand*>();
+        auto interrupted_commands = std::vector<CommandPtr>();
+        auto interrupted_indices = std::vector<uint32_t>();
 
         auto tag = TagHeader::read(*stream);
-        while( tag.code != TagCode::END || current_sprite != m_sprite )
+        while( tag.code != TagCode::END || current_sprite.character_id != 0 )
         {
             switch(tag.code)
             {
                 case TagCode::END:
                 {
-                    assert(current_sprite != m_sprite);
-                    current_sprite->frames.push_back(std::move(current_frame));
-                    current_sprite = m_sprite;
-                    current_frame = std::move(interrupted_frame);
+                    assert( current_sprite.character_id != 0 );
+                    assert( current_sprite.frame_count == indices.size() );
+
+                    auto sprite = Sprite::create(
+                        header.frame_rate,
+                        commands,
+                        indices);
+
+                    current_sprite.character_id = 0;
+                    commands = std::move(interrupted_commands);
+                    indices = std::move(interrupted_indices);
+
+                    set_charactor(current_sprite.character_id, sprite);
                     break;
                 }
 
                 case TagCode::SHOW_FRAME:
                 {
-                    current_sprite->frames.push_back(std::move(current_frame));
+                    indices.push_back(commands.size());
                     break;
                 }
 
                 case TagCode::DEFINE_SPRITE:
                 {
                     // no nested sprite definithion
-                    assert(current_sprite == m_sprite);
-                    auto info = DefineSpriteHeader::read(*stream);
-                    auto sprite = new Sprite();
-                    set_charactor(info.character_id, sprite);
+                    assert( current_sprite.character_id == 0 );
+                    current_sprite = DefineSpriteHeader::read(*stream);
 
-                    current_sprite = sprite;
-                    interrupted_frame = std::move(current_frame);
+                    interrupted_commands = std::move(commands);
+                    interrupted_indices = std::move(indices);
                     break;
                 }
 
@@ -92,9 +98,11 @@ namespace openswf
                 {
                     auto info = PlaceObject::read(*stream, tag);
                     if( info.character_id == 0 )
-                        current_frame.push_back(new ModifyCommand(info.depth, info.matrix, info.cxform));
+                        commands.push_back(CommandPtr(
+                            new ModifyCommand(info.depth, info.matrix, info.cxform)));
                     else
-                        current_frame.push_back(new PlaceCommand(info.depth, info.character_id, info.matrix, info.cxform));
+                        commands.push_back(CommandPtr(
+                            new PlaceCommand(info.depth, info.character_id, info.matrix, info.cxform)));
                     break;
                 }
 
@@ -102,7 +110,7 @@ namespace openswf
                 case TagCode::REMOVE_OBJECT2:
                 {
                     auto info = RemoveObject::read(*stream, tag.code);
-                    current_frame.push_back(new RemoveCommand(info.depth));
+                    commands.push_back(CommandPtr(new RemoveCommand(info.depth)));
                     break;
                 }
 
@@ -111,9 +119,9 @@ namespace openswf
                 case TagCode::DEFINE_SHAPE3:
                 case TagCode::DEFINE_SHAPE4:
                 {
-                    auto info = DefineShape::read(*stream, tag.code);
-                    auto shape = Shape::create(info);
-                    set_charactor(info.character_id, shape);
+                    auto shape = DefineShape::create(*stream, tag.code);
+                    if( shape != nullptr )
+                        set_charactor(shape->get_character_id(), shape);
                     break;
                 }
 
@@ -126,13 +134,14 @@ namespace openswf
             tag = TagHeader::read(*stream);
         }
 
+        assert( header.frame_count == indices.size() );
+        m_sprite = Sprite::create(
+            header.frame_rate, 
+            commands,
+            indices);
+
+        m_size = header.frame_size;
         m_root = new MovieClip(this, m_sprite);
         return true;
     }
-
-    Rect Player::get_size() const
-    {
-        return m_sprite->bounds;
-    }
-
 }

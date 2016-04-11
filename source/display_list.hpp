@@ -39,7 +39,7 @@ namespace openswf
         std::unordered_map<uint16_t, Node*> m_children;
         Player*                             m_environment;
         Sprite*                             m_sprite;
-        int32_t                             m_current_frame;
+        uint32_t                            m_current_frame;
         float                               m_frame_delta;
         float                               m_frame_timer;
         bool                                m_paused;
@@ -56,9 +56,9 @@ namespace openswf
         // the character at the specified depth is modified.
         // PlaceObject2
         void modify(uint16_t depth, const Matrix& matrix, const ColorTransform& cxform);
-        // removes the specified character at the specified depth.
+        // erase the specified character at the specified depth.
         // RemoveObject/RemoveObject2
-        void remove(uint16_t depth);
+        void erase(uint16_t depth);
 
         void reset();
         void goto_and_play(uint32_t frame);
@@ -79,7 +79,7 @@ namespace openswf
 
     inline uint32_t MovieClip::get_frame_count() const
     {
-        return m_sprite->frames.size();
+        return m_sprite->get_frame_count();
     }
 
     inline uint32_t MovieClip::get_current_frame() const
@@ -89,6 +89,6 @@ namespace openswf
 
     inline float MovieClip::get_frame_rate() const
     {
-        return m_sprite->frame_rate;
+        return m_sprite->get_frame_rate();
     }
 }

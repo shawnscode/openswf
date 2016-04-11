@@ -68,7 +68,8 @@ OBJECTS := \
 	$(OBJDIR)/charactor.o \
 	$(OBJDIR)/display_list.o \
 	$(OBJDIR)/player.o \
-	$(OBJDIR)/record.o \
+	$(OBJDIR)/record_control.o \
+	$(OBJDIR)/record_define.o \
 	$(OBJDIR)/render_ogl.o \
 	$(OBJDIR)/shaders.o \
 	$(OBJDIR)/stream.o \
@@ -139,7 +140,10 @@ $(OBJDIR)/display_list.o: ../source/display_list.cpp
 $(OBJDIR)/player.o: ../source/player.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
-$(OBJDIR)/record.o: ../source/record.cpp
+$(OBJDIR)/record_control.o: ../source/record_control.cpp
+	@echo $(notdir $<)
+	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
+$(OBJDIR)/record_define.o: ../source/record_define.cpp
 	@echo $(notdir $<)
 	$(SILENT) $(CXX) $(ALL_CXXFLAGS) $(FORCE_INCLUDE) -o "$@" -MF "$(@:%.o=%.d)" -c "$<"
 $(OBJDIR)/render_ogl.o: ../source/render_ogl.cpp
