@@ -1,5 +1,6 @@
 #include "render.hpp"
 #include "debug.hpp"
+#include "types.hpp"
 
 #include <vector>
 extern "C" {
@@ -35,10 +36,6 @@ get_opengl_error(GLenum err)
 
 namespace openswf
 {
-    const static uint32_t MaxVertexBufferSlot   = 8;
-    const static uint32_t MaxAttribute          = 16;
-    const static uint32_t MaxTexture            = 8;
-
     const static GLenum ElementFormatTable[] = {
         GL_BYTE,
         GL_UNSIGNED_BYTE,
@@ -114,18 +111,29 @@ namespace openswf
         CHANGE_SCISSOR      = 0x80
     };
 
-    struct VertexBuffer
+    struct BufferLayout
     {
-        GLuint  handle;
-        VertexBuffer() : handle(0) {}
+        Rid rid;
+        int stride;
+        int offset;
+
+        int n;
+        GLenum format;
+
+        BufferLayout(Rid rid, int n, GLenum format, int stride, int offset)
+        : rid(rid), n(n), format(format), stride(stride), offset(offset){}
+
+        BufferLayout()
+        : rid(0) {}
     };
 
-    struct IndexBuffer
+    struct Buffer
     {
         GLuint handle;
         GLenum format;
+        GLenum type;
 
-        IndexBuffer() : handle(0) {}
+        Buffer() : handle(0) {}
     };
 
     struct Target
@@ -154,10 +162,12 @@ namespace openswf
         GLuint          vao;
 
         int             attribute_n;
-        VertexAttribute attributes[MaxAttribute];
 
         int             texture_n;
         int             textures[MaxTexture];
+
+        int             uniform_n;
+        int             uniforms[MaxUniform];
 
         Program() : handle(0) {}
     };
@@ -171,12 +181,14 @@ namespace openswf
         BufferLayout    vertex_buffers[MaxVertexBufferSlot];
         BufferLayout    index_buffer;
 
-        BlendFormat blend_src;
-        BlendFormat blend_dst;
-        DepthFormat depth;
-        CullMode    cull;
-        bool        depthmask;
-        bool        scissor;
+        BlendFunc       blend_src, blend_dst;
+        CullMode        cull;
+
+        DepthTestFunc   depth;
+        bool            depthmask;
+
+        bool            scissor;
+        Rect            scissor_rect;
     };
 
     struct RenderInstance
@@ -188,11 +200,10 @@ namespace openswf
         RenderState current, last;
 
         // resources
-        std::vector<VertexBuffer>   vertex_buffers;
-        std::vector<IndexBuffer>    index_buffers;
-        std::vector<Target>         targets;
-        std::vector<Texture>        textures;
-        std::vector<Program>        programs;
+        std::vector<Buffer>     buffers;
+        std::vector<Target>     targets;
+        std::vector<Texture>    textures;
+        std::vector<Program>    programs;
 
         void commit();
         void reset();
@@ -221,6 +232,14 @@ namespace openswf
         return &resources[resources.size()-1];
     }
 
+    template<typename T> void array_free(std::vector<T>& resources, Rid rid)
+    {
+        if( rid <= 0 || rid > resources.size() )
+            return;
+
+        resources[rid-1].handle = 0;
+    }
+
     template<typename T> T* array_get(std::vector<T>& resources, Rid rid)
     {
         if( rid <= 0 || rid > resources.size() )
@@ -243,12 +262,13 @@ namespace openswf
     {
         this->change_flags = ~0;
         memset(&this->last, 0, sizeof(this->last));
+        memset(&this->current, 0, sizeof(this->current));
 
         glDisable(GL_BLEND);
-        glDisable(GL_SCISSOR_TEST);
-        glDepthMask(GL_FALSE);
         glDisable(GL_DEPTH_TEST);
+        glDisable(GL_SCISSOR_TEST);
         glDisable(GL_CULL_FACE);
+        glDepthMask(GL_FALSE);
         glBindFramebuffer(GL_FRAMEBUFFER, this->framebuffer);
         CHECK_GL_ERROR
     }
@@ -337,12 +357,11 @@ namespace openswf
         Rid last = 0;
         for( int i=0; i<program->attribute_n; i++ )
         {
-            auto& attribute = program->attributes[i];
             auto& layout = this->current.vertex_buffers[i];
 
             if( layout.rid != last )
             {
-                auto buffer = array_get(this->vertex_buffers, layout.rid);
+                auto buffer = array_get(this->buffers, layout.rid);
                 if( buffer == nullptr || buffer->handle == 0 )
                     continue;
 
@@ -352,14 +371,14 @@ namespace openswf
 
             glEnableVertexAttribArray(i);
             glVertexAttribPointer(i,
-                attribute.n,
-                ElementFormatTable[(int)attribute.format],
+                layout.n,
+                layout.format,
                 GL_FALSE,
                 layout.stride,
                 (uint8_t*)0+layout.offset);
         }
 
-        auto index_buffer = array_get(this->index_buffers, this->current.index_buffer.rid);
+        auto index_buffer = array_get(this->buffers, this->current.index_buffer.rid);
         if( index_buffer != nullptr && index_buffer->handle != 0 )
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer->handle);
         CHECK_GL_ERROR
@@ -381,14 +400,13 @@ namespace openswf
                     glActiveTexture(GL_TEXTURE0+i);
                     glBindTexture(GL_TEXTURE_2D, texture->handle);
                     this->last.textures[i] = index;
-                }
-                else
-                {
-                    glActiveTexture(GL_TEXTURE0+i);
-                    glBindTexture(GL_TEXTURE_2D, 0);
-                    this->last.textures[i] = 0;
+                    continue;
                 }
             }
+
+            glActiveTexture(GL_TEXTURE0+i);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            this->last.textures[i] = 0;
         }
         CHECK_GL_ERROR
     }
@@ -413,10 +431,10 @@ namespace openswf
         if( this->last.blend_src != this->current.blend_src ||
             this->last.blend_dst != this->current.blend_dst )
         {
-            if( this->last.blend_src == BlendFormat::DISABLE )
+            if( this->last.blend_src == BlendFunc::DISABLE )
                 glEnable(GL_BLEND);
 
-            if( this->current.blend_src == BlendFormat::DISABLE )
+            if( this->current.blend_src == BlendFunc::DISABLE )
             {
                 glDisable(GL_BLEND);
             }
@@ -446,16 +464,23 @@ namespace openswf
 
         if( this->last.depth != this->current.depth )
         {
-            if( this->last.depth == DepthFormat::DISABLE )
+            if( this->last.depth == DepthTestFunc::DISABLE )
                 glEnable(GL_DEPTH_TEST);
 
-            if( this->current.depth == DepthFormat::DISABLE )
+            if( this->current.depth == DepthTestFunc::DISABLE )
                 glDisable(GL_DEPTH_TEST);
             else
                 glDepthFunc(depth[(uint8_t)this->current.depth]);
 
             this->last.depth = this->current.depth;
         }
+
+        if( this->last.depthmask != this->current.depthmask )
+        {
+            glDepthMask(this->current.depthmask ? GL_TRUE : GL_FALSE);
+            this->last.depthmask = this->current.depthmask;
+        }
+
     }
 
     void RenderInstance::apply_cull()
@@ -482,6 +507,8 @@ namespace openswf
             else
                 glDisable(GL_SCISSOR_TEST);
 
+            auto& rect = this->current.scissor_rect;
+            glScissor(rect.xmin, rect.ymin, rect.get_width(), rect.get_height());
             this->last.scissor = this->current.scissor;
         }
     }
@@ -517,7 +544,7 @@ namespace openswf
         glGetIntegerv(GL_FRAMEBUFFER_BINDING, &state->framebuffer);
         CHECK_GL_ERROR
 
-        s_instance->state_reset();
+        s_instance->reset();
         return true;
     }
 
@@ -546,21 +573,24 @@ namespace openswf
         glViewport(x, y, width, height);
     }
 
-    void Render::set_scissor(int x, int y, int width, int height)
+    void Render::set_scissor(bool enable, int x, int y, int width, int height)
     {
-        glScissor(x, y, width, height);
+        m_state->current.scissor = enable;
+        m_state->current.scissor_rect = Rect(x, x+width, y, y+height);
+        m_state->change_flags |= CHANGE_SCISSOR;
     }
 
-    void Render::set_blend(BlendFormat src, BlendFormat dst)
+    void Render::set_blend(BlendFunc src, BlendFunc dst)
     {
         m_state->current.blend_src = src;
         m_state->current.blend_dst = dst;
         m_state->change_flags |= CHANGE_BLEND;
     }
 
-    void Render::set_depth(DepthFormat format)
+    void Render::set_depth(bool write, DepthTestFunc format)
     {
         m_state->current.depth = format;
+        m_state->current.depthmask = write;
         m_state->change_flags |= CHANGE_DEPTH;
     }
 
@@ -570,19 +600,7 @@ namespace openswf
         m_state->change_flags |= CHANGE_CULL;
     }
 
-    void Render::enable_depth_mask(bool enable)
-    {
-        m_state->current.depthmask = enable;
-        m_state->change_flags |= CHANGE_DEPTH;
-    }
-
-    void Render::enable_scissor(bool enable)
-    {
-        m_state->current.scissor = enable;
-        m_state->change_flags |= CHANGE_SCISSOR;
-    }
-
-    void Render::state_reset()
+    void Render::reset()
     {
         this->m_state->reset();
     }
@@ -624,59 +642,103 @@ namespace openswf
 
         m_state->commit();
 
-        auto index_buffer = array_get(m_state->index_buffers, m_state->current.index_buffer.rid);
+        auto index_buffer = array_get(m_state->buffers, m_state->current.index_buffer.rid);
         assert(index_buffer != nullptr && index_buffer->handle != 0);
         
         auto offset = from_index*get_sizeof_format(index_buffer->format);
         glDrawElements(draw_mode[(int)mode], number, index_buffer->format, (char*)0+offset);
     }
 
-    void Render::bind_vertex_buffer(Rid id, int slot, int stride, int offset)
+    void Render::bind_index_buffer(Rid id, ElementFormat format, int stride, int offset)
     {
-        assert( slot >= 0 && slot < MaxVertexBufferSlot );
-        m_state->current.vertex_buffers[slot] = BufferLayout(id, stride, offset);
+        m_state->current.index_buffer = BufferLayout(id,
+            1, ElementFormatTable[(int)format],
+            stride, offset);
         m_state->change_flags |= CHANGE_VERTEXARRAY;
     }
 
-    void Render::bind_index_buffer(Rid id, int stride, int offset)
+    void Render::bind_vertex_buffer(int index, Rid id, int n, ElementFormat format, int stride, int offset)
     {
-        m_state->current.index_buffer = BufferLayout(id, stride, offset);
+        assert( index >= 0 && index < MaxVertexBufferSlot );
+        m_state->current.vertex_buffers[index] = BufferLayout(id,
+            n, ElementFormatTable[(int)format],
+            stride, offset);
         m_state->change_flags |= CHANGE_VERTEXARRAY;
     }
 
-    void Render::bind_texture(Rid id, int slot)
+    void Render::bind_texture(int index, Rid id)
     {
-        assert( slot >= 0 && slot < MaxTexture );
-        m_state->current.textures[slot] = id;
+        assert( index >= 0 && index < MaxTexture );
+        m_state->current.textures[index] = id;
         m_state->change_flags |= CHANGE_TEXTURE;
     }
 
-    void Render::bind(RenderObject what, Rid id)
+    void Render::bind_uniform(int index, UniformFormat format, const float* v)
     {
-        switch(what)
-        {
-            case RenderObject::SHADER:
-            {
-                m_state->current.program = id;
-                m_state->change_flags |= CHANGE_SHADER;
-                break;
-            }
+        auto program = array_get(m_state->programs, m_state->current.program);
+        if( program == nullptr || program->handle == 0)
+            return;
 
-            case RenderObject::TARGET:
-            {
-                m_state->current.target = id;
-                m_state->change_flags |= CHANGE_TARGET;
+        if( index < 0 || index >= program->uniform_n )
+            return;
+
+        flush();
+        auto uidx = program->uniforms[index];
+
+        switch(format)
+        {
+            case UniformFormat::FLOAT1:
+                glUniform1f(uidx, v[0]);
                 break;
-            }
+
+            case UniformFormat::FLOAT2:
+                glUniform2f(uidx, v[0], v[1]);
+                break;
+
+            case UniformFormat::FLOAT3:
+                glUniform3f(uidx, v[0], v[1], v[2]);
+                break;
+
+            case UniformFormat::FLOAT4:
+                glUniform4f(uidx, v[0], v[1], v[2], v[3]);
+                break;
+
+            case UniformFormat::VECTOR_F1:
+                glUniform1fv(uidx, 1, v);
+                break;
+
+            case UniformFormat::VECTOR_F2:
+                glUniform2fv(uidx, 1, v);
+                break;
+
+            case UniformFormat::VECTOR_F3:
+                glUniform3fv(uidx, 1, v);
+                break;
+
+            case UniformFormat::VECTOR_F4:
+                glUniform4fv(uidx, 1, v);
+                break;
+
+            case UniformFormat::MATRIX_F33:
+                glUniformMatrix3fv(uidx, 1, GL_FALSE, v);
+                break;
+
+            case UniformFormat::MATRIX_F44:
+                glUniformMatrix4fv(uidx, 1, GL_FALSE, v);
+                break;
 
             default:
-            {
                 assert(0);
-                break;
-            }
+                return;
         }
 
         CHECK_GL_ERROR
+    }
+
+    void Render::bind_shader(Rid id)
+    {
+        m_state->current.program = id;
+        m_state->change_flags |= CHANGE_SHADER;
     }
 
     GLuint compile(GLenum type, const char* source)
@@ -706,9 +768,10 @@ namespace openswf
     }
 
     Rid Render::create_shader(
-        const char* vs_src, const char* fs_src, 
-        int attribute_n, const VertexAttribute* attributes,
-        int texture_n, const char** textures)
+        const char* vs_src, const char* fs_src,
+        int attribute_n,
+        int texture_n, const char** textures,
+        int uniform_n, const char** uniforms)
     {
         auto program = array_alloc(m_state->programs);
         if( program == nullptr ) 
@@ -748,7 +811,14 @@ namespace openswf
 
         assert( attribute_n > 0 && attribute_n < MaxAttribute );
         program->attribute_n = attribute_n;
-        memcpy(&program->attributes, attributes, sizeof(VertexAttribute)*attribute_n);
+
+        assert( uniform_n >= 0 && uniform_n < MaxUniform );
+        program->uniform_n = uniform_n;
+        for( int i=0; i<uniform_n; i++ )
+        {
+            program->uniforms[i] = glGetUniformLocation(prog, uniforms[i]);
+            assert( program->uniforms[i] >= 0 );
+        }
 
         assert( texture_n >= 0 && texture_n < MaxTexture );
         program->texture_n = texture_n;
@@ -762,35 +832,38 @@ namespace openswf
         return array_id(m_state->programs, program);
     }
 
-    Rid Render::create_vertex_buffer(const void* data, int data_size)
+    Rid Render::create_buffer(RenderObject what, const void* data, int size, ElementFormat format)
     {
-        auto buffer = array_alloc(m_state->vertex_buffers);
+        assert( what == RenderObject::VERTEX_BUFFER || what == RenderObject::INDEX_BUFFER );
+
+        auto buffer = array_alloc(m_state->buffers);
         if( buffer == nullptr ) return 0;
+
+        buffer->type = GL_ARRAY_BUFFER;
+        if( what == RenderObject::INDEX_BUFFER ) buffer->type = GL_ELEMENT_ARRAY_BUFFER;
         
         glGenBuffers(1, &buffer->handle);
-        glBindBuffer(GL_ARRAY_BUFFER, buffer->handle);
-
-        if( data && data_size > 0 )
-            glBufferData(GL_ARRAY_BUFFER, data_size, data, GL_STATIC_DRAW);
-
-        CHECK_GL_ERROR
-        return array_id(m_state->vertex_buffers, buffer);
-    }
-
-    Rid Render::create_index_buffer(const void* data, int data_size, ElementFormat format)
-    {
-        auto buffer = array_alloc(m_state->index_buffers);
-        if( buffer == nullptr ) return 0;
-
-        glGenBuffers(1, &buffer->handle);
-        glBindBuffer(GL_ARRAY_BUFFER, buffer->handle);
+        glBindBuffer(buffer->type, buffer->handle);
 
         buffer->format = ElementFormatTable[(int)format];
-        if( data && data_size > 0 )
-            glBufferData(GL_ARRAY_BUFFER, data_size, data, GL_STATIC_DRAW);
+        if( data && size > 0 )
+            glBufferData(buffer->type, size, data, GL_STATIC_DRAW);
 
         CHECK_GL_ERROR
-        return array_id(m_state->index_buffers, buffer);
+        return array_id(m_state->buffers, buffer);
+    }
+
+    void Render::update_buffer(Rid id, const void* data, int size)
+    {
+        auto buffer = array_get(m_state->buffers, id);
+        if( buffer == nullptr ) return;
+
+        glBindVertexArray(0);
+        glBindBuffer(buffer->type, buffer->handle);
+        glBufferData(buffer->type, size, data, GL_DYNAMIC_DRAW);
+        m_state->change_flags |= CHANGE_VERTEXARRAY;
+
+        CHECK_GL_ERROR
     }
 
     Rid Render::create_texture(const void* data, int width, int height, TextureFormat format, int mipmap)
@@ -865,64 +938,41 @@ namespace openswf
         return array_id(m_state->textures, texture);
     }
 
-    int Render::get_shader_uniform_index(const char* name)
+    void Render::release(RenderObject what, Rid id)
     {
-        auto program = array_get(m_state->programs, m_state->current.program);
-        if( program == nullptr || program->handle == 0 ) 
-            return -1;
-
-        return glGetUniformLocation(program->handle, name);
-    }
-
-    void Render::set_shader_uniform(int index, UniformFormat format, const float* v)
-    {
-        switch(format)
+        switch(what)
         {
-            case UniformFormat::FLOAT1:
-                glUniform1f(index, v[0]);
-                break;
+            case RenderObject::INDEX_BUFFER:
+            case RenderObject::VERTEX_BUFFER:
+            {
+                auto buffer = array_get(m_state->buffers, id);
+                if( buffer == nullptr ) return;
 
-            case UniformFormat::FLOAT2:
-                glUniform2f(index, v[0], v[1]);
-                break;
-
-            case UniformFormat::FLOAT3:
-                glUniform3f(index, v[0], v[1], v[2]);
-                break;
-
-            case UniformFormat::FLOAT4:
-                glUniform4f(index, v[0], v[1], v[2], v[3]);
-                break;
-
-            case UniformFormat::VECTOR_F1:
-                glUniform1fv(index, 1, v);
-                break;
-
-            case UniformFormat::VECTOR_F2:
-                glUniform2fv(index, 1, v);
-                break;
-
-            case UniformFormat::VECTOR_F3:
-                glUniform3fv(index, 1, v);
-                break;
-
-            case UniformFormat::VECTOR_F4:
-                glUniform4fv(index, 1, v);
-                break;
-
-            case UniformFormat::MATRIX_F33:
-                glUniformMatrix3fv(index, 1, GL_FALSE, v);
-                break;
-
-            case UniformFormat::MATRIX_F44:
-                glUniformMatrix4fv(index, 1, GL_FALSE, v);
-                break;
-
-            default:
-                assert(0);
+                glDeleteBuffers(1, &buffer->handle);
+                array_free(m_state->buffers, id);
                 return;
-        }
+            }
+            case RenderObject::TEXTURE:
+            {
+                auto texture = array_get(m_state->textures, id);
+                if( texture == nullptr ) return;
 
-        CHECK_GL_ERROR
+                glDeleteTextures(1, &texture->handle);
+                array_free(m_state->textures, id);
+                return;
+            }
+            case RenderObject::SHADER:
+            {
+                auto shader = array_get(m_state->programs, id);
+                if( shader == nullptr ) return;
+
+                glDeleteProgram(shader->handle);
+                glDeleteVertexArrays(1, &shader->vao);
+                array_free(m_state->programs, id);
+                return;
+            }
+            default:
+                assert(false);
+        }
     }
 }

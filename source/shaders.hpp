@@ -11,6 +11,22 @@ namespace openswf
     // GUI_TEXT
     // GUI_EDGE
 
+    struct BufferLayout
+    {
+        Rid rid;
+        int stride;
+        int offset;
+
+        int n;
+        ElementFormat format;
+
+        BufferLayout(Rid rid, int n, ElementFormat format, int stride, int offset)
+        : rid(rid), n(n), format(format), stride(stride), offset(offset){}
+
+        BufferLayout()
+        : rid(0) {}
+    };
+
     class DefaultShader
     {
     protected:
@@ -51,16 +67,16 @@ namespace openswf
 
     inline void DefaultShader::set_positions(Rid buffer, int32_t stride, int32_t offset)
     {
-        m_positions = BufferLayout(buffer, stride, offset);
+        m_positions = BufferLayout(buffer, 2, ElementFormat::FLOAT, stride, offset);
     }
 
     inline void DefaultShader::set_texcoords(Rid buffer, int32_t stride, int32_t offset)
     {
-        m_texcoords = BufferLayout(buffer, stride, offset);
+        m_texcoords = BufferLayout(buffer, 2, ElementFormat::FLOAT, stride, offset);
     }
 
     inline void DefaultShader::set_indices(Rid buffer, int32_t stride, int32_t offset)
     {
-        m_indices = BufferLayout(buffer, stride, offset);
+        m_indices = BufferLayout(buffer, 1, ElementFormat::UNSIGNED_BYTE, stride, offset);
     }
 }

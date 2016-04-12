@@ -166,9 +166,15 @@ namespace openswf
     bool Shape::initialize()
     {
         auto& render = Render::get_instance();
-        m_rid_vertices = render.create_vertex_buffer(m_vertices.data(),
-            m_vertices.size()*sizeof(Point2f));
-        m_rid_indices = render.create_index_buffer(m_indices.data(),
+        m_rid_vertices = render.create_buffer(
+            RenderObject::VERTEX_BUFFER,
+            m_vertices.data(),
+            m_vertices.size()*sizeof(Point2f),
+            ElementFormat::FLOAT);
+
+        m_rid_indices = render.create_buffer(
+            RenderObject::INDEX_BUFFER,
+            m_indices.data(),
             m_indices.size()*sizeof(uint16_t),
             ElementFormat::UNSIGNED_SHORT);
         
@@ -256,11 +262,17 @@ namespace openswf
         indices.push_back(2);
         indices.push_back(3);
 
-        m_rid_vertices = render.create_vertex_buffer(vertices.data(),
-            vertices.size()*sizeof(Point2f));
+        m_rid_vertices = render.create_buffer(
+            RenderObject::VERTEX_BUFFER,
+            vertices.data(),
+            vertices.size()*sizeof(Point2f),
+            ElementFormat::FLOAT);
 
-        m_rid_indices = render.create_index_buffer(indices.data(),
-            indices.size()*sizeof(uint8_t), ElementFormat::UNSIGNED_BYTE);
+        m_rid_indices = render.create_buffer(
+            RenderObject::INDEX_BUFFER,
+            indices.data(),
+            indices.size()*sizeof(uint8_t),
+            ElementFormat::UNSIGNED_BYTE);
         return true;
     }
 

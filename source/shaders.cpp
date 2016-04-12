@@ -40,17 +40,18 @@ namespace openswf
         {
             s_default = new (std::nothrow) DefaultShader();
 
-            VertexAttribute attributes[2];
-            attributes[0].n = 2;
-            attributes[0].format = ElementFormat::FLOAT;
+            // VertexAttribute attributes[2];
+            // attributes[0].n = 2;
+            // attributes[0].format = ElementFormat::FLOAT;
 
-            attributes[1].n = 2;
-            attributes[1].format = ElementFormat::FLOAT;
+            // attributes[1].n = 2;
+            // attributes[1].format = ElementFormat::FLOAT;
 
             const char* textures[] = { "in_texture" };
+            const char* uniforms[] = { "uni_color", "uni_transform" };
 
             s_default->m_program = Render::get_instance().create_shader(
-                default_vs, default_fs, 2, attributes, 1, textures);
+                default_vs, default_fs, 2, 1, textures, 2, uniforms);
             s_default->m_texture = 0;
         }
 
@@ -60,37 +61,29 @@ namespace openswf
     void DefaultShader::bind(const Matrix& transform, const ColorTransform& cxform)
     {
         auto& render = Render::get_instance();
-        render.bind(RenderObject::SHADER, m_program);
+        render.bind_shader(m_program);
 
-        render.bind_texture(m_texture, 0);
+        render.bind_texture(0, m_texture);
+
+        if( m_indices.rid != 0 )
+            render.bind_index_buffer(m_indices.rid, ElementFormat::UNSIGNED_BYTE, m_indices.stride, m_indices.offset);
 
         if( m_positions.rid != 0 )
-        {
-            render.bind_vertex_buffer(m_positions.rid, 0, m_positions.stride, m_positions.offset);
-        }
+            render.bind_vertex_buffer(0, m_positions.rid, 2, ElementFormat::FLOAT, m_positions.stride, m_positions.offset);
 
         if( m_texcoords.rid != 0 )
-        {
-            render.bind_vertex_buffer(m_texcoords.rid, 1, m_texcoords.stride, m_texcoords.offset);
-        }
-
-        if( m_indices.rid != 0)
-        {
-            render.bind_index_buffer(m_indices.rid, m_indices.stride, m_indices.offset);
-        }
+            render.bind_vertex_buffer(1, m_texcoords.rid, 2, ElementFormat::FLOAT, m_texcoords.stride, m_texcoords.offset);
 
         render.flush();
 
-        auto c_loc = render.get_shader_uniform_index("uni_color");
         auto color = cxform * m_color;
         float colorf[] = {
             (float)color.r/255.f,
             (float)color.g/255.f,
             (float)color.b/255.f,
             (float)color.a/255.f };
-        render.set_shader_uniform(c_loc, UniformFormat::VECTOR_F4, colorf);
+        render.bind_uniform(0, UniformFormat::VECTOR_F4, colorf);
 
-        auto t_loc = render.get_shader_uniform_index("uni_transform");
         auto model = glm::mat4(
             transform.values[0][0], transform.values[1][0], 0, 0,
             transform.values[0][1], transform.values[1][1], 0, 0,
@@ -98,7 +91,7 @@ namespace openswf
             transform.values[0][2], transform.values[1][2], 0, 1);
 
         auto projection = glm::ortho(0.f, m_width, m_height, 0.f, -1.f, 1000.f);
-        render.set_shader_uniform(t_loc, UniformFormat::MATRIX_F44, glm::value_ptr(projection*model));
+        render.bind_uniform(1, UniformFormat::MATRIX_F44, glm::value_ptr(projection*model));
     }
 
 }
