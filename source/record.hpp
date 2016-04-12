@@ -33,6 +33,7 @@ namespace openswf
     class FillStyle;
     class LineStyle;
     class FrameCommand;
+    class Texture;
 
     typedef std::unique_ptr<FillStyle> FillPtr;
     typedef std::unique_ptr<LineStyle> LinePtr;
@@ -114,8 +115,8 @@ namespace openswf
         {
             uint16_t    character_id;   // id for this character
             uint32_t    alpha_offset;   // count of bytes in image
-            Bytes       image; // compressed image data in either JPEG, PNG, GIF89a format
-            Bytes       alpha; // zlib compressed array of alpha data.
+            BytesPtr    image; // compressed image data in either JPEG, PNG, GIF89a format
+            BytesPtr    alpha; // zlib compressed array of alpha data.
         };
 
         // TAG = 8
@@ -124,26 +125,26 @@ namespace openswf
         // There may only be one JPEGTables tag in a SWF file.
         struct JPEGTables
         {
-            Bytes encodings;
+            BytesPtr encodings;
         };
 
         // TAG = 21
         struct DefineBitsJPEG
         {
             uint16_t    character_id;
-            Bytes       image;          // compressed image data in either JPEG, PNG, GIF89a format
+            BytesPtr    image;          // compressed image data in either JPEG, PNG, GIF89a format
         };
 
-        //
+        // TAG = 20
         struct DefineBitsLossless
         {
-            uint16_t    character_id;
-            uint8_t     bitmap_format;
-            uint16_t    width;
-            uint16_t    height;
-            uint8_t     color_table_size;
-            Bytes       color_table;
-            Bytes       pixel;
+            static Texture* create(Stream& stream, TagHeader& header);
+        };
+
+        // TAG = 36
+        struct DefineBitsLossless2
+        {
+            static Texture* create(Stream& stream, TagHeader& header);
         };
 
         // TAG = 9

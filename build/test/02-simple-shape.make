@@ -22,7 +22,7 @@ ifeq ($(config),debug)
   ALL_CFLAGS += $(CFLAGS) $(ALL_CPPFLAGS) -g -std=c++11 -stdlib=libc++
   ALL_CXXFLAGS += $(CXXFLAGS) $(ALL_CFLAGS)
   ALL_RESFLAGS += $(RESFLAGS) $(DEFINES) $(INCLUDES)
-  LIBS += -ltess2 -lglfw3 -lglew -lopenswf
+  LIBS += -ltess2 -lglfw3 -lglew -llibz -lopenswf
   LDDEPS +=
   ALL_LDFLAGS += $(LDFLAGS) -L../../libs/3rd -L../../libs -L/usr/local/lib -framework OpenGL -framework Cocoa -framework IOKit -framework CoreVideo
   LINKCMD = $(CXX) -o "$@" $(OBJECTS) $(RESOURCES) $(ALL_LDFLAGS) $(LIBS)

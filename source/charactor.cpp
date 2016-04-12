@@ -31,10 +31,10 @@ namespace openswf
 
     Point2f GradientFill::get_texcoord(const Point2f& position)
     {
-        static const Rect coordinates = Rect(-16384, 16384, -16384, 16384);
+        static const Rect coordinates = Rect(-16384, 16384, -16384, 16384).to_pixel();
 
-        Point2f ll = (this->transform * Point2f(coordinates.xmin, coordinates.ymin)).to_pixel();
-        Point2f ru = (this->transform * Point2f(coordinates.xmax, coordinates.ymax)).to_pixel();
+        Point2f ll = this->transform * Point2f(coordinates.xmin, coordinates.ymin);
+        Point2f ru = this->transform * Point2f(coordinates.xmax, coordinates.ymax);
 
         return Point2f( (position.x-ll.x) / (ru.x - ll.x), (position.y-ll.y) / (ru.y - ll.y) );
     }
@@ -73,13 +73,12 @@ namespace openswf
         static const int width = 64;
         static const int height = 1;
 
-        auto source = BitmapRGBA8::create(width, height);
+        auto source = Bitmap::create(TextureFormat::RGBA8, width, height);
         for( auto i=0; i<source->get_height(); i++ )
             for( auto j=0; j<source->get_width(); j++ )
                 source->set(i, j, sample(255*(float)j/(float)width).to_value());
 
         this->bitmap = Render::get_instance().create_texture(source->get_ptr(), width, height, TextureFormat::RGBA8, 0);
-        delete source;
     }
 
     void LinearGradientFill::execute()
@@ -98,7 +97,7 @@ namespace openswf
         static const int width = 16;
         static const int height = 16;
 
-        auto source = BitmapRGBA8::create(width, height);
+        auto source = Bitmap::create(TextureFormat::RGBA8, width, height);
         for( auto i=0; i<height; i++ )
         {
             for( auto j=0; j<width; j++ )
@@ -113,7 +112,6 @@ namespace openswf
         }
 
         this->bitmap = Render::get_instance().create_texture(source->get_ptr(), width, height, TextureFormat::RGBA8, 0);
-        delete source;
     }
 
     void RadialGradientFill::execute()
@@ -203,6 +201,11 @@ namespace openswf
         }
     }
 
+    Node* Shape::create_instance(Player* env)
+    {
+        return new Primitive<Shape>(this);
+    }
+
     uint16_t Shape::get_character_id() const
     {
         return m_cid;
@@ -213,20 +216,104 @@ namespace openswf
         return m_bounds;
     }
 
-    /// SPRITE CHARACTOR
-    enum Place2Mask
+    /// TEXTURE CHARACTER
+    Texture* Texture::create(uint16_t cid, BitmapPtr bitmap)
     {
-        PLACE_2_HAS_MOVE        = 0x01,
-        PLACE_2_HAS_CHARACTOR   = 0x02,
-        PLACE_2_HAS_MATRIX      = 0x04,
-        PLACE_2_HAS_CXFORM      = 0x08,
-        PLACE_2_HAS_RATIO       = 0x10,
-        PLACE_2_HAS_NAME        = 0x20,
-        PLACE_2_HAS_CLIP_DEPTH  = 0x40,
-        PLACE_2_HAS_CLIP_ACTIONS= 0x80
+        auto texture = new (std::nothrow) Texture();
+        if( texture && texture->initialize(cid, std::move(bitmap)) )
+            return texture;
+
+        if( texture ) delete texture;
+        return nullptr;
+    }
+
+    bool Texture::initialize(uint16_t cid, BitmapPtr bitmap)
+    {
+        auto& render = Render::get_instance();
+
+        m_character_id  = cid;
+        m_bitmap = std::move(bitmap);
+        m_rid = render.create_texture(
+            m_bitmap->get_ptr(), m_bitmap->get_width(), m_bitmap->get_height(),
+            m_bitmap->get_format(), 1);
+
+        auto vertices = std::vector<Point2f>();
+        vertices.push_back(Point2f(0, 0));
+        vertices.push_back(Point2f(m_bitmap->get_width(), 0));
+        vertices.push_back(Point2f(m_bitmap->get_width(), m_bitmap->get_height()));
+        vertices.push_back(Point2f(0, m_bitmap->get_height()));
+
+        vertices.push_back(Point2f(0, 0));
+        vertices.push_back(Point2f(1, 0));
+        vertices.push_back(Point2f(1, 1));
+        vertices.push_back(Point2f(0, 1));
+
+        auto indices = std::vector<uint8_t>();
+        indices.push_back(0);
+        indices.push_back(1);
+        indices.push_back(2);
+        indices.push_back(0);
+        indices.push_back(2);
+        indices.push_back(3);
+
+        m_rid_vertices = render.create_vertex_buffer(vertices.data(),
+            vertices.size()*sizeof(Point2f));
+
+        m_rid_indices = render.create_index_buffer(indices.data(),
+            indices.size()*sizeof(uint8_t), ElementFormat::UNSIGNED_BYTE);
+        return true;
+    }
+
+    void Texture::render(const Matrix& matrix, const ColorTransform& cxform)
+    {
+        auto& shader = DefaultShader::get_instance();
+        shader.set_indices(m_rid_indices, 0, 0);
+        shader.set_positions(m_rid_vertices, sizeof(Point2f), 0);
+        shader.set_texcoords(m_rid_vertices, sizeof(Point2f), sizeof(Point2f)*4);
+        shader.set_texture(m_rid);
+        shader.set_color(Color::black);
+
+        shader.bind(matrix, cxform);
+
+        Render::get_instance().draw(DrawMode::TRIANGLE, 0, 6);
+    }
+
+    Node* Texture::create_instance(Player* env)
+    {
+        return new Primitive<Texture>(this);
+    }
+
+    uint16_t Texture::get_character_id() const
+    {
+        return m_character_id;
+    }
+
+    /// SPRITE CHARACTER
+    enum PlaceObject2Mask
+    {
+        PLACE_2_HAS_MOVE            = 0x01,
+        PLACE_2_HAS_CHARACTER       = 0x02,
+        PLACE_2_HAS_MATRIX          = 0x04,
+        PLACE_2_HAS_CXFORM          = 0x08,
+        PLACE_2_HAS_RATIO           = 0x10,
+        PLACE_2_HAS_NAME            = 0x20,
+        PLACE_2_HAS_CLIP_DEPTH      = 0x40,
+        PLACE_2_HAS_CLIP_ACTIONS    = 0x80
     };
 
-    CommandPtr FrameCommand::create(record::TagHeader header, Bytes bytes)
+    enum PlaceObject3Mask
+    {
+        PLACE_3_HAS_FILTERS         = 0x01,
+        PLACE_3_HAS_BLEND_MODE      = 0x02,
+        PLACE_3_HAS_CACHE_AS_BITMAP = 0x04,
+        PLACE_3_HAS_CLASS_NAME      = 0x08,
+        PLACE_3_HAS_IMAGE           = 0x10,
+        PLACE_3_HAS_VISIBLE         = 0x20,
+        PLACE_3_OPAQUE_BACKGROUND   = 0x40,
+        PLACE_3_RESERVED_1          = 0x80,
+    };
+
+    CommandPtr FrameCommand::create(record::TagHeader header, BytesPtr bytes)
     {
         auto command = new (std::nothrow) FrameCommand();
         if( command )
@@ -234,6 +321,7 @@ namespace openswf
             assert(
                 header.code == TagCode::PLACE_OBJECT ||
                 header.code == TagCode::PLACE_OBJECT2 ||
+                header.code == TagCode::PLACE_OBJECT3 ||
                 header.code == TagCode::REMOVE_OBJECT ||
                 header.code == TagCode::REMOVE_OBJECT2);
 
@@ -253,8 +341,10 @@ namespace openswf
             auto character_id   = stream.read_uint16();
             auto depth          = stream.read_uint16();
             auto node = display.set(depth, character_id);
+
             if( node == nullptr ) return;
-            node->set_transform(stream.read_matrix());
+
+            node->set_transform(stream.read_matrix().to_pixel());
 
             if( stream.get_position() < m_header.size )
                 node->set_cxform(stream.read_cxform_rgb());
@@ -265,13 +355,15 @@ namespace openswf
             auto depth = stream.read_uint16();
 
             Node* node = nullptr;
-            if( mask & PLACE_2_HAS_CHARACTOR )
+            if( mask & PLACE_2_HAS_CHARACTER )
                 node = display.set(depth, stream.read_uint16());
             else
                 node = display.get(depth);
 
+            if( node == nullptr ) return;
+
             if( mask & PLACE_2_HAS_MATRIX )
-                node->set_transform(stream.read_matrix());
+                node->set_transform(stream.read_matrix().to_pixel());
 
             if( mask & PLACE_2_HAS_CXFORM )
                 node->set_cxform(stream.read_cxform_rgba());
@@ -284,6 +376,50 @@ namespace openswf
 
             if( mask & PLACE_2_HAS_CLIP_DEPTH )
                 node->set_clip_depth(stream.read_uint16());
+
+            // skip clip actions
+        }
+        else if( m_header.code == TagCode::PLACE_OBJECT3 )
+        {
+            auto mask2 = stream.read_uint8();
+            auto mask3 = stream.read_uint8();
+            auto depth = stream.read_uint16();
+
+//            std::string name;
+//            if( (mask3 & PLACE_3_HAS_CLASS_NAME) ||
+//                ((mask3 & PLACE_3_HAS_IMAGE) && (mask2 & PLACE_2_HAS_CHARACTER)) )
+//            {
+//                name = stream.read_string();
+//            }
+
+            Node* node = nullptr;
+            if( mask2 & PLACE_2_HAS_CHARACTER )
+            {
+                auto cid = stream.read_uint16();
+                node = display.set(depth, cid);
+            }
+            else
+                node = display.get(depth);
+
+            if( node == nullptr ) return;
+
+            if( mask2 & PLACE_2_HAS_MATRIX )
+                node->set_transform(stream.read_matrix().to_pixel());
+
+            if( mask2 & PLACE_2_HAS_CXFORM )
+                node->set_cxform(stream.read_cxform_rgba());
+
+            if( mask2 & PLACE_2_HAS_RATIO )
+                node->set_ratio(stream.read_uint16());
+
+            if( mask2 & PLACE_2_HAS_NAME )
+                node->set_name(stream.read_string());
+
+            if( mask2 & PLACE_2_HAS_CLIP_DEPTH )
+                node->set_clip_depth(stream.read_uint16());
+
+            // skip surface filters, bitmap cache, visible,
+            // background color, clip actions
         }
         else if( m_header.code == TagCode::REMOVE_OBJECT )
         {
@@ -315,6 +451,11 @@ namespace openswf
         LWARNING("failed to initialize sprite!");
         if( sprite ) delete sprite;
         return nullptr;
+    }
+
+    Node* Sprite::create_instance(Player* env)
+    {
+        return new MovieClip(env, this);
     }
 
     uint16_t Sprite::get_character_id() const

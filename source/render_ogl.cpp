@@ -344,10 +344,7 @@ namespace openswf
             {
                 auto buffer = array_get(this->vertex_buffers, layout.rid);
                 if( buffer == nullptr || buffer->handle == 0 )
-                {
-                    assert( false );
                     continue;
-                }
 
                 glBindBuffer(GL_ARRAY_BUFFER, buffer->handle);
                 last = layout.rid;
@@ -373,7 +370,7 @@ namespace openswf
         auto program = array_get(this->programs, this->current.program);
         if( program == nullptr || program->handle == 0 ) return;
 
-        for( int i=0; i<MaxTexture; i++ )
+        for( int i=0; i<program->texture_n; i++ )
         {
             auto index = this->current.textures[i];
             if( index != this->last.textures[i] )

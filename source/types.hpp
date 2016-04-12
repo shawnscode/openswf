@@ -4,12 +4,14 @@
 #include <memory>
 
 #include "debug.hpp"
+#include "render.hpp"
+
 #define PIXEL_TO_TWIPS 20.f
 #define TWIPS_TO_PIXEL 0.05f
 
 namespace openswf
 {
-    typedef std::unique_ptr<uint8_t[]> Bytes;
+    typedef std::unique_ptr<uint8_t[]> BytesPtr;
 
     enum class LanguageCode : uint8_t
     {
@@ -268,12 +270,7 @@ namespace openswf
 
         uint32_t to_value() const
         {
-            uint32_t value = 0;
-            value |= r << 0;
-            value |= g << 8;
-            value |= b << 16;
-            value |= a << 24;
-            return value;
+            return (r << 24) | (g << 16) | (b << 8) | (a << 0);
         }
 
         static Color lerp(const Color& from, const Color& to, const float ratio);
@@ -315,6 +312,20 @@ namespace openswf
         {
             assert(r>=0 && r<2 && c>=0 && c<3);
             values[r][c] = value;
+        }
+
+        Matrix& to_pixel()
+        {
+            values[0][2] *= TWIPS_TO_PIXEL;
+            values[1][2] *= TWIPS_TO_PIXEL;
+            return *this;
+        }
+
+        Matrix& to_twips()
+        {
+            values[0][2] *= PIXEL_TO_TWIPS;
+            values[1][2] *= PIXEL_TO_TWIPS;
+            return *this;
         }
 
         Matrix operator * (const Matrix& rh) const;
@@ -362,51 +373,82 @@ namespace openswf
         Color operator * (const Color& rh) const;
     };
 
-    template<typename T> class Bitmap
+    class Bitmap
     {
     protected:
-        uint32_t m_width, m_height;
-        uint8_t* m_source;
+        TextureFormat   m_format;
+        uint8_t         m_elesize;
+        uint32_t        m_width, m_height;
+        BytesPtr        m_source;
 
     public:
-        static Bitmap<T>* create(uint32_t width, uint32_t height)
+        static uint32_t get_sizeof(TextureFormat format)
         {
-            auto bitmap = new (std::nothrow) Bitmap<T>();
-            if( bitmap == nullptr ) return nullptr;
-
-            bitmap->m_width = width;
-            bitmap->m_height = height;
-            bitmap->m_source = new (std::nothrow) uint8_t[width*height*sizeof(T)];
-            if( bitmap->m_source == nullptr )
+            switch(format)
             {
-                delete bitmap;
-                return nullptr;
+                case TextureFormat::RGBA8:
+                    return 4;
+                case TextureFormat::RGB8:
+                    return 3;
+                case TextureFormat::RGBA4:
+                case TextureFormat::RGB565:
+                    return 2;
+                case TextureFormat::ALPHA8:
+                case TextureFormat::DEPTH8:
+                    return 1;
+                default:
+                    assert(0);
+                    return 0;
+            }
+        }
+
+        static std::unique_ptr<Bitmap> create(TextureFormat format, uint32_t width, uint32_t height)
+        {
+            auto bitmap = new (std::nothrow) Bitmap();
+            if( bitmap )
+            {
+                bitmap->m_format = format;
+                bitmap->m_width = width;
+                bitmap->m_height = height;
+                bitmap->m_elesize = get_sizeof(format);
+                bitmap->m_source = BytesPtr(new (std::nothrow) uint8_t[width*height*bitmap->m_elesize]);
+
+                if( bitmap->m_source != nullptr )
+                    return std::unique_ptr<Bitmap>(bitmap);
             }
 
-            return bitmap;
+            if( bitmap ) delete bitmap;
+            return std::unique_ptr<Bitmap>();
         }
 
-        ~Bitmap()
-        {
-            delete m_source;
-            m_source = nullptr;
-        }
-
-        void set(int row, int col, T value)
+        void set(int row, int col, uint32_t value)
         {
             assert( row >= 0 && row < m_width );
             assert( col >= 0 && row < m_height );
 
-            T* ref = ((T*)m_source) + row*m_width+col;
-            *ref = value;
-        }
-
-        T get(int row, int col) const
-        {
-            assert( row >= 0 && row < m_width );
-            assert( col >= 0 && row < m_height );
-
-            return *((T*)(m_source + row*m_width+col));
+            auto index = (row*m_width+col)*m_elesize;
+            if( m_elesize == 4 )
+            {
+                m_source[index+0] = (uint8_t)((value >> 24) & 0xFF);
+                m_source[index+1] = (uint8_t)((value >> 16) & 0xFF);
+                m_source[index+2] = (uint8_t)((value >>  8) & 0xFF);
+                m_source[index+3] = (uint8_t)((value >>  0) & 0xFF);
+            }
+            else if( m_elesize == 3 )
+            {
+                m_source[index+0] = (uint8_t)((value >> 16) & 0xFF);
+                m_source[index+1] = (uint8_t)((value >>  8) & 0xFF);
+                m_source[index+2] = (uint8_t)((value >>  0) & 0xFF);
+            }
+            else if( m_elesize == 2 )
+            {
+                m_source[index+0] = (uint8_t)((value >> 8) & 0xFF);
+                m_source[index+1] = (uint8_t)((value >> 0) & 0xFF);
+            }
+            else if( m_elesize == 1 )
+            {
+                m_source[index+0] = (uint8_t)(value& 0xFF);
+            }
         }
 
         uint32_t get_width() const
@@ -419,12 +461,16 @@ namespace openswf
             return m_height;
         }
 
+        TextureFormat get_format() const
+        {
+            return m_format;
+        }
+
         const uint8_t* get_ptr() const
         {
-            return m_source;
+            return m_source.get();
         }
     };
 
-    typedef Bitmap<uint32_t> BitmapRGBA8;
-    typedef Bitmap<uint16_t> BitmapRGB565;
+    typedef std::unique_ptr<Bitmap> BitmapPtr;
 }

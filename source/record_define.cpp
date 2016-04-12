@@ -8,6 +8,7 @@
 
 extern "C" {
     #include "tesselator.h"
+    #include "zlib.h"
 }
 
 namespace openswf
@@ -15,7 +16,6 @@ namespace openswf
 namespace record
 {
     // TAG: 2, 22, 32, 83 DEFINE SHAPE
-
     const uint32_t  MAX_CURVE_SUBDIVIDE = 20;
     const float     CURVE_TOLERANCE     = 1.0f;
     const uint32_t  MAX_POLYGON_SIZE    = 6;
@@ -80,7 +80,7 @@ namespace record
 
     static void read_gradient(Stream& stream, GradientFill* gradient, TagCode tag)
     {
-        gradient->transform = stream.read_matrix();
+        gradient->transform = stream.read_matrix().to_pixel();
         gradient->spread = (GradientFill::SpreadMode)stream.read_bits_as_uint32(2);
         gradient->interp = (GradientFill::InterpolationMode)stream.read_bits_as_uint32(2);
 
@@ -131,6 +131,7 @@ namespace record
             focal->focal = stream.read_fixed16();
             return focal;
         }
+        else
             assert(false); // not supported yet
     }
 
@@ -517,6 +518,180 @@ namespace record
         assert( contour_indices.back() == indices.size() );
 
         return Shape::create(character_id, bounds, fill_styles, line_styles, vertices, indices, contour_indices);
+    }
+
+
+    /// TAG = 20， 36
+    enum class BitmapFormat : uint8_t
+    {
+        COLOR_MAPPED = 3,
+        RGB15 = 4,
+        RGB24 = 5
+    };
+
+    static void decompress(const uint8_t* source, int src_size, uint8_t* dst, int dst_size)
+    {
+        z_stream strm;
+
+        /* allocate inflate state */
+        strm.zalloc = Z_NULL;
+        strm.zfree = Z_NULL;
+        strm.opaque = Z_NULL;
+        strm.avail_in = 0;
+        strm.next_in = Z_NULL;
+
+        if( Z_OK != inflateInit(&strm) )
+        {
+            printf("deflateInit failed!\n");
+            return;
+        }
+
+        /* decompress until deflate stream ends or end of file */
+        strm.next_in = (uint8_t*)source;
+        strm.avail_in = src_size;
+
+        strm.next_out = dst;
+        strm.avail_out = dst_size;
+
+        assert( inflate(&strm, Z_NO_FLUSH) != Z_STREAM_ERROR );
+        inflateEnd(&strm);
+    }
+
+    Texture* DefineBitsLossless::create(Stream& stream, TagHeader& header)
+    {
+        auto cid = stream.read_uint16();
+        auto format = (BitmapFormat)stream.read_uint8();
+        auto width = stream.read_uint16();
+        auto height = stream.read_uint16();
+
+        if( format == BitmapFormat::COLOR_MAPPED )
+        {
+            auto table_size = stream.read_uint8();
+            auto src_size = header.end_pos - stream.get_position();
+            auto dst_size = table_size*3+width*height; // color table + indices
+            auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
+            decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
+
+            auto bitmap = Bitmap::create(TextureFormat::RGB8, width, height);
+            for( auto i=0; i<height; i++ )
+            {
+                for( auto j=0; j<width; j++ )
+                {
+                    auto base = bytes[table_size*3+i*width+j]*3;
+                    bitmap->set(i, j,
+                        ((uint32_t)bytes[base+1]<<16) |
+                        ((uint32_t)bytes[base+2]<< 8) |
+                        ((uint32_t)bytes[base+3]<< 0) );
+                }
+            }
+
+            return Texture::create(cid, std::move(bitmap));
+        }
+        else if( format == BitmapFormat::RGB15)
+        {
+            auto src_size = header.end_pos - stream.get_position();
+            auto dst_size = width * height * 2;
+            auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
+            decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
+
+            auto bitmap = Bitmap::create(TextureFormat::RGB565, width, height);
+            for( auto i=0; i<height; i++ )
+            {
+                for( auto j=0; j<width; j++ )
+                {
+                    auto base = (i*width+j)*2;
+                    bitmap->set(i, j,
+                        ((uint32_t)bytes[base+0] << 8) |
+                        ((uint32_t)bytes[base+1] << 0) );
+                }
+            }
+
+            return Texture::create(cid, std::move(bitmap));
+        }
+        else if( format == BitmapFormat::RGB24 )
+        {
+            auto src_size = header.end_pos - stream.get_position();
+            auto dst_size = width * height * 4;
+            auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
+            decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
+
+            auto bitmap = Bitmap::create(TextureFormat::RGB8, width, height);
+            for( auto i=0; i<height; i++ )
+            {
+                for( auto j=0; j<width; j++ )
+                {
+                    auto base = (i*width+j)*4;
+                    bitmap->set(i, j,
+                        ((uint32_t)bytes[base+1]<<16) |
+                        ((uint32_t)bytes[base+2]<< 8) |
+                        ((uint32_t)bytes[base+3]<< 0) );
+                }
+            }
+
+            return Texture::create(cid, std::move(bitmap));
+        }
+
+        assert(false);
+        return nullptr;
+    }
+
+    Texture* DefineBitsLossless2::create(Stream& stream, TagHeader& header)
+    {
+        auto cid = stream.read_uint16();
+        auto format = (BitmapFormat)stream.read_uint8();
+        auto width = stream.read_uint16();
+        auto height = stream.read_uint16();
+
+        if( format == BitmapFormat::COLOR_MAPPED )
+        {
+            auto table_size = stream.read_uint8();
+            auto src_size = header.end_pos - stream.get_position();
+            auto dst_size = table_size*4+width*height; // color table + indices
+            auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
+            decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
+
+            auto bitmap = Bitmap::create(TextureFormat::RGBA8, width, height);
+            for( auto i=0; i<height; i++ )
+            {
+                for( auto j=0; j<width; j++ )
+                {
+                    auto base = bytes[table_size*4+i*width+j]*4;
+                    bitmap->set(i, j,
+                        ((uint32_t)bytes[base+0]<< 0) |
+                        ((uint32_t)bytes[base+1]<<24) |
+                        ((uint32_t)bytes[base+2]<<16) |
+                        ((uint32_t)bytes[base+3]<< 8) );
+                }
+            }
+
+            return Texture::create(cid, std::move(bitmap));
+        }
+        else if( format == BitmapFormat::RGB15 || format == BitmapFormat::RGB24 )
+        {
+            auto src_size = header.end_pos - stream.get_position();
+            auto dst_size = width * height * 4;
+            auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
+            decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
+
+            auto bitmap = Bitmap::create(TextureFormat::RGBA8, width, height);
+            for( auto i=0; i<height; i++ )
+            {
+                for( auto j=0; j<width; j++ )
+                {
+                    auto base = (i*width+j)*4;
+                    bitmap->set(i, j,
+                        ((uint32_t)bytes[base+0]<< 0) |
+                        ((uint32_t)bytes[base+1]<<24) |
+                        ((uint32_t)bytes[base+2]<<16) |
+                        ((uint32_t)bytes[base+3]<< 8) );
+                }
+            }
+
+            return Texture::create(cid, std::move(bitmap));
+        }
+
+        assert(false);
+        return nullptr;
     }
 }
 }

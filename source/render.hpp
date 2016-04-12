@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-// low-level graphic interface used to keep details of platform-specified codes from users.
 namespace openswf
 {
     typedef uint32_t Rid;

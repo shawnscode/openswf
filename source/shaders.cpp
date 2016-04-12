@@ -62,23 +62,6 @@ namespace openswf
         auto& render = Render::get_instance();
         render.bind(RenderObject::SHADER, m_program);
 
-        auto model = glm::mat4(
-            transform.values[0][0], transform.values[0][1], 0, transform.values[0][2],
-            transform.values[1][0], transform.values[1][1], 0, transform.values[1][2],
-            0, 0, 1, 0,
-            0, 0, 0, 1);
-        auto projection = glm::ortho(0.f, m_width, m_height, 0.f, -1.f, 1000.f);
-
-        auto t_loc = render.get_shader_uniform_index("uni_transform");
-        auto c_loc = render.get_shader_uniform_index("uni_color");
-
-        auto color = cxform * m_color;
-        float colorf[] = { 
-            (float)color.r/255.f,
-            (float)color.g/255.f,
-            (float)color.b/255.f,
-            (float)color.a/255.f
-        };
         render.bind_texture(m_texture, 0);
 
         if( m_positions.rid != 0 )
@@ -97,7 +80,24 @@ namespace openswf
         }
 
         render.flush();
+
+        auto c_loc = render.get_shader_uniform_index("uni_color");
+        auto color = cxform * m_color;
+        float colorf[] = {
+            (float)color.r/255.f,
+            (float)color.g/255.f,
+            (float)color.b/255.f,
+            (float)color.a/255.f };
         render.set_shader_uniform(c_loc, UniformFormat::VECTOR_F4, colorf);
+
+        auto t_loc = render.get_shader_uniform_index("uni_transform");
+        auto model = glm::mat4(
+            transform.values[0][0], transform.values[1][0], 0, 0,
+            transform.values[0][1], transform.values[1][1], 0, 0,
+            0, 0, 1, 0,
+            transform.values[0][2], transform.values[1][2], 0, 1);
+
+        auto projection = glm::ortho(0.f, m_width, m_height, 0.f, -1.f, 1000.f);
         render.set_shader_uniform(t_loc, UniformFormat::MATRIX_F44, glm::value_ptr(projection*model));
     }
 

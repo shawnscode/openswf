@@ -2,6 +2,7 @@
 #include "display_list.hpp"
 
 #include <algorithm>
+#include <typeinfo>
 
 extern "C" {
 #include "GLFW/glfw3.h"
@@ -13,18 +14,6 @@ namespace openswf
     uint16_t Node::get_character_id() const
     {
         return m_character->get_character_id();
-    }
-
-    ////
-    Primitive::Primitive(Shape* shape) : Node(shape), m_shape(shape) {}
-
-    Primitive::~Primitive() {}
-
-    void Primitive::update(float dt) {}
-
-    void Primitive::render(const Matrix& matrix, const ColorTransform& cxform)
-    {
-        m_shape->render(m_matrix*matrix, m_cxform*cxform);
     }
 
     ////
@@ -101,10 +90,7 @@ namespace openswf
         auto ch = m_environment->get_character(cid);
         if( ch != nullptr )
         {
-            if( typeid(ch) == typeid(Sprite*) )
-                m_children[depth] = new MovieClip(m_environment, static_cast<Sprite*>(ch));
-            else
-                m_children[depth] = new Primitive(static_cast<Shape*>(ch));
+            m_children[depth] = ch->create_instance(m_environment);
             return m_children[depth];
         }
         return nullptr;

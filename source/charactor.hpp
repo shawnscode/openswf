@@ -8,10 +8,13 @@
 namespace openswf
 {
 
+    class Node;
+    class Player;
     class ICharactor
     {
     public:
         virtual ~ICharactor() {}
+        virtual Node*    create_instance(Player*) = 0;
         virtual uint16_t get_character_id() const = 0;
     };
 
@@ -164,10 +167,47 @@ namespace openswf
             std::vector<uint16_t>& indices,
             std::vector<uint16_t>& contour_indices);
 
-        virtual void render(const Matrix& matrix, const ColorTransform& cxform);
+        virtual Node*    create_instance(Player*);
         virtual uint16_t get_character_id() const;
-        const   Rect& get_bounds() const;
+
+        void        render(const Matrix& matrix, const ColorTransform& cxform);
+        const Rect& get_bounds() const;
     };
+
+    // The SWF file format specification supports a variety of bitmap formats.
+    // All bitmaps are compressed to reduce file size. Lossy compression,
+    // best for imprecise images such as photographs, is provided by JPEG bitmaps;
+    // lossless compression, best for precise images such as diagrams, icons,
+    // or screen captures, is provided by ZLIB bitmaps. Both types of bitmaps
+    // can optionally contain alpha channel (opacity) information.
+    class Texture : public ICharactor
+    {
+    protected:
+        uint16_t                m_character_id;
+
+        // std::vector<Point2f>    m_vertices;
+        // std::vector<uint8_t>    m_indices;
+
+        BitmapPtr               m_bitmap;
+        Rid                     m_rid;
+        Rid                     m_rid_indices;
+        Rid                     m_rid_vertices;
+
+    public:
+        static Texture* create(uint16_t cid, BitmapPtr bitmap);
+        bool initialize(uint16_t cid, BitmapPtr bitmap);
+
+        virtual Node*    create_instance(Player*);
+        virtual uint16_t get_character_id() const;
+
+        void render(const Matrix& matrix, const ColorTransform& cxform);
+        Rid  get_rid() const;
+    };
+
+    inline Rid Texture::get_rid() const
+    {
+        return m_rid;
+    }
 
     // A sprite corresponds to a movie clip in the Adobe Flash authoring application.
     // It is a SWF file contained within another SWF file, and supports many of the
@@ -180,10 +220,10 @@ namespace openswf
     {
     protected:
         record::TagHeader   m_header;
-        Bytes       m_bytes;
+        BytesPtr            m_bytes;
 
     public:
-        static std::unique_ptr<FrameCommand> create(record::TagHeader header, Bytes bytes);
+        static std::unique_ptr<FrameCommand> create(record::TagHeader header, BytesPtr bytes);
 
         void execute(MovieClip& display);
     };
@@ -204,6 +244,7 @@ namespace openswf
             std::vector<CommandPtr>& commands,
             std::vector<uint32_t>& indices);
 
+        virtual Node*    create_instance(Player*);
         virtual uint16_t get_character_id() const;
 
         void    execute(MovieClip& display, uint32_t frame);

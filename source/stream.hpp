@@ -106,15 +106,17 @@ namespace openswf
         LanguageCode read_language_code();
 
         //
-        void        align();
-        void        set_position(uint32_t pos);
+        void            align();
+        void            set_position(uint32_t pos);
 
-        uint32_t    get_bit_position() const;
-        uint32_t    get_position() const;
-        uint32_t    get_size() const;
-        bool        is_finished() const;
+        uint32_t        get_bit_position() const;
+        uint32_t        get_position() const;
+        uint32_t        get_size() const;
+        const uint8_t*  get_current_ptr() const;
+        bool            is_finished() const;
 
-        Bytes       extract(uint32_t size) const;
+        BytesPtr        extract(uint32_t size) const;
+        void            record(uint8_t* dst, uint32_t size) const;
     };
 
     inline uint8_t Stream::read_uint8() 
@@ -229,6 +231,14 @@ namespace openswf
         m_unused_bits = m_current_byte = 0; 
     }
 
+    inline const uint8_t* Stream::get_current_ptr() const
+    {
+        if( m_unused_bits > 0 )
+            return m_data + m_offset + 1;
+        else
+            return m_data + m_offset;
+    }
+
     inline uint32_t Stream::get_bit_position() const
     {
         return m_offset*8 - m_unused_bits;
@@ -255,10 +265,15 @@ namespace openswf
         return m_offset >= m_size && m_unused_bits <= 0;
     }
 
-    inline Bytes Stream::extract(uint32_t size) const
+    inline BytesPtr Stream::extract(uint32_t size) const
     {
         auto bytes = new (std::nothrow) uint8_t[size];
-        memcpy(bytes, this->m_data+m_offset, size);
-        return Bytes(bytes);
+        memcpy(bytes, m_data+m_offset, size);
+        return BytesPtr(bytes);
+    }
+
+    inline void Stream::record(uint8_t* dst, uint32_t size) const
+    {
+        memcpy(dst, m_data+m_offset, size);
     }
 }

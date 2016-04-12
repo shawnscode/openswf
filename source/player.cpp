@@ -94,15 +94,6 @@ namespace openswf
                     break;
                 }
 
-                case TagCode::PLACE_OBJECT:
-                case TagCode::PLACE_OBJECT2:
-                case TagCode::REMOVE_OBJECT:
-                case TagCode::REMOVE_OBJECT2:
-                {
-                    commands.push_back(FrameCommand::create(tag, stream->extract(tag.size)));
-                    break;
-                }
-
                 case TagCode::DEFINE_SHAPE:
                 case TagCode::DEFINE_SHAPE2:
                 case TagCode::DEFINE_SHAPE3:
@@ -111,6 +102,30 @@ namespace openswf
                     auto shape = DefineShape::create(*stream, tag.code);
                     if( shape != nullptr )
                         set_character(shape->get_character_id(), shape);
+                    break;
+                }
+
+                case TagCode::DEFINE_BITS_LOSSLESS:
+                {
+                    auto texture = DefineBitsLossless::create(*stream, tag);
+                    if( texture != nullptr ) set_character(texture->get_character_id(), texture);
+                    break;
+                }
+
+                case TagCode::DEFINE_BITS_LOSSLESS2:
+                {
+                    auto texture = DefineBitsLossless2::create(*stream, tag);
+                    if( texture != nullptr ) set_character(texture->get_character_id(), texture);
+                    break;
+                }
+
+                case TagCode::PLACE_OBJECT:
+                case TagCode::PLACE_OBJECT2:
+                case TagCode::PLACE_OBJECT3:
+                case TagCode::REMOVE_OBJECT:
+                case TagCode::REMOVE_OBJECT2:
+                {
+                    commands.push_back(FrameCommand::create(tag, stream->extract(tag.size)));
                     break;
                 }
 

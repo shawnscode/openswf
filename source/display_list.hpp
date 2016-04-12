@@ -34,17 +34,20 @@ namespace openswf
         void set_clip_depth(uint16_t clip_depth);
     };
 
-    class Shape;
+    template<typename T>
     class Primitive : public Node
     {
     protected:
-        Shape*      m_shape;
+        T*      m_primitive;
 
     public:
-        Primitive(Shape* shape);
-        virtual ~Primitive();
-        virtual void update(float dt);
-        virtual void render(const Matrix& matrix, const ColorTransform& cxform);
+        Primitive(T* primitive) : Node(primitive), m_primitive(primitive) {}
+
+        virtual void update(float dt) {}
+        virtual void render(const Matrix& matrix, const ColorTransform& cxform)
+        {
+            m_primitive->render(m_matrix*matrix, m_cxform*cxform);
+        }
     };
 
     class Player;
