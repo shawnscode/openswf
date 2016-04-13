@@ -3,7 +3,7 @@
 #include <vector>
 #include "types.hpp"
 #include "record.hpp"
-#include "render.hpp"
+#include "shader.hpp"
 
 namespace openswf
 {
@@ -25,6 +25,7 @@ namespace openswf
     {
         virtual ~FillStyle() {}
         virtual void execute() = 0;
+        virtual Color get_color() const { return Color::black; }
         virtual Point2f get_texcoord(const Point2f&) = 0;
     };
 
@@ -33,6 +34,7 @@ namespace openswf
         Color color;
         virtual void execute();
         virtual Point2f get_texcoord(const Point2f&);
+        virtual Color get_color() const;
     };
 
     // * all gradients are defined in a standard space called the gradient square. 
@@ -150,22 +152,20 @@ namespace openswf
         Rect                    m_bounds;
         std::vector<FillPtr>    m_fill_styles;
         std::vector<LinePtr>    m_line_styles;
-        std::vector<Point2f>    m_vertices;
+        std::vector<VertexPack> m_vertices;
         std::vector<uint16_t>   m_indices;
-        std::vector<uint16_t>   m_contour_indices;
+        std::vector<uint16_t>   m_vertices_size;
+        std::vector<uint16_t>   m_indices_size;
 
-        Rid                     m_rid_indices;
-        Rid                     m_rid_vertices;
-
-        bool initialize();
     public:
         static Shape* create(uint16_t cid, 
             Rect& rect,
             std::vector<FillPtr>& fill_styles,
             std::vector<LinePtr>& line_styles,
-            std::vector<Point2f>& vertices,
+            std::vector<VertexPack>& vertices,
             std::vector<uint16_t>& indices,
-            std::vector<uint16_t>& contour_indices);
+            std::vector<uint16_t>& vertices_size,
+            std::vector<uint16_t>& indices_size);
 
         virtual Node*    create_instance(Player*);
         virtual uint16_t get_character_id() const;
@@ -185,13 +185,9 @@ namespace openswf
     protected:
         uint16_t                m_character_id;
 
-        // std::vector<Point2f>    m_vertices;
-        // std::vector<uint8_t>    m_indices;
-
+        // std::vector<VertexPack> m_vertices; // ??? crash
         BitmapPtr               m_bitmap;
         Rid                     m_rid;
-        Rid                     m_rid_indices;
-        Rid                     m_rid_vertices;
 
     public:
         static Texture* create(uint16_t cid, BitmapPtr bitmap);

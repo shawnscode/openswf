@@ -16,8 +16,8 @@ namespace openswf
 namespace record
 {
     // TAG: 2, 22, 32, 83 DEFINE SHAPE
-    const uint32_t  MAX_CURVE_SUBDIVIDE = 20;
-    const float     CURVE_TOLERANCE     = 1.0f;
+    const uint32_t  MAX_CURVE_SUBDIVIDE = 10;
+    const float     CURVE_TOLERANCE     = 4.f;
     const uint32_t  MAX_POLYGON_SIZE    = 6;
 
     enum class FillStyleCode : uint8_t
@@ -459,8 +459,8 @@ namespace record
         assert( polygons.size() == fill_styles.size() );
         assert( lines.size() == line_styles.size() );
 
-        std::vector<Point2f>    vertices;
-        std::vector<uint16_t>   indices, contour_indices;
+        std::vector<VertexPack> vertices;
+        std::vector<uint16_t>   indices, indices_size, vertices_size;
 
         for( auto& mesh_set : polygons )
         {
@@ -483,15 +483,14 @@ namespace record
             const TESSindex nelems = tessGetElementCount(tess);
             const TESSindex* elems = tessGetElements(tess);
 
-            auto vert_base_size = vertices.size() >> 1;
-            vertices.reserve((vert_base_size+vcount) << 1);
+            auto vert_base_size = vertices.size();
+            vertices.reserve(vert_base_size+vcount);
             for( int i=0; i<vcount; i++ )
             {
                 auto position = Point2f(tess_vertices[i*2], tess_vertices[i*2+1]).to_pixel();
-                vertices.push_back( position );   // position
+                auto texcoord = fill_styles[indices_size.size()]->get_texcoord(position);
 
-                auto texcoord = fill_styles[contour_indices.size()]->get_texcoord(position);
-                vertices.push_back( texcoord );
+                vertices.push_back( {position.x, position.y, texcoord.x, texcoord.y} );
             }
 
             auto ind_base_size = indices.size();
@@ -504,20 +503,25 @@ namespace record
                 // triangle fans
                 for( int j=2; j<MAX_POLYGON_SIZE && p[j] != TESS_UNDEF; j++ )
                 {
-                    indices.push_back(vert_base_size + p[0]);
-                    indices.push_back(vert_base_size + p[j-1]);
-                    indices.push_back(vert_base_size + p[j]);
+                    indices.push_back(p[0]);
+                    indices.push_back(p[j-1]);
+                    indices.push_back(p[j]);
                 }
             }
 
             tessDeleteTess(tess);
-            contour_indices.push_back( indices.size() );
+            indices_size.push_back( indices.size() );
+            vertices_size.push_back( vertices.size() );
         }
 
-        assert( polygons.size() == contour_indices.size() );
-        assert( contour_indices.back() == indices.size() );
+        assert( polygons.size() == indices_size.size() );
+        assert( indices_size.back() == indices.size() );
+        assert( indices_size.size() == vertices_size.size() );
 
-        return Shape::create(character_id, bounds, fill_styles, line_styles, vertices, indices, contour_indices);
+        return Shape::create(character_id, bounds,
+            fill_styles, line_styles,
+            vertices, indices,
+            vertices_size, indices_size);
     }
 
 

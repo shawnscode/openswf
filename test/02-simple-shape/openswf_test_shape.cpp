@@ -23,6 +23,8 @@ int main(int argc, char* argv[])
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+    int width = 512;
+    int height = 512;
     auto window = glfwCreateWindow(512, 512, "02-Simple-Shape", NULL, NULL);
     if( !window )
     {
@@ -34,28 +36,33 @@ int main(int argc, char* argv[])
     glfwMakeContextCurrent(window);
     glfwSetTime(0);
 
-    if( !Render::initilize() )
+    if( !openswf::initialize(width, height) )
     {
         glfwTerminate();
         return -1;
     }
 
     auto& render = Render::get_instance();
-    auto& shader = DefaultShader::get_instance();
+    auto& shader = Shader::get_instance();
 
     auto stream = create_from_file("../test/resources/simple-shape-2.swf");
     auto player = Player::create(&stream);
 
+    shader.set_program(PROGRAM_DEFAULT);
     while( !glfwWindowShouldClose(window) )
     {
-        int width, height;
         glfwGetWindowSize(window, &width, &height);
 
         render.set_viewport(0, 0, width, height);
         render.clear(CLEAR_COLOR | CLEAR_DEPTH, 100, 100, 100, 255);
-        shader.set_project(width, height);
 
         player->render();
+
+        // shader.bind(Matrix::identity, ColorTransform::identity);
+        // render.draw(DrawMode::TRIANGLE, 0, 6);
+
+        // shader.draw({0, 0, 0, 0}, {0, 256, 0, 0}, {256, 256, 0, 0}, {256, 0, 0, 0});
+        shader.flush();
 
         glfwSwapBuffers(window);
         glfwPollEvents();

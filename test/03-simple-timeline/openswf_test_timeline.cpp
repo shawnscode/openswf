@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
     // auto size   = player->get_size();
         
     auto& render = Render::get_instance();
-    auto& shader = DefaultShader::get_instance();
+    auto& shader = Shader::get_instance();
     auto last_time = glfwGetTime();
 
     while( !glfwWindowShouldClose(window) )

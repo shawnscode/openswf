@@ -116,7 +116,7 @@ namespace openswf
 
     public:
         static Render& get_instance();
-        static bool initilize();
+        static bool initialize();
         static void dispose();
 
         void set_viewport(int x, int y, int width, int height);
@@ -133,11 +133,12 @@ namespace openswf
 
         void bind_shader(Rid id);
         void bind_index_buffer(Rid id, ElementFormat format, int stride, int offset);
-        void bind_vertex_buffer(int index, Rid id, int n, ElementFormat format, int stride, int offset);
+        void bind_vertex_buffer(int index, Rid id, 
+            int n, ElementFormat format, int stride, int offset, bool normalized = false);
         void bind_texture(int index, Rid id);
         void bind_uniform(int index, UniformFormat format, const float* v);
 
-        Rid create_buffer(RenderObject what, const void* data, int size, ElementFormat format);
+        Rid create_buffer(RenderObject what, const void* data, int size);
         Rid create_texture(const void* data, int width, int height, TextureFormat format, int mipmap);
         Rid create_shader(const char* vs, const char* fs, int attribute_n,
             int texture_n, const char** textures,

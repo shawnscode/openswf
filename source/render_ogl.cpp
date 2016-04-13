@@ -120,8 +120,11 @@ namespace openswf
         int n;
         GLenum format;
 
-        BufferLayout(Rid rid, int n, GLenum format, int stride, int offset)
-        : rid(rid), n(n), format(format), stride(stride), offset(offset){}
+        GLboolean normalized;
+
+        BufferLayout(Rid rid, int n, GLenum format, int stride, int offset, bool normalized)
+        : rid(rid), n(n), format(format), stride(stride), offset(offset), 
+        normalized(normalized?GL_TRUE:GL_FALSE){}
 
         BufferLayout()
         : rid(0) {}
@@ -130,7 +133,6 @@ namespace openswf
     struct Buffer
     {
         GLuint handle;
-        GLenum format;
         GLenum type;
 
         Buffer() : handle(0) {}
@@ -332,13 +334,10 @@ namespace openswf
             {
                 pid = 0;
                 glUseProgram(0);
-                glBindVertexArray(0);
             }
             else
             {
                 glUseProgram(program->handle);
-                glBindVertexArray(program->vao);
-
                 for( int i=0; i<program->texture_n; i++ )
                     glUniform1i(program->textures[i], i);
             }
@@ -354,6 +353,7 @@ namespace openswf
         auto program = array_get(this->programs, this->current.program);
         if( program == nullptr || program->handle == 0 ) return;
 
+        glBindVertexArray(program->vao);
         Rid last = 0;
         for( int i=0; i<program->attribute_n; i++ )
         {
@@ -373,7 +373,7 @@ namespace openswf
             glVertexAttribPointer(i,
                 layout.n,
                 layout.format,
-                GL_FALSE,
+                layout.normalized,
                 layout.stride,
                 (uint8_t*)0+layout.offset);
         }
@@ -402,11 +402,11 @@ namespace openswf
                     this->last.textures[i] = index;
                     continue;
                 }
-            }
 
-            glActiveTexture(GL_TEXTURE0+i);
-            glBindTexture(GL_TEXTURE_2D, 0);
-            this->last.textures[i] = 0;
+                glActiveTexture(GL_TEXTURE0+i);
+                glBindTexture(GL_TEXTURE_2D, 0);
+                this->last.textures[i] = 0;
+            }
         }
         CHECK_GL_ERROR
     }
@@ -516,7 +516,7 @@ namespace openswf
     //// GLOBAL RENDER SINGLETON 
     static Render* s_instance = nullptr;
 
-    bool Render::initilize()
+    bool Render::initialize()
     {
         assert( s_instance == nullptr );
         s_instance = new (std::nothrow) Render();
@@ -645,24 +645,26 @@ namespace openswf
         auto index_buffer = array_get(m_state->buffers, m_state->current.index_buffer.rid);
         assert(index_buffer != nullptr && index_buffer->handle != 0);
         
-        auto offset = from_index*get_sizeof_format(index_buffer->format);
-        glDrawElements(draw_mode[(int)mode], number, index_buffer->format, (char*)0+offset);
+        auto format = m_state->current.index_buffer.format;
+        auto offset = from_index*get_sizeof_format(format);
+        glDrawElements(draw_mode[(int)mode], number, format, (char*)0+offset);
+        CHECK_GL_ERROR
     }
 
     void Render::bind_index_buffer(Rid id, ElementFormat format, int stride, int offset)
     {
         m_state->current.index_buffer = BufferLayout(id,
             1, ElementFormatTable[(int)format],
-            stride, offset);
+            stride, offset, false);
         m_state->change_flags |= CHANGE_VERTEXARRAY;
     }
 
-    void Render::bind_vertex_buffer(int index, Rid id, int n, ElementFormat format, int stride, int offset)
+    void Render::bind_vertex_buffer(int index, Rid id, int n, ElementFormat format, int stride, int offset, bool normalized)
     {
         assert( index >= 0 && index < MaxVertexBufferSlot );
         m_state->current.vertex_buffers[index] = BufferLayout(id,
             n, ElementFormatTable[(int)format],
-            stride, offset);
+            stride, offset, normalized);
         m_state->change_flags |= CHANGE_VERTEXARRAY;
     }
 
@@ -832,7 +834,7 @@ namespace openswf
         return array_id(m_state->programs, program);
     }
 
-    Rid Render::create_buffer(RenderObject what, const void* data, int size, ElementFormat format)
+    Rid Render::create_buffer(RenderObject what, const void* data, int size)
     {
         assert( what == RenderObject::VERTEX_BUFFER || what == RenderObject::INDEX_BUFFER );
 
@@ -845,7 +847,6 @@ namespace openswf
         glGenBuffers(1, &buffer->handle);
         glBindBuffer(buffer->type, buffer->handle);
 
-        buffer->format = ElementFormatTable[(int)format];
         if( data && size > 0 )
             glBufferData(buffer->type, size, data, GL_STATIC_DRAW);
 
