@@ -18,40 +18,76 @@ using namespace openswf::record;
 namespace openswf
 {
     // SHAPE FILL
-    ShapeFillPtr ShapeFill::create(BitmapPtr bitmap,
+
+    ShapeFillPtr ShapeFill::create(
+        uint16_t cid,
+        BitmapPtr bitmap,
         const Color& additive_start, const Color& additive_end,
         const Matrix& matrix_start, const Matrix& matrix_end)
     {
         auto fill = new (std::nothrow) ShapeFill();
         if( fill == nullptr ) return nullptr;
 
+        fill->m_texture_cid = cid;
         fill->m_bitmap = std::move(bitmap);
+        fill->m_texture = 0;
+
         fill->m_additive_start = additive_start;
         fill->m_additive_end = additive_end;
+
         fill->m_texcoord_start = matrix_start;
         fill->m_texcoord_end = matrix_end;
-        fill->m_managed_bitmap = 0;
 
         return ShapeFillPtr(fill);
     }
 
-    ShapeFillPtr ShapeFill::create(BitmapPtr bitmap, const Color& additive, const Matrix& matrix)
+    ShapeFillPtr ShapeFill::create(const Color& additive)
     {
-        return create(std::move(bitmap), additive, additive, matrix, matrix);
+        return create(0, nullptr, additive, additive, Matrix::identity, Matrix::identity);
     }
 
-    Rid ShapeFill::get_bitmap()
+    ShapeFillPtr ShapeFill::create(const Color& start, const Color& end)
     {
-        if( m_bitmap == nullptr )
-            return 0;
+        return create(0, nullptr, start, end, Matrix::identity, Matrix::identity);
+    }
 
-        if( m_managed_bitmap == 0 )
+    ShapeFillPtr ShapeFill::create(BitmapPtr bitmap, const Matrix& transform)
+    {
+        return create(0, std::move(bitmap), Color::black, Color::black, transform, transform);
+    }
+
+    ShapeFillPtr ShapeFill::create(BitmapPtr bitmap, const Matrix& start, const Matrix& end)
+    {
+        return create(0, std::move(bitmap), Color::black, Color::black, start, end);
+    }
+
+    ShapeFillPtr ShapeFill::create(uint16_t cid, const Matrix& transform)
+    {
+        return create(cid, nullptr, Color::black, Color::black, transform, transform);
+    }
+
+    ShapeFillPtr ShapeFill::create(uint16_t cid, const Matrix& start, const Matrix& end)
+    {
+        return create(cid, nullptr, Color::black, Color::black, start, end);
+    }
+
+    Rid ShapeFill::get_bitmap(Player* env)
+    {
+        if( m_texture == 0 )
         {
-            m_managed_bitmap = Render::get_instance().create_texture(
-                m_bitmap->get_ptr(), m_bitmap->get_width(), m_bitmap->get_height(), m_bitmap->get_format(), 1);
+            auto texture = env->get_character<Texture>(m_texture_cid);
+            if( texture )
+            {
+                m_texture = texture->get_texture_rid();
+            }
+            else if( m_bitmap != nullptr )
+            {
+                m_texture = Render::get_instance().create_texture(
+                    m_bitmap->get_ptr(), m_bitmap->get_width(), m_bitmap->get_height(), m_bitmap->get_format(), 1);
+            }
         }
 
-        return m_managed_bitmap;
+        return m_texture;
     }
 
     Color ShapeFill::get_additive_color(int ratio) const
@@ -99,7 +135,7 @@ namespace openswf
         return nullptr;
     }
 
-    void Shape::render(const Matrix& matrix, const ColorTransform& cxform)
+    void Shape::render(Player* env, const Matrix& matrix, const ColorTransform& cxform)
     {
         auto& shader = Shader::get_instance();
         shader.set_program(PROGRAM_DEFAULT);
@@ -116,14 +152,14 @@ namespace openswf
             for( auto j=vbase; j<vbase+vcount; j++ )
                 m_vertices[j].additive = color;
 
-            shader.set_texture(0, m_fill_styles[i]->get_bitmap());
+            shader.set_texture(0, m_fill_styles[i]->get_bitmap(env));
             shader.draw(vcount, m_vertices.data()+vbase, icount, m_indices.data()+ibase, matrix, cxform);
         }
     }
 
     Node* Shape::create_instance(Player* env)
     {
-        return new Primitive<Shape>(this);
+        return new Primitive<Shape>(env, this);
     }
 
     uint16_t Shape::get_character_id() const
@@ -155,19 +191,11 @@ namespace openswf
         return true;
     }
 
-    void Texture::render(const Matrix& matrix, const ColorTransform& cxform)
+    void Texture::render(Player* env, const Matrix& matrix, const ColorTransform& cxform)
     {
-        if( m_rid == 0 )
-        {
-            auto& render = Render::get_instance();
-            m_rid = render.create_texture(
-                m_bitmap->get_ptr(), m_bitmap->get_width(), m_bitmap->get_height(),
-                m_bitmap->get_format(), 1);
-        }
-
         auto& shader = Shader::get_instance();
         shader.set_program(PROGRAM_DEFAULT);
-        shader.set_texture(0, m_rid);
+        shader.set_texture(0, get_texture_rid());
 
         VertexPack vertices[4] = {
             {0, 0, 0, 0},
@@ -177,9 +205,21 @@ namespace openswf
         shader.draw(vertices[0], vertices[1], vertices[2], vertices[3], matrix, cxform);
     }
 
+    Rid Texture::get_texture_rid()
+    {
+        if( m_rid == 0 )
+        {
+            m_rid = Render::get_instance().create_texture(
+                m_bitmap->get_ptr(), m_bitmap->get_width(), m_bitmap->get_height(),
+                m_bitmap->get_format(), 1);
+        }
+
+        return m_rid;
+    }
+
     Node* Texture::create_instance(Player* env)
     {
-        return new Primitive<Texture>(this);
+        return new Primitive<Texture>(env, this);
     }
 
     uint16_t Texture::get_character_id() const

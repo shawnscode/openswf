@@ -13,6 +13,7 @@ namespace openswf
     {
     protected:
         ICharactor*     m_character;
+        Player*         m_environment;
         Matrix          m_matrix;
         ColorTransform  m_cxform;
         uint16_t        m_ratio;
@@ -20,7 +21,7 @@ namespace openswf
         uint16_t        m_clip_depth;
 
     public:
-        Node(ICharactor* ch) : m_character(ch) {}
+        Node(Player* env, ICharactor* ch) : m_environment(env), m_character(ch) {}
 
         virtual ~Node() {}
         virtual void update(float dt) = 0;
@@ -41,12 +42,13 @@ namespace openswf
         T*      m_primitive;
 
     public:
-        Primitive(T* primitive) : Node(primitive), m_primitive(primitive) {}
+        Primitive(Player* env, T* primitive)
+        : Node(env, primitive), m_primitive(primitive) {}
 
         virtual void update(float dt) {}
         virtual void render(const Matrix& matrix, const ColorTransform& cxform)
         {
-            m_primitive->render(m_matrix*matrix, m_cxform*cxform);
+            m_primitive->render(m_environment, m_matrix*matrix, m_cxform*cxform);
         }
     };
 
@@ -54,7 +56,6 @@ namespace openswf
     class MovieClip : public Node
     {
         std::unordered_map<uint16_t, Node*> m_children;
-        Player*                             m_environment;
         Sprite*                             m_sprite;
         uint32_t                            m_current_frame;
         float                               m_frame_delta;

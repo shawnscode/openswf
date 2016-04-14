@@ -25,20 +25,26 @@ namespace openswf
     class ShapeFill
     {
     protected:
-        Rid         m_managed_bitmap;
+        uint16_t    m_texture_cid;
         BitmapPtr   m_bitmap;
+
+        Rid         m_texture;
         Color       m_additive_start, m_additive_end;
         Matrix      m_texcoord_start, m_texcoord_end;
 
-    public:
-        static ShapeFillPtr create(BitmapPtr bitmap,
+        static ShapeFillPtr create(uint16_t cid,
+            BitmapPtr bitmap,
             const Color&, const Color&,
-            const Matrix& start = Matrix::identity, const Matrix& end = Matrix::identity);
-        static ShapeFillPtr create(BitmapPtr bitmap,
-            const Color&,
-            const Matrix& matrix = Matrix::identity);
+            const Matrix&, const Matrix&);
+    public:
+        static ShapeFillPtr create(const Color&);
+        static ShapeFillPtr create(const Color&, const Color&);
+        static ShapeFillPtr create(BitmapPtr bitmap, const Matrix&);
+        static ShapeFillPtr create(BitmapPtr bitmap, const Matrix&, const Matrix&);
+        static ShapeFillPtr create(uint16_t cid, const Matrix&);
+        static ShapeFillPtr create(uint16_t cid, const Matrix&, const Matrix&);
 
-        Rid     get_bitmap();
+        Rid     get_bitmap(Player* env);
         Color   get_additive_color(int ratio = 0) const;
         Point2f get_texcoord(const Point2f&, int ratio = 0) const;
     };
@@ -98,7 +104,7 @@ namespace openswf
         virtual Node*    create_instance(Player*);
         virtual uint16_t get_character_id() const;
 
-        void        render(const Matrix& matrix, const ColorTransform& cxform);
+        void        render(Player* env, const Matrix& matrix, const ColorTransform& cxform);
         const Rect& get_bounds() const;
     };
 
@@ -112,8 +118,6 @@ namespace openswf
     {
     protected:
         uint16_t                m_character_id;
-
-        // std::vector<VertexPack> m_vertices; // ??? crash
         BitmapPtr               m_bitmap;
         Rid                     m_rid;
 
@@ -124,14 +128,9 @@ namespace openswf
         virtual Node*    create_instance(Player*);
         virtual uint16_t get_character_id() const;
 
-        void render(const Matrix& matrix, const ColorTransform& cxform);
-        Rid  get_rid() const;
+        void render(Player* env, const Matrix& matrix, const ColorTransform& cxform);
+        Rid  get_texture_rid();
     };
-
-    inline Rid Texture::get_rid() const
-    {
-        return m_rid;
-    }
 
     // A sprite corresponds to a movie clip in the Adobe Flash authoring application.
     // It is a SWF file contained within another SWF file, and supports many of the

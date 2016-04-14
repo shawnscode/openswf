@@ -35,6 +35,10 @@ namespace openswf
         void            set_character(uint16_t, ICharactor* ch);
         ICharactor*     get_character(uint16_t cid);
 
+        template<typename T> T* get_character(uint16_t cid) {
+            return dynamic_cast<T*>( get_character(cid) );
+        }
+
         const Rect&     get_size() const;
         MovieClip*      get_root() const;
     };

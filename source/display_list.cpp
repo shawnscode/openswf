@@ -18,7 +18,7 @@ namespace openswf
 
     ////
     MovieClip::MovieClip(Player* env, Sprite* sprite)
-    : Node(sprite), m_environment(env), m_sprite(sprite), m_frame_timer(0), m_current_frame(0), m_paused(false)
+    : Node(env, sprite), m_sprite(sprite), m_frame_timer(0), m_current_frame(0), m_paused(false)
     {
         assert( sprite->get_frame_rate() < 64 && sprite->get_frame_rate() > 0.1f );
         m_frame_rate = sprite->get_frame_rate();
