@@ -27,7 +27,9 @@ int main(int argc, char* argv[])
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    auto window = glfwCreateWindow(512, 512, "03-Simple-Timeline", NULL, NULL);
+    int width = 512;
+    int height = 512;
+    auto window = glfwCreateWindow(width, height, "03-Simple-Timeline", NULL, NULL);
     if( !window )
     {
         glfwTerminate();
@@ -38,7 +40,7 @@ int main(int argc, char* argv[])
     glfwMakeContextCurrent(window);
     glfwSetTime(0);
 
-    if( !Render::initilize() )
+    if( !openswf::initialize(width, height) )
     {
         glfwTerminate();
         return -1;
@@ -46,7 +48,6 @@ int main(int argc, char* argv[])
 
     auto stream = create_from_file("../test/resources/simple-timeline-1.swf");
     auto player = Player::create(&stream);
-    // auto size   = player->get_size();
         
     auto& render = Render::get_instance();
     auto& shader = Shader::get_instance();
@@ -54,12 +55,10 @@ int main(int argc, char* argv[])
 
     while( !glfwWindowShouldClose(window) )
     {
-        int width, height;
         glfwGetWindowSize(window, &width, &height);
 
         render.set_viewport(0, 0, width, height);
         render.clear(CLEAR_COLOR | CLEAR_DEPTH, 100, 100, 100, 255);
-        shader.set_project(width, height);
 
         auto now_time = glfwGetTime();
         player->update(now_time-last_time);
