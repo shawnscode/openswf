@@ -58,6 +58,7 @@ namespace openswf
         Sprite*                             m_sprite;
         uint32_t                            m_current_frame;
         float                               m_frame_delta;
+        float                               m_frame_rate;
         float                               m_frame_timer;
         bool                                m_paused;
 
@@ -79,6 +80,8 @@ namespace openswf
         uint32_t    get_frame_count() const;
         uint32_t    get_current_frame() const;
         float       get_frame_rate() const;
+
+        void        set_frame_rate(float rate);
     };
 
     /// INLINE METHODS
@@ -119,6 +122,13 @@ namespace openswf
 
     inline float MovieClip::get_frame_rate() const
     {
-        return m_sprite->get_frame_rate();
+        return m_frame_rate;
+    }
+
+    inline void MovieClip::set_frame_rate(float rate)
+    {
+        assert( rate < 64.f && rate > 0.1f );
+        m_frame_rate = rate;
+        m_frame_delta = 1.f / rate;
     }
 }

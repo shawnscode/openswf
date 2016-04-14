@@ -21,7 +21,8 @@ namespace openswf
     : Node(sprite), m_environment(env), m_sprite(sprite), m_frame_timer(0), m_current_frame(0), m_paused(false)
     {
         assert( sprite->get_frame_rate() < 64 && sprite->get_frame_rate() > 0.1f );
-        m_frame_delta = 1.f / sprite->get_frame_rate();
+        m_frame_rate = sprite->get_frame_rate();
+        m_frame_delta = 1.f / m_frame_rate;
         goto_and_play(1);
     }
 
@@ -128,8 +129,6 @@ namespace openswf
 
     void MovieClip::goto_frame(uint32_t frame)
     {
-        m_frame_timer = 0.f;
-        
         if( frame < 1 ) frame = 1;
         if( m_current_frame == frame )
             return;
@@ -143,7 +142,5 @@ namespace openswf
         {
             m_sprite->execute(*this, ++m_current_frame);
         }
-        
-        m_current_frame = frame;
     }
 }

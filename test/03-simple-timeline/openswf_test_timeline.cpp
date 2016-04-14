@@ -64,6 +64,7 @@ int main(int argc, char* argv[])
         player->update(now_time-last_time);
         last_time = now_time;
         player->render();
+        shader.flush();
         
         glfwSwapBuffers(window);
         glfwPollEvents();
