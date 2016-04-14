@@ -4,6 +4,7 @@ compiler: clang
 
 before_install:
     - brew tap homebrew/dupes
+    - brew update
     - brew install wget
     - brew install glfw3
     - brew install glew
