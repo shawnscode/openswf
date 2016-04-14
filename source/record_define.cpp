@@ -20,7 +20,7 @@ namespace record
     const float     CURVE_TOLERANCE     = 4.f;
     const uint32_t  MAX_POLYGON_SIZE    = 6;
 
-    enum class FillStyleCode : uint8_t
+    enum class StyleMode : uint8_t
     {
         SOLID                           = 0x00,
         LINEAR_GRADIENT                 = 0x10,
@@ -41,6 +41,22 @@ namespace record
         SHAPE_FILL_STYLE_1  = 0x04,
         SHAPE_LINE_STYLE    = 0x08,
         SHAPE_NEW_STYLE     = 0x10
+    };
+
+    enum class GradientSpreadMode : uint8_t
+    {
+        PAD         = 0,
+        REFLECT     = 1,
+        REPEAT      = 2,
+        RESERVED    = 3
+    };
+
+    enum class GradientInterpolationMode : uint8_t
+    {
+        NORMAL      = 0,
+        LINEAR      = 1,
+        RESERVED_1  = 2,
+        RESERVED_2  = 3
     };
 
     struct ShapeEdge
@@ -78,58 +94,125 @@ namespace record
         }
     };
 
-    static void read_gradient(Stream& stream, GradientFill* gradient, TagCode tag)
+    struct GradientPoint
     {
-        gradient->transform = stream.read_matrix().to_pixel();
-        gradient->spread = (GradientFill::SpreadMode)stream.read_bits_as_uint32(2);
-        gradient->interp = (GradientFill::InterpolationMode)stream.read_bits_as_uint32(2);
+        int     ratio;
+        Color   color;
 
-        auto count = stream.read_bits_as_uint32(4);
-        assert( count > 0 );
+        GradientPoint(int ratio, Color color) : ratio(ratio), color(color) {}
+    };
 
-        gradient->controls.reserve(count);
-        for( auto i=0; i<count; i++ )
-        {
-            GradientFill::ControlPoint ctrl;
-            ctrl.ratio = stream.read_uint8();
-            if( tag == TagCode::DEFINE_SHAPE3 || tag == TagCode::DEFINE_SHAPE4 )
-                ctrl.color = stream.read_rgba();
-            else 
-                ctrl.color = stream.read_rgb();
-            gradient->controls.push_back(ctrl);
-        }
-    }
-
-    static FillStyle* read_fill_style(Stream& stream, TagCode tag)
+    struct Gradient
     {
-        auto type = (FillStyleCode)stream.read_uint8();
-        if( type == FillStyleCode::SOLID )
+        Matrix                      transform;
+        GradientSpreadMode          spread;
+        GradientInterpolationMode   interp;
+        std::vector<GradientPoint>  controls;
+
+        static std::unique_ptr<Gradient> read(Stream& stream, TagCode tag)
         {
-            auto solid = new SolidFill();
+            auto gradient = new Gradient;
+            gradient->transform = stream.read_matrix().to_pixel();
+            gradient->spread = (GradientSpreadMode)stream.read_bits_as_uint32(2);
+            gradient->interp = (GradientInterpolationMode)stream.read_bits_as_uint32(2);
+            auto count = stream.read_bits_as_uint32(4);
+            assert( count > 0 );
+
+            gradient->controls.reserve(count);
+            for( auto i=0; i<count; i++ )
+            {
+                gradient->controls.push_back(GradientPoint(
+                    stream.read_uint8(),
+                    (tag == TagCode::DEFINE_SHAPE3 || tag == TagCode::DEFINE_SHAPE4) ?
+                        stream.read_rgba() : stream.read_rgb()));
+            }
+
+            return std::unique_ptr<Gradient>(gradient);
+        }
+
+        Color sample(int ratio) const
+        {
+            assert( ratio >= 0 && ratio < 256 );
+            assert( this->controls.size() > 0 );
+
+            if( ratio < this->controls[0].ratio )
+                return this->controls[0].color;
+
+            for( auto i=1; i<this->controls.size(); i++ )
+            {
+                if( this->controls[i].ratio >= ratio )
+                {
+                    const auto& last = this->controls[i-1];
+                    const auto& now = this->controls[i];
+
+                    auto percent = 0.0f;
+                    if( last.ratio != now.ratio )
+                        percent = (float)(ratio - last.ratio) / (float)(now.ratio - last.ratio);
+
+                    return Color::lerp(last.color, now.color, percent);
+                }
+            }
+
+            return this->controls.back().color;
+        }
+
+        BitmapPtr create_bitmap_linear() const
+        {
+            static const int width = 64;
+            static const int height = 1;
+
+            auto source = Bitmap::create(TextureFormat::RGBA8, width, height);
+            for( auto i=0; i<source->get_height(); i++ )
+                for( auto j=0; j<source->get_width(); j++ )
+                    source->set(i, j, sample(255.f*(float)j/(float)width).to_value());
+
+            return std::move(source);
+        }
+
+        BitmapPtr create_bitmap_radial() const
+        {
+            static const int width = 16;
+            static const int height = 16;
+
+            auto source = Bitmap::create(TextureFormat::RGBA8, width, height);
+            for( auto i=0; i<height; i++ )
+            {
+                for( auto j=0; j<width; j++ )
+                {
+                    float radius = (height - 1) / 2.0f;
+                    float y = (j - radius) / radius;
+                    float x = (i - radius) / radius;
+                    int ratio = (int) floorf(255.5f * sqrt(x * x + y * y));
+                    if( ratio > 255.f ) ratio = 255.f;
+                    source->set(i, j, sample(ratio).to_value());
+                }
+            }
+
+            return std::move(source);
+        }
+    };
+
+    static ShapeFillPtr read_fill_style(Stream& stream, TagCode tag)
+    {
+        auto type = (StyleMode)stream.read_uint8();
+        if( type == StyleMode::SOLID )
+        {
             if( tag == TagCode::DEFINE_SHAPE3 || tag == TagCode::DEFINE_SHAPE4 )
-                solid->color = stream.read_rgba();
+                return ShapeFill::create(nullptr, stream.read_rgba());
             else 
-                solid->color = stream.read_rgb();
-            return solid;
+                return ShapeFill::create(nullptr, stream.read_rgb());
         }
-        else if( type == FillStyleCode::LINEAR_GRADIENT )
+        else if( type == StyleMode::LINEAR_GRADIENT )
         {
-            auto linear = new LinearGradientFill();
-            read_gradient(stream, linear, tag);
-            return linear;
+            auto gradient = Gradient::read(stream, tag);
+            auto bitmap = gradient->create_bitmap_linear();
+            return ShapeFill::create(std::move(bitmap), Color::black, gradient->transform);
         }
-        else if( type == FillStyleCode::RADIAL_GRADIENT )
+        else if( type == StyleMode::RADIAL_GRADIENT || type == StyleMode::FOCAL_RADIAL_GRADIENT )
         {
-            auto radial = new RadialGradientFill();
-            read_gradient(stream, radial, tag);
-            return radial;
-        }
-        else if( type == FillStyleCode::FOCAL_RADIAL_GRADIENT )
-        {
-            auto focal = new FocalRadialGradientFill();
-            read_gradient(stream, focal, tag);
-            focal->focal = stream.read_fixed16();
-            return focal;
+            auto gradient = Gradient::read(stream, tag);
+            auto bitmap = gradient->create_bitmap_radial();
+            return ShapeFill::create(std::move(bitmap), Color::black, gradient->transform);
         }
         else
             assert(false); // not supported yet
@@ -162,7 +245,7 @@ namespace record
                 line->miter_limit_factor = line->join == Joincode::MITER ? stream.read_uint16() : 0;
                 
                 if( line->has_fill )
-                    line->fill = FillPtr(read_fill_style(stream, type));
+                    line->fill = read_fill_style(stream, type);
                 else
                     line->color = stream.read_rgba();
             }
@@ -178,14 +261,14 @@ namespace record
         }
     }
 
-    static void read_fill_styles(Stream& stream, std::vector<FillPtr>& array, TagCode tag)
+    static void read_fill_styles(Stream& stream, std::vector<ShapeFillPtr>& array, TagCode tag)
     {
         uint8_t count = stream.read_uint8();
         if( count == 0xFF ) count = stream.read_uint16();
 
         array.reserve(count + array.size());
         for( auto i=0; i<count; i++ )
-            array.push_back(std::unique_ptr<FillStyle>(read_fill_style(stream, tag)));
+            array.push_back(read_fill_style(stream, tag));
     }
 
     typedef std::vector<Point2f>    Segments;
@@ -272,6 +355,19 @@ namespace record
             contours.push_back(std::move(segments));
     }
 
+    // MorphShape* DefineShape::create_morph(Stream& stream, TagCode type)
+    // {
+    //     assert(
+    //         type == TagCode::DEFINE_MORPH_SHAPE ||
+    //         type == TagCode::DEFINE_MORPH_SHAPE2 );
+    //     uint16_t character_id   = stream.read_uint16();
+    //     Rect start_bounds       = stream.read_rect();
+    //     Rect end_bounds         = stream.read_rect();
+    //     uint32_t offset         = stream.read_uint32();
+    //     return nullptr;
+    //     // std::vector<FIl>
+    // }
+
     Shape* DefineShape::create(Stream& stream, TagCode type)
     {
         assert( 
@@ -293,9 +389,9 @@ namespace record
             stream.read_bits_as_uint32(1);
         }
 
-        std::vector<FillPtr>    fill_styles;
-        std::vector<LinePtr>    line_styles;
-        std::vector<ShapePath>  paths;
+        std::vector<ShapePath>      paths;
+        std::vector<ShapeFillPtr>  fill_styles;
+        std::vector<LinePtr>        line_styles;
 
         read_fill_styles(stream, fill_styles, type);
         read_line_styles(stream, line_styles, type);

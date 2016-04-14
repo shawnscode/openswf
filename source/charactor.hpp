@@ -18,101 +18,29 @@ namespace openswf
         virtual uint16_t get_character_id() const = 0;
     };
 
-    // The SWF shape architecture is designed to be compact,
-    // flexible and rendered very quickly to the screen. It is similar to most vector
-    // formats in that shapes are defined by a list of edges
-    struct FillStyle
-    {
-        virtual ~FillStyle() {}
-        virtual void execute() = 0;
-        virtual Color get_color() const { return Color::black; }
-        virtual Point2f get_texcoord(const Point2f&) = 0;
-    };
 
-    struct SolidFill : public FillStyle
-    {
-        Color color;
-        virtual void execute();
-        virtual Point2f get_texcoord(const Point2f&);
-        virtual Color get_color() const;
-    };
+    class ShapeFill;
+    typedef std::unique_ptr<ShapeFill> ShapeFillPtr;
 
-    // * all gradients are defined in a standard space called the gradient square. 
-    // the gradient square is centered at (0,0),
-    // and extends from (-16384,-16384) to (16384,16384).
-    // each gradient is mapped from the gradient square to the display surface
-    // using a standard transformation matrix.
-    struct GradientFill : public FillStyle
-    {
-        struct ControlPoint
-        {
-            uint8_t ratio;
-            Color   color;
-        };
-
-        enum class SpreadMode : uint8_t
-        {
-            PAD         = 0,
-            REFLECT     = 1,
-            REPEAT      = 2,
-            RESERVED    = 3
-        };
-
-        enum class InterpolationMode : uint8_t
-        {
-            NORMAL      = 0,
-            LINEAR      = 1,
-            RESERVED_1  = 2,
-            RESERVED_2  = 3
-        };
-
-        SpreadMode                  spread;
-        InterpolationMode           interp;
-        Matrix                      transform;
-        std::vector<ControlPoint>   controls;
-
-        virtual ~GradientFill() {}
-        virtual Point2f get_texcoord(const Point2f&);
-
-    protected:
-        Color sample(int ratio) const;
-    };
-
-    struct LinearGradientFill : public GradientFill
+    class ShapeFill
     {
     protected:
-        uint32_t bitmap;
+        Rid         m_managed_bitmap;
+        BitmapPtr   m_bitmap;
+        Color       m_additive_start, m_additive_end;
+        Matrix      m_texcoord_start, m_texcoord_end;
 
     public:
-        LinearGradientFill() : bitmap(0) {}
-        virtual void execute();
+        static ShapeFillPtr create(BitmapPtr bitmap,
+            const Color&, const Color&,
+            const Matrix& start = Matrix::identity, const Matrix& end = Matrix::identity);
+        static ShapeFillPtr create(BitmapPtr bitmap,
+            const Color&,
+            const Matrix& matrix = Matrix::identity);
 
-    protected:
-        void try_gen_texture();
-    };
-
-    struct RadialGradientFill : GradientFill
-    {
-    protected:
-        uint32_t bitmap;
-
-    public:
-        RadialGradientFill() : bitmap(0) {}
-        virtual void execute();
-
-    protected:
-        void try_gen_texture();
-    };
-
-    struct FocalRadialGradientFill : GradientFill
-    {
-        float focal;
-        virtual void execute();
-    };
-
-    struct BitmapFill : FillStyle
-    {
-        virtual void execute();
+        Rid     get_bitmap();
+        Color   get_additive_color(int ratio = 0) const;
+        Point2f get_texcoord(const Point2f&, int ratio = 0) const;
     };
 
     enum class Capcode : uint8_t {
@@ -140,27 +68,27 @@ namespace openswf
         bool        no_close;
         bool        pixel_hinting;
 
-        float       miter_limit_factor;
-        Color       color;
-        FillPtr     fill;
+        float           miter_limit_factor;
+        Color           color;
+        ShapeFillPtr    fill;
     };
 
     class Shape : public ICharactor
     {
     protected:
-        uint16_t                m_cid;
-        Rect                    m_bounds;
-        std::vector<FillPtr>    m_fill_styles;
-        std::vector<LinePtr>    m_line_styles;
-        std::vector<VertexPack> m_vertices;
-        std::vector<uint16_t>   m_indices;
-        std::vector<uint16_t>   m_vertices_size;
-        std::vector<uint16_t>   m_indices_size;
+        uint16_t                    m_cid;
+        Rect                        m_bounds;
+        std::vector<ShapeFillPtr>   m_fill_styles;
+        std::vector<LinePtr>        m_line_styles;
+        std::vector<VertexPack>     m_vertices;
+        std::vector<uint16_t>       m_indices;
+        std::vector<uint16_t>       m_vertices_size;
+        std::vector<uint16_t>       m_indices_size;
 
     public:
         static Shape* create(uint16_t cid, 
             Rect& rect,
-            std::vector<FillPtr>& fill_styles,
+            std::vector<ShapeFillPtr>& fill_styles,
             std::vector<LinePtr>& line_styles,
             std::vector<VertexPack>& vertices,
             std::vector<uint16_t>& indices,
@@ -220,7 +148,6 @@ namespace openswf
 
     public:
         static std::unique_ptr<FrameCommand> create(record::TagHeader header, BytesPtr bytes);
-
         void execute(MovieClip& display);
     };
 

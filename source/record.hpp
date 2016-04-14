@@ -30,6 +30,7 @@
 namespace openswf
 {
     class Shape;
+    class MorphShape;
     class FillStyle;
     class LineStyle;
     class FrameCommand;
@@ -83,14 +84,19 @@ namespace openswf
         // DefineShape3 extends the capabilities of DefineShape2 by extending all
         // of the RGB color fields to support RGBA with opacity information.
 
+        // TAG = 46
+        // The DefineMorphShape tag defines the start and end states of a morph sequence.
+        // A morph object should be displayed with the PlaceObject2 tag, where the ratio field
+        // specifies how far the morph has progressed.
+
         // TAG = 83
         // DefineShape4 extends the capabilities of DefineShape3 by using a new line style
         // record in the shape. LINESTYLE2 allows new types of joins and caps as well as
         // scaling options and the ability to fill a stroke.
-
         struct DefineShape
         {
             static Shape* create(Stream& stream, TagCode code);
+            static MorphShape* create_morph(Stream& stream, TagCode code);
         };
 
         // TAG = 6

@@ -17,131 +17,62 @@ using namespace openswf::record;
 
 namespace openswf
 {
-    // FILL STYLE PARSING
-    void SolidFill::execute()
+    // SHAPE FILL
+    ShapeFillPtr ShapeFill::create(BitmapPtr bitmap,
+        const Color& additive_start, const Color& additive_end,
+        const Matrix& matrix_start, const Matrix& matrix_end)
     {
+        auto fill = new (std::nothrow) ShapeFill();
+        if( fill == nullptr ) return nullptr;
+
+        fill->m_bitmap = std::move(bitmap);
+        fill->m_additive_start = additive_start;
+        fill->m_additive_end = additive_end;
+        fill->m_texcoord_start = matrix_start;
+        fill->m_texcoord_end = matrix_end;
+        fill->m_managed_bitmap = 0;
+
+        return ShapeFillPtr(fill);
     }
 
-    Color SolidFill::get_color() const
+    ShapeFillPtr ShapeFill::create(BitmapPtr bitmap, const Color& additive, const Matrix& matrix)
     {
-        return this->color;
+        return create(std::move(bitmap), additive, additive, matrix, matrix);
     }
 
-    Point2f SolidFill::get_texcoord(const Point2f& position)
+    Rid ShapeFill::get_bitmap()
     {
-        return Point2f();
+        if( m_bitmap == nullptr )
+            return 0;
+
+        if( m_managed_bitmap == 0 )
+        {
+            m_managed_bitmap = Render::get_instance().create_texture(
+                m_bitmap->get_ptr(), m_bitmap->get_width(), m_bitmap->get_height(), m_bitmap->get_format(), 1);
+        }
+
+        return m_managed_bitmap;
     }
 
-    Point2f GradientFill::get_texcoord(const Point2f& position)
+    Color ShapeFill::get_additive_color(int ratio) const
+    {
+        return m_additive_start;
+    }
+
+    Point2f ShapeFill::get_texcoord(const Point2f& position, int ratio) const
     {
         static const Rect coordinates = Rect(-16384, 16384, -16384, 16384).to_pixel();
 
-        Point2f ll = this->transform * Point2f(coordinates.xmin, coordinates.ymin);
-        Point2f ru = this->transform * Point2f(coordinates.xmax, coordinates.ymax);
+        Point2f ll = this->m_texcoord_start * Point2f(coordinates.xmin, coordinates.ymin);
+        Point2f ru = this->m_texcoord_start * Point2f(coordinates.xmax, coordinates.ymax);
 
         return Point2f( (position.x-ll.x) / (ru.x - ll.x), (position.y-ll.y) / (ru.y - ll.y) );
-    }
-
-    Color GradientFill::sample(int ratio) const
-    {
-        assert( ratio >= 0 && ratio < 256 );
-        assert( this->controls.size() > 0 );
-
-        if( ratio < this->controls[0].ratio )
-            return this->controls[0].color;
-
-        for( auto i=1; i<this->controls.size(); i++ )
-        {
-            if( this->controls[i].ratio >= ratio )
-            {
-                const auto& last = this->controls[i-1];
-                const auto& now = this->controls[i];
-
-                auto percent = 0.0f;
-                if( last.ratio != now.ratio )
-                    percent = (float)(ratio - last.ratio) / (float)(now.ratio - last.ratio);
-
-                return Color::lerp(last.color, now.color, percent);
-            }
-        }
-
-        return this->controls.back().color;
-    }
-
-    void LinearGradientFill::try_gen_texture()
-    {
-        if( this->bitmap != 0 )
-            return;
-
-        static const int width = 64;
-        static const int height = 1;
-
-        auto source = Bitmap::create(TextureFormat::RGBA8, width, height);
-        for( auto i=0; i<source->get_height(); i++ )
-            for( auto j=0; j<source->get_width(); j++ )
-                source->set(i, j, sample(255*(float)j/(float)width).to_value());
-
-        this->bitmap = Render::get_instance().create_texture(source->get_ptr(), width, height, TextureFormat::RGBA8, 0);
-    }
-
-    void LinearGradientFill::execute()
-    {
-        try_gen_texture();
-        Shader::get_instance().set_texture(0, this->bitmap);
-
-//        Shader::get_instance().set_color(Color::black);
-//        Shader::get_instance().set_texture(this->bitmap);
-    }
-
-    void RadialGradientFill::try_gen_texture()
-    {
-        if( this->bitmap != 0 )
-            return;
-
-        static const int width = 16;
-        static const int height = 16;
-
-        auto source = Bitmap::create(TextureFormat::RGBA8, width, height);
-        for( auto i=0; i<height; i++ )
-        {
-            for( auto j=0; j<width; j++ )
-            {
-                float radius = (height - 1) / 2.0f;
-                float y = (j - radius) / radius;
-                float x = (i - radius) / radius;
-                int ratio = (int) floorf(255.5f * sqrt(x * x + y * y));
-                if( ratio > 255 ) ratio = 255;
-                source->set(i, j, sample(ratio).to_value());
-            }
-        }
-
-        this->bitmap = Render::get_instance().create_texture(source->get_ptr(), width, height, TextureFormat::RGBA8, 0);
-    }
-
-    void RadialGradientFill::execute()
-    {
-        try_gen_texture();
-        Shader::get_instance().set_texture(0, this->bitmap);
-
-//        Shader::get_instance().set_color(Color::black);
-//        Shader::get_instance().set_texture(this->bitmap);
-    }
-
-    void FocalRadialGradientFill::execute()
-    {
-        // todo
-        assert(false);
-    }
-
-    void BitmapFill::execute()
-    {
-
     }
 
     // SHAPE PARSING
     Shape* Shape::create(uint16_t cid, 
         Rect& bounds,
-        std::vector<FillPtr>& fill_styles,
+        std::vector<ShapeFillPtr>& fill_styles,
         std::vector<LinePtr>& line_styles,
         std::vector<VertexPack>& vertices,
         std::vector<uint16_t>& indices,
@@ -173,7 +104,6 @@ namespace openswf
         auto& shader = Shader::get_instance();
         shader.set_program(PROGRAM_DEFAULT);
 
-        auto start_idx = 0;
         for( auto i=0; i<m_vertices_size.size(); i++ )
         {
             auto vbase = i == 0 ? 0 : m_vertices_size[i-1];
@@ -182,11 +112,11 @@ namespace openswf
             auto ibase = i == 0 ? 0 : m_indices_size[i-1];
             auto icount = m_indices_size[i] - ibase;
 
-            auto color = m_fill_styles[i]->get_color();
+            auto color = m_fill_styles[i]->get_additive_color();
             for( auto j=vbase; j<vbase+vcount; j++ )
                 m_vertices[j].additive = color;
 
-            m_fill_styles[i]->execute();
+            shader.set_texture(0, m_fill_styles[i]->get_bitmap());
             shader.draw(vcount, m_vertices.data()+vbase, icount, m_indices.data()+ibase, matrix, cxform);
         }
     }
