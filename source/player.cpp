@@ -1,7 +1,7 @@
 #include "player.hpp"
 #include "record.hpp"
-#include "charactor.hpp"
-#include "display_list.hpp"
+#include "movieclip.hpp"
+#include "shape.hpp"
 
 using namespace openswf::record;
 
@@ -63,7 +63,7 @@ namespace openswf
                     assert( current_sprite.character_id != 0 );
                     assert( current_sprite.frame_count == indices.size() );
 
-                    auto sprite = Sprite::create(
+                    auto sprite = MovieClip::create(
                         current_sprite.character_id,
                         header.frame_rate,
                         commands,
@@ -139,9 +139,9 @@ namespace openswf
         }
 
         assert( header.frame_count == indices.size() );
-        m_sprite = Sprite::create(0, header.frame_rate, commands, indices);
+        m_sprite = MovieClip::create(0, header.frame_rate, commands, indices);
         m_size = header.frame_size;
-        m_root = new MovieClip(this, m_sprite);
+        m_root = new MovieClipNode(this, m_sprite);
         return true;
     }
 }

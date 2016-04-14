@@ -3,7 +3,6 @@
 #include "stream.hpp"
 #include "record.hpp"
 #include "player.hpp"
-#include "display_list.hpp"
 #include "shader.hpp"
 
 // SWF 6 and Later compatiable

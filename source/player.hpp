@@ -8,19 +8,19 @@
 
 namespace openswf
 {
-    class ICharactor;
+    class ICharacter;
     class Stream;
-    class Sprite;
     class MovieClip;
+    class MovieClipNode;
     class Player
     {
-        typedef std::unordered_map<uint16_t, ICharactor*> Directory;
+        typedef std::unordered_map<uint16_t, ICharacter*> Directory;
 
     protected:
         Directory       m_dictionary;
-        Sprite*         m_sprite;
+        MovieClip*      m_sprite;
         Rect            m_size;
-        MovieClip*      m_root;
+        MovieClipNode*  m_root;
 
     public:
         static Player* create(Stream* stream);
@@ -32,25 +32,25 @@ namespace openswf
         void render();
 
         //
-        void            set_character(uint16_t, ICharactor* ch);
-        ICharactor*     get_character(uint16_t cid);
+        void            set_character(uint16_t, ICharacter* ch);
+        ICharacter*     get_character(uint16_t cid);
 
         template<typename T> T* get_character(uint16_t cid) {
             return dynamic_cast<T*>( get_character(cid) );
         }
 
         const Rect&     get_size() const;
-        MovieClip*      get_root() const;
+        MovieClipNode*  get_root() const;
     };
 
     //// INLINE METHODS of PLAYER
-    inline void Player::set_character(uint16_t cid, ICharactor* ch)
+    inline void Player::set_character(uint16_t cid, ICharacter* ch)
     {
         assert( ch != nullptr );
         m_dictionary[cid] = ch;
     }
 
-    inline ICharactor* Player::get_character(uint16_t cid)
+    inline ICharacter* Player::get_character(uint16_t cid)
     {
         auto found = m_dictionary.find(cid);
         if( found != m_dictionary.end() )
@@ -63,7 +63,7 @@ namespace openswf
         return m_size;
     }
 
-    inline MovieClip* Player::get_root() const
+    inline MovieClipNode* Player::get_root() const
     {
         return m_root;
     }

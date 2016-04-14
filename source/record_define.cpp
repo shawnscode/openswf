@@ -1,13 +1,14 @@
 #include "debug.hpp"
 #include "record.hpp"
-#include "charactor.hpp"
+#include "character.hpp"
+#include "bitmap.hpp"
+#include "shape.hpp"
 
 #include <unordered_map>
 #include <vector>
 #include <memory>
 
 extern "C" {
-    #include "tesselator.h"
     #include "zlib.h"
 }
 
@@ -18,7 +19,6 @@ namespace record
     // TAG: 2, 22, 32, 83 DEFINE SHAPE
     const uint32_t  MAX_CURVE_SUBDIVIDE = 10;
     const float     CURVE_TOLERANCE     = 4.f;
-    const uint32_t  MAX_POLYGON_SIZE    = 6;
 
     enum class StyleMode : uint8_t
     {
@@ -156,12 +156,12 @@ namespace record
             return this->controls[this->count-1].color;
         }
 
-        BitmapPtr create_bitmap_linear() const
+        BitmapDataPtr create_bitmap_linear() const
         {
             static const int width = 64;
             static const int height = 1;
 
-            auto source = Bitmap::create(TextureFormat::RGBA8, width, height);
+            auto source = BitmapData::create(TextureFormat::RGBA8, width, height);
             for( auto i=0; i<source->get_height(); i++ )
                 for( auto j=0; j<source->get_width(); j++ )
                     source->set(i, j, sample(255.f*(float)j/(float)width).to_value());
@@ -169,12 +169,12 @@ namespace record
             return std::move(source);
         }
 
-        BitmapPtr create_bitmap_radial() const
+        BitmapDataPtr create_bitmap_radial() const
         {
             static const int width = 16;
             static const int height = 16;
 
-            auto source = Bitmap::create(TextureFormat::RGBA8, width, height);
+            auto source = BitmapData::create(TextureFormat::RGBA8, width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -360,22 +360,9 @@ namespace record
             last = edge.anchor;
         }
 
-        if( !contour_merge_segments(contours, segments) )
-            contours.push_back(std::move(segments));
+        contours.push_back(std::move(segments));
+        // if( !contour_merge_segments(contours, segments) )
     }
-
-    // MorphShape* DefineShape::create_morph(Stream& stream, TagCode type)
-    // {
-    //     assert(
-    //         type == TagCode::DEFINE_MORPH_SHAPE ||
-    //         type == TagCode::DEFINE_MORPH_SHAPE2 );
-    //     uint16_t character_id   = stream.read_uint16();
-    //     Rect start_bounds       = stream.read_rect();
-    //     Rect end_bounds         = stream.read_rect();
-    //     uint32_t offset         = stream.read_uint32();
-    //     return nullptr;
-    //     // std::vector<FIl>
-    // }
 
     Shape* DefineShape::create(Stream& stream, TagCode type)
     {
@@ -525,110 +512,65 @@ namespace record
         }
 
         // tesselate polygons into simple triangles
-        auto polygons = std::vector<Contours>(fill_styles.size(), Contours());
-        auto lines = std::vector<Contours>(line_styles.size(), Contours());
+        auto mesh_set = std::vector<Contours>(fill_styles.size(), Contours());
+        // auto lines = std::vector<Contours>(line_styles.size(), Contours());
 
         for( auto& path : paths )
         {
             assert( path.edges.size() != 0 );
             
             if( path.left_fill > 0 )
-                contour_push_path( polygons[path.left_fill-1], path );
+                contour_push_path( mesh_set[path.left_fill-1], path );
 
             if( path.right_fill > 0 )
-                contour_push_path( polygons[path.right_fill-1], path );
+                contour_push_path( mesh_set[path.right_fill-1], path );
 
-            if( path.line > 0 )
-                contour_push_path( lines[path.line-1], path );
+            // if( path.line > 0 )
+            //     contour_push_path( lines[path.line-1], path );
         }
 
-        // clean polygons with nothing
-        for( int i=polygons.size()-1; i>=0; i-- )
+        int numv = 0;
+        for( int i=mesh_set.size()-1; i>=0; i-- )
         {
-            if( polygons[i].size() == 0 )
+            auto& mesh = mesh_set[i];
+            if( mesh.size() == 0 )
             {
-                polygons.erase(polygons.begin()+i);
                 fill_styles.erase(fill_styles.begin()+i);
-            }
-        }
-
-        for( int i=lines.size()-1; i>=0; i-- )
-        {
-            if( lines[i].size() == 0 )
-            {
-                lines.erase(lines.begin()+i);
-                line_styles.erase(line_styles.begin()+i);
-            }
-        }
-
-        assert( polygons.size() == fill_styles.size() );
-        assert( lines.size() == line_styles.size() );
-
-        std::vector<VertexPack> vertices;
-        std::vector<uint16_t>   indices, indices_size, vertices_size;
-
-        for( auto& mesh_set : polygons )
-        {
-            assert( mesh_set.size() != 0 );
-
-            auto tess = tessNewTess(nullptr);
-            if( !tess ) return nullptr;
-
-            for( auto& mesh : mesh_set )
-                tessAddContour(tess, 2, &mesh[0], sizeof(Point2f), mesh.size());
-
-            if( !tessTesselate(tess, TESS_WINDING_NONZERO, TESS_POLYGONS, MAX_POLYGON_SIZE, 2, 0) )
-            {
-                tessDeleteTess(tess);
-                return nullptr;
+                mesh_set.erase(mesh_set.begin()+i);
+                continue;
             }
 
-            const TESSreal* tess_vertices = tessGetVertices(tess);
-            const TESSindex vcount = tessGetVertexCount(tess);
-            const TESSindex nelems = tessGetElementCount(tess);
-            const TESSindex* elems = tessGetElements(tess);
-
-            auto vert_base_size = vertices.size();
-            vertices.reserve(vert_base_size+vcount);
-            for( int i=0; i<vcount; i++ )
+            for(;;)
             {
-                auto position = Point2f(tess_vertices[i*2], tess_vertices[i*2+1]).to_pixel();
-                auto texcoord = fill_styles[indices_size.size()]->get_texcoord(position);
-
-                vertices.push_back( {position.x, position.y, texcoord.x, texcoord.y} );
-            }
-
-            auto ind_base_size = indices.size();
-            indices.reserve(ind_base_size+nelems*(MAX_POLYGON_SIZE-2)*3);
-            for( int i=0; i<nelems; i++ )
-            {
-                const int* p = &elems[i*MAX_POLYGON_SIZE];
-                assert(p[0] != TESS_UNDEF && p[1] != TESS_UNDEF && p[2] != TESS_UNDEF);
-
-                // triangle fans
-                for( int j=2; j<MAX_POLYGON_SIZE && p[j] != TESS_UNDEF; j++ )
+                if( mesh.size() == 1 ||
+                    !contour_merge_segments(mesh, mesh.back()) )
                 {
-                    indices.push_back(p[0]);
-                    indices.push_back(p[j-1]);
-                    indices.push_back(p[j]);
+                    break;
                 }
+                mesh.pop_back();
             }
 
-            tessDeleteTess(tess);
-            indices_size.push_back( indices.size() );
-            vertices_size.push_back( vertices.size() );
+            assert(mesh.size() == 1);
+            numv += mesh[0].size();
         }
 
-        assert( polygons.size() == indices_size.size() );
-        assert( indices_size.back() == indices.size() );
-        assert( indices_size.size() == vertices_size.size() );
+        auto vertices = std::vector<Point2f>();
+        auto contour_indices = std::vector<uint16_t>();
 
-        return Shape::create(character_id, bounds,
-            fill_styles, line_styles,
-            vertices, indices,
-            vertices_size, indices_size);
+        vertices.reserve(numv);
+        contour_indices.reserve(mesh_set.size());
+        for( auto& mesh : mesh_set )
+        {
+            vertices.insert(vertices.end(), mesh[0].begin(), mesh[0].end());
+            contour_indices.push_back(vertices.size());
+        }
+
+        assert( contour_indices.size() == fill_styles.size() );
+
+        auto record = ShapeRecord::create(bounds, std::move(vertices), std::move(contour_indices));
+        return Shape::create(character_id,
+             std::move(fill_styles), std::move(line_styles), std::move(record));
     }
-
 
     /// TAG = 20， 36
     enum class BitmapFormat : uint8_t
@@ -666,7 +608,7 @@ namespace record
         inflateEnd(&strm);
     }
 
-    Texture* DefineBitsLossless::create(Stream& stream, TagHeader& header)
+    Bitmap* DefineBitsLossless::create(Stream& stream, TagHeader& header)
     {
         auto cid = stream.read_uint16();
         auto format = (BitmapFormat)stream.read_uint8();
@@ -681,7 +623,7 @@ namespace record
             auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
             decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
 
-            auto bitmap = Bitmap::create(TextureFormat::RGB8, width, height);
+            auto bitmap = BitmapData::create(TextureFormat::RGB8, width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -694,7 +636,7 @@ namespace record
                 }
             }
 
-            return Texture::create(cid, std::move(bitmap));
+            return Bitmap::create(cid, std::move(bitmap));
         }
         else if( format == BitmapFormat::RGB15)
         {
@@ -703,7 +645,7 @@ namespace record
             auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
             decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
 
-            auto bitmap = Bitmap::create(TextureFormat::RGB565, width, height);
+            auto bitmap = BitmapData::create(TextureFormat::RGB565, width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -715,7 +657,7 @@ namespace record
                 }
             }
 
-            return Texture::create(cid, std::move(bitmap));
+            return Bitmap::create(cid, std::move(bitmap));
         }
         else if( format == BitmapFormat::RGB24 )
         {
@@ -724,7 +666,7 @@ namespace record
             auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
             decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
 
-            auto bitmap = Bitmap::create(TextureFormat::RGB8, width, height);
+            auto bitmap = BitmapData::create(TextureFormat::RGB8, width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -737,14 +679,14 @@ namespace record
                 }
             }
 
-            return Texture::create(cid, std::move(bitmap));
+            return Bitmap::create(cid, std::move(bitmap));
         }
 
         assert(false);
         return nullptr;
     }
 
-    Texture* DefineBitsLossless2::create(Stream& stream, TagHeader& header)
+    Bitmap* DefineBitsLossless2::create(Stream& stream, TagHeader& header)
     {
         auto cid = stream.read_uint16();
         auto format = (BitmapFormat)stream.read_uint8();
@@ -759,7 +701,7 @@ namespace record
             auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
             decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
 
-            auto bitmap = Bitmap::create(TextureFormat::RGBA8, width, height);
+            auto bitmap = BitmapData::create(TextureFormat::RGBA8, width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -773,7 +715,7 @@ namespace record
                 }
             }
 
-            return Texture::create(cid, std::move(bitmap));
+            return Bitmap::create(cid, std::move(bitmap));
         }
         else if( format == BitmapFormat::RGB15 || format == BitmapFormat::RGB24 )
         {
@@ -782,7 +724,7 @@ namespace record
             auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
             decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
 
-            auto bitmap = Bitmap::create(TextureFormat::RGBA8, width, height);
+            auto bitmap = BitmapData::create(TextureFormat::RGBA8, width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -796,7 +738,7 @@ namespace record
                 }
             }
 
-            return Texture::create(cid, std::move(bitmap));
+            return Bitmap::create(cid, std::move(bitmap));
         }
 
         assert(false);

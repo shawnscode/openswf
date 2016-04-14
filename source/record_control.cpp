@@ -1,6 +1,6 @@
 #include "debug.hpp"
 #include "record.hpp"
-#include "charactor.hpp"
+#include "character.hpp"
 
 #include <unordered_map>
 

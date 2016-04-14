@@ -34,7 +34,7 @@ namespace openswf
     class FillStyle;
     class LineStyle;
     class FrameCommand;
-    class Texture;
+    class Bitmap;
 
     typedef std::unique_ptr<FillStyle> FillPtr;
     typedef std::unique_ptr<LineStyle> LinePtr;
@@ -144,13 +144,13 @@ namespace openswf
         // TAG = 20
         struct DefineBitsLossless
         {
-            static Texture* create(Stream& stream, TagHeader& header);
+            static Bitmap* create(Stream& stream, TagHeader& header);
         };
 
         // TAG = 36
         struct DefineBitsLossless2
         {
-            static Texture* create(Stream& stream, TagHeader& header);
+            static Bitmap* create(Stream& stream, TagHeader& header);
         };
 
         // TAG = 9
