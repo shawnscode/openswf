@@ -4,6 +4,8 @@
 #include "record.hpp"
 #include "character.hpp"
 
+#include <map>
+
 namespace openswf
 {
     class Player;
@@ -63,7 +65,7 @@ namespace openswf
 
     class MovieClipNode : public INode
     {
-        typedef std::unordered_map<uint16_t, INode*> Dictionary;
+        typedef std::map<uint16_t, INode*> Dictionary;
 
         Dictionary  m_children;
         MovieClip*  m_sprite;

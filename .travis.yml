@@ -4,7 +4,7 @@ compiler: clang
 
 before_install:
     - brew update
-    - brew install wget
+    #- brew install wget
     - brew install glfw3
     - brew install glew
     - brew install glm
