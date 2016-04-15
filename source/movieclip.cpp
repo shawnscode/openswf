@@ -203,7 +203,9 @@ namespace openswf
 
     MovieClipNode::~MovieClipNode()
     {
-        reset();
+        for( auto& pair : m_children )
+            delete pair.second;
+        m_children.clear();
     }
 
     // INHERITANTED
@@ -219,10 +221,9 @@ namespace openswf
                 {
                     m_frame_timer -= m_frame_delta;
 
-                    if( frame < m_sprite->get_frame_count() )
-                        frame ++;
-                    else
-                        m_paused = true;
+                    if( frame >= m_sprite->get_frame_count() )
+                        frame = 0;
+                    frame ++;
                 }
 
                 goto_frame(frame);
@@ -245,6 +246,14 @@ namespace openswf
         auto iter = m_children.find(depth);
         if( iter != m_children.end() )
             return iter->second;
+
+        auto cache = m_deprecated.find(depth);
+        if( cache != m_children.end() )
+        {
+            m_children[depth] = m_deprecated[depth];
+            m_deprecated.erase(cache);
+        }
+
         return nullptr;
     }
 
@@ -262,6 +271,14 @@ namespace openswf
                 delete iter->second;
                 m_children.erase(iter);
             }
+        }
+
+        auto cache = m_deprecated.find(depth);
+        if( cache != m_deprecated.end() && cache->second->get_character_id() == cid )
+        {
+            m_children[depth] = m_deprecated[depth];
+            m_deprecated.erase(cache);
+            return m_children[depth];
         }
 
         auto ch = m_environment->get_character(cid);
@@ -285,10 +302,9 @@ namespace openswf
 
     void MovieClipNode::reset()
     {
-        for( auto& pair : m_children )
-            delete pair.second;
-        m_children.clear();
         m_current_frame = 0;
+        goto_frame(1);
+        update(0);
     }
 
     void MovieClipNode::goto_and_play(uint32_t frame)
@@ -312,7 +328,10 @@ namespace openswf
             return;
 
         if( m_current_frame > (int)frame )
-            reset();
+        {
+            m_current_frame = 0;
+            m_deprecated = std::move(m_children);
+        }
 
         while(
             m_current_frame < frame &&
@@ -320,6 +339,10 @@ namespace openswf
         {
             m_sprite->execute(*this, ++m_current_frame);
         }
+
+        for( auto& pair : m_deprecated )
+            delete pair.second;
+        m_deprecated.clear();
     }
 
 }

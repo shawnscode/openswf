@@ -68,6 +68,7 @@ namespace openswf
         typedef std::map<uint16_t, INode*> Dictionary;
 
         Dictionary  m_children;
+        Dictionary  m_deprecated;
         MovieClip*  m_sprite;
         uint32_t    m_current_frame;
         float       m_frame_delta;

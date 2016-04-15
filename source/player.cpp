@@ -56,6 +56,7 @@ namespace openswf
         auto tag = TagHeader::read(*stream);
         while( tag.code != TagCode::END || current_sprite.character_id != 0 )
         {
+            printf("tag: %s\n", get_tag_str(tag.code));
             switch(tag.code)
             {
                 case TagCode::END:
@@ -69,11 +70,11 @@ namespace openswf
                         commands,
                         indices);
 
+                    set_character(current_sprite.character_id, sprite);
+
                     current_sprite.character_id = 0;
                     commands = std::move(interrupted_commands);
                     indices = std::move(interrupted_indices);
-
-                    set_character(current_sprite.character_id, sprite);
                     break;
                 }
 
@@ -145,7 +146,9 @@ namespace openswf
                 }
             }
             
-            stream->set_position(tag.end_pos);
+            if( tag.code != TagCode::DEFINE_SPRITE )
+                stream->set_position(tag.end_pos);
+
             tag = TagHeader::read(*stream);
         }
 
