@@ -31,77 +31,60 @@ namespace openswf
         static ShapeFillPtr create(uint16_t cid, const Matrix&, const Matrix&);
 
         Rid     get_bitmap(Player* env);
-        Color   get_additive_color(int ratio = 0) const;
-        Point2f get_texcoord(const Point2f&, int ratio = 0) const;
+        Color   get_additive_color(uint16_t ratio = 0) const;
+        Point2f get_texcoord(const Point2f&, uint16_t ratio = 0) const;
     };
 
-    enum class Capcode : uint8_t {
-        ROUND = 0,
-        NO = 1,
-        SQUARE = 2,
-    };
+    class ShapeLine;
+    typedef std::unique_ptr<ShapeLine> ShapeLinePtr;
 
-    enum class Joincode : uint8_t {
-        ROUND = 0,
-        BEVEL = 1,
-        MITER = 2,
-    };
-
-    struct LineStyle
+    struct ShapeLine
     {
-        uint16_t    width;
+    protected:
+        uint16_t m_width_start, m_width_end;
+        Color    m_additive_start, m_additive_end;
 
-        Capcode     start_cap, end_cap;
-        Joincode    join;
+    public:
+        static ShapeLinePtr create(uint16_t width, const Color& additive);
+        static ShapeLinePtr create(uint16_t width_start, uint16_t width_end,
+            const Color& additive_start, const Color& additive_end);
 
-        bool        has_fill;
-        bool        no_hscale;
-        bool        no_vscale;
-        bool        no_close;
-        bool        pixel_hinting;
-
-        float           miter_limit_factor;
-        Color           color;
-        ShapeFillPtr    fill;
+        Color       get_additive_color(uint16_t ratio = 0) const;
+        uint16_t    get_width(uint16_t ratio = 0) const;
     };
+
+    typedef std::vector<Point2f>        PointList;
+    typedef std::vector<VertexPack>     VertexPackList;
+    typedef std::vector<uint16_t>       IndexList;
+    typedef std::vector<ShapeFillPtr>   ShapeFillList;
+    typedef std::vector<ShapeLinePtr>   ShapeLineList;
 
     class ShapeRecord;
     typedef std::unique_ptr<ShapeRecord> ShapeRecordPtr;
 
     struct ShapeRecord
     {
-        Rect                    bounds;
-        std::vector<Point2f>    vertices;
-        std::vector<uint16_t>   contour_indices;
+        Rect        bounds;
+        PointList   vertices;
+        IndexList   contour_indices;
 
-        static ShapeRecordPtr create(const Rect& rect,
-            std::vector<Point2f>&& vertices, std::vector<uint16_t>&& contour_indices);
-
-        static bool tesselate(
-            const std::vector<Point2f>& vertices, const std::vector<uint16_t>& contour_indices,
-            const std::vector<ShapeFillPtr>& fill_styles,
-            std::vector<VertexPack>& out_vertices, std::vector<uint16_t>& out_vertices_size,
-            std::vector<uint16_t>& out_indices, std::vector<uint16_t>& out_indices_size);
+        static ShapeRecordPtr create(const Rect& rect, PointList&&, IndexList&&);
     };
 
     struct Shape : public ICharacter
     {
-        uint16_t                    character_id;
-        Rect                        bounds;
-        std::vector<ShapeFillPtr>   fill_styles;
-        std::vector<LinePtr>        line_styles;
+        uint16_t        character_id;
+        Rect            bounds;
+        ShapeFillList   fill_styles;
+        ShapeLineList   line_styles;
 
-        std::vector<VertexPack>     vertices;
-        std::vector<uint16_t>       indices;
-        std::vector<uint16_t>       vertices_size;
-        std::vector<uint16_t>       indices_size;
+        VertexPackList  vertices;
+        IndexList       indices;
+        IndexList       vertices_size;
+        IndexList       indices_size;
 
-        static Shape* create(uint16_t cid, 
-            std::vector<ShapeFillPtr>&& fill_styles,
-            std::vector<LinePtr>&& line_styles,
-            ShapeRecordPtr record);
-
-        bool initialize(uint16_t, std::vector<ShapeFillPtr>&&, std::vector<LinePtr>&&, ShapeRecordPtr);
+        static Shape* create(uint16_t, ShapeFillList&&, ShapeLineList&&, ShapeRecordPtr);
+        bool initialize(uint16_t, ShapeFillList&&, ShapeLineList&&, ShapeRecordPtr);
 
         virtual uint16_t get_character_id() const;
         virtual INode*   create_instance(Player*);
@@ -119,33 +102,43 @@ namespace openswf
         virtual void render(const Matrix& matrix, const ColorTransform& cxform);
     };
 
-    // class MorphShape : public ICharactor
-    // {
-    // protected:
-    //     uint16_t                    m_character_id;
-    //     std::vector<ShapeFillPtr>   m_fill_styles;
-    //     ShapeRecordPtr              m_start;
-    //     ShapeRecordPtr              m_end;
+    struct MorphShape : public ICharacter
+    {
+        uint16_t        character_id;
+        ShapeFillList   fill_styles;
+        ShapeLineList   line_styles;
+        ShapeRecordPtr  start;
+        ShapeRecordPtr  end;
+        PointList       interp;
 
-    //     bool initialize(uint16_t,
-    //         std::vector<ShapeFillPtr>&&, std::vector<LinePtr>&&,
-    //         ShapeRecordPtr, ShapeRecordPtr);
+        static MorphShape* create(uint16_t, ShapeFillList&&, ShapeLineList&&, ShapeRecordPtr, ShapeRecordPtr);
 
-    // public:
-    //     static MorphShape* create(uint32_t cid,
-    //         std::vector<ShapeFillPtr>&& fill_styles,
-    //         std::vector<LinePtr>&& line_styles,
-    //         ShapeFillPtr start,
-    //         ShapeFillPtr end);
+        virtual uint16_t get_character_id() const;
+        virtual INode*   create_instance(Player*);
 
-    //     virtual Node*    create_instance(Player*);
-    //     virtual uint16_t get_character_id() const;
+        void tesselate(uint16_t ratio,
+            VertexPackList& out_vertices,
+            IndexList& out_vertices_size,
+            IndexList& out_indices,
+            IndexList& out_indices_size);
+    };
 
-    //     const ShapeFillPtr& get_fill_style(int index);
-    //     void tesselate(int ratio,
-    //         std::vector<VertexPack>& out_vertices,
-    //         std::vector<uint16_t>& out_vertices_size,
-    //         std::vector<uint16_t>& out_indices,
-    //         std::vector<uint16_t>& out_indices_size);
-    // };
+    class MorphShapeNode : public INode
+    {
+    protected:
+        MorphShape*     m_morph_shape;
+        uint16_t        m_current_ratio;
+        VertexPackList  m_vertices;
+        IndexList       m_vertices_size;
+        IndexList       m_indices;
+        IndexList       m_indices_size;
+
+    public:
+        MorphShapeNode(Player* env, MorphShape* shape);
+
+        virtual void update(float dt);
+        virtual void render(const Matrix& matrix, const ColorTransform& cxform);
+
+        void tesselate();
+    };
 }

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <algorithm>
 
 #include "debug.hpp"
 #include "render.hpp"
@@ -193,6 +194,16 @@ namespace openswf
             return Point<T>(this->x*factor, this->y*factor);
         }
 
+        static Point<T> lerp(const Point<T>& lh, const Point<T>& rh, float ratio)
+        {
+            ratio = std::max(ratio, 0.0f);
+            ratio = std::min(ratio, 1.0f);
+
+            return Point<T>(
+                lh.x + (rh.x - lh.x) * ratio,
+                lh.y + (rh.y - lh.y) * ratio);
+        }
+
         Point& to_pixel()
         {
             this->x *= TWIPS_TO_PIXEL;
@@ -330,6 +341,8 @@ namespace openswf
 
         Matrix operator * (const Matrix& rh) const;
         Point2f operator * (const Point2f& rh) const;
+
+        static Matrix lerp(const Matrix& lh, const Matrix& rh, float ratio);
     };
 
     // the cxform record defines a simple transform that can be applied to 

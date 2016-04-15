@@ -13,7 +13,10 @@ static void input_callback(GLFWwindow* window, int key, int scancode, int action
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GL_TRUE);
     else if (key == GLFW_KEY_A && action == GLFW_RELEASE)
+    {
         frame ++;
+        // printf("current frame: %d\n",frame);
+    }
 }
 
 int main(int argc, char* argv[])
@@ -46,7 +49,7 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    auto stream = create_from_file("../test/resources/simple-timeline-1.swf");
+    auto stream = create_from_file("../test/resources/simple-timeline-2.swf");
     auto player = Player::create(&stream);
         
     auto& render = Render::get_instance();

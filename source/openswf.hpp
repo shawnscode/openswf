@@ -5,6 +5,10 @@
 #include "player.hpp"
 #include "shader.hpp"
 
+#include "shape.hpp"
+#include "bitmap.hpp"
+#include "movieclip.hpp"
+
 // SWF 6 and Later compatiable
 // FEAT, FIX, DOCS, STYLE, REFINE, TEST, CHORE
 

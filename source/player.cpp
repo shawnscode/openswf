@@ -105,6 +105,15 @@ namespace openswf
                     break;
                 }
 
+                case TagCode::DEFINE_MORPH_SHAPE:
+                case TagCode::DEFINE_MORPH_SHAPE2:
+                {
+                    auto shape = DefineShape::create_morph(*stream, tag.code);
+                    if( shape != nullptr )
+                        set_character(shape->get_character_id(), shape);
+                    break;
+                }
+
                 case TagCode::DEFINE_BITS_LOSSLESS:
                 {
                     auto texture = DefineBitsLossless::create(*stream, tag);
@@ -130,8 +139,10 @@ namespace openswf
                 }
 
                 default:
+                {
                     printf("skip undefined tag: %s\n", get_tag_str(tag.code));
                     break;
+                }
             }
             
             stream->set_position(tag.end_pos);

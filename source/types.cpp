@@ -116,14 +116,19 @@ namespace openswf
             (uint8_t)clamp((int)this->a - (int)rh.a, 0, 255) );
     }
 
+    static float flerp(float lh, float rh, float ratio)
+    {
+        return lh + (rh-lh)*ratio;
+    }
+
     Color Color::lerp(const Color& from, const Color& to, const float ratio)
     {
         float fixed = clamp(ratio, 0.f, 1.f);
         return Color(
-            (uint8_t)((float)from.r + ((float)to.r - (float)from.r)*fixed),
-            (uint8_t)((float)from.g + ((float)to.g - (float)from.g)*fixed),
-            (uint8_t)((float)from.b + ((float)to.b - (float)from.b)*fixed),
-            (uint8_t)((float)from.a + ((float)to.a - (float)from.a)*fixed));
+            (uint8_t)flerp((float)from.r, (float)to.r, fixed),
+            (uint8_t)flerp((float)from.g, (float)to.g, fixed),
+            (uint8_t)flerp((float)from.b, (float)to.b, fixed),
+            (uint8_t)flerp((float)from.a, (float)to.a, fixed));
     }
 
     const Matrix Matrix::identity = Matrix();
@@ -148,6 +153,22 @@ namespace openswf
             values[0][0] * rh.x + values[0][1] * rh.y + values[0][2],
             values[1][0] * rh.x + values[1][1] * rh.y + values[1][2]
         );
+    }
+
+    Matrix Matrix::lerp(const Matrix& lh, const Matrix& rh, float ratio)
+    {
+        float fixed = clamp(ratio, 0.f, 1.f);
+        Matrix out;
+
+        out.values[0][0] = flerp(lh.values[0][0], rh.values[0][0], fixed);
+        out.values[0][1] = flerp(lh.values[0][1], rh.values[0][1], fixed);
+        out.values[0][2] = flerp(lh.values[0][2], rh.values[0][2], fixed);
+
+        out.values[1][0] = flerp(lh.values[1][0], rh.values[1][0], fixed);
+        out.values[1][1] = flerp(lh.values[1][1], rh.values[1][1], fixed);
+        out.values[1][2] = flerp(lh.values[1][2], rh.values[1][2], fixed);
+
+        return out;
     }
 
     const ColorTransform ColorTransform::identity = ColorTransform();

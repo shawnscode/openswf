@@ -30,7 +30,8 @@ namespace openswf
         uint16_t        m_clip_depth;
 
     public:
-        INode(Player* env, ICharacter* ch) : m_environment(env), m_character(ch) {}
+        INode(Player* env, ICharacter* ch)
+        : m_environment(env), m_character(ch), m_ratio(0) {}
 
         virtual ~INode() {}
         virtual void update(float dt) = 0;

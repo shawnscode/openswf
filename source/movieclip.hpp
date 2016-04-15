@@ -86,13 +86,14 @@ namespace openswf
         void reset();
         void goto_and_play(uint32_t frame);
         void goto_and_stop(uint32_t frame);
-        void goto_frame(uint32_t frame);
 
         uint32_t    get_frame_count() const;
         uint32_t    get_current_frame() const;
         float       get_frame_rate() const;
-
         void        set_frame_rate(float rate);
+
+    protected:
+        void goto_frame(uint32_t frame);
     };
 
     inline uint32_t MovieClipNode::get_frame_count() const

@@ -219,9 +219,10 @@ namespace openswf
                 {
                     m_frame_timer -= m_frame_delta;
 
-                    if( frame >= m_sprite->get_frame_count() )
-                        frame = 0;
-                    frame ++;
+                    if( frame < m_sprite->get_frame_count() )
+                        frame ++;
+                    else
+                        m_paused = true;
                 }
 
                 goto_frame(frame);
@@ -294,12 +295,14 @@ namespace openswf
     {
         m_paused = false;
         goto_frame(frame);
+        update(0);
     }
 
     void MovieClipNode::goto_and_stop(uint32_t frame)
     {
         m_paused = true;
         goto_frame(frame);
+        update(0);
     }
 
     void MovieClipNode::goto_frame(uint32_t frame)

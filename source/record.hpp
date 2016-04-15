@@ -31,14 +31,7 @@ namespace openswf
 {
     class Shape;
     class MorphShape;
-    class FillStyle;
-    class LineStyle;
-    class FrameCommand;
     class Bitmap;
-
-    typedef std::unique_ptr<FillStyle> FillPtr;
-    typedef std::unique_ptr<LineStyle> LinePtr;
-    typedef std::unique_ptr<FrameCommand> CommandPtr;
 
     namespace record // should we hide this details from interface?
     {

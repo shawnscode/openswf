@@ -59,6 +59,18 @@ namespace record
         RESERVED_2  = 3
     };
 
+    enum class Capcode : uint8_t {
+        ROUND = 0,
+        NO = 1,
+        SQUARE = 2,
+    };
+
+    enum class Joincode : uint8_t {
+        ROUND = 0,
+        BEVEL = 1,
+        MITER = 2,
+    };
+
     struct ShapeEdge
     {
         ShapeEdge(const Point2f& anchor)
@@ -94,6 +106,8 @@ namespace record
         }
     };
 
+    typedef std::vector<ShapePath> ShapePathList;
+
     struct GradientPoint
     {
         int     ratio;
@@ -114,7 +128,6 @@ namespace record
         static Gradient read(Stream& stream, TagCode tag)
         {
             Gradient gradient;
-
             stream.read_bits_as_uint32(2); // (GradientSpreadMode)
             stream.read_bits_as_uint32(2); // (GradientInterpolationMode)
 
@@ -126,6 +139,22 @@ namespace record
                     stream.read_uint8(),
                     (tag == TagCode::DEFINE_SHAPE3 || tag == TagCode::DEFINE_SHAPE4) ?
                         stream.read_rgba() : stream.read_rgb());
+            }
+
+            return gradient;
+        }
+
+        static Gradient read_morph(Stream& stream)
+        {
+            Gradient gradient;
+
+            gradient.count = stream.read_bits_as_uint32(4);
+            assert(gradient.count > 0 && gradient.count < MaxGradientPoint);
+            for( auto i=0; i<gradient.count; i++ )
+            {
+                gradient.controls[i] = GradientPoint(stream.read_uint8(), stream.read_rgba());
+                stream.read_uint8();
+                stream.read_rgba();
             }
 
             return gradient;
@@ -226,58 +255,159 @@ namespace record
         else
             assert(false);
     }
-
-    static void read_line_styles(Stream& stream, std::vector<LinePtr>& array, TagCode type)
+    
+    static ShapeFillPtr read_morph_fill_style(Stream& stream, TagCode tag)
     {
-        uint8_t count = stream.read_uint8();
-        if( count == 0xFF ) count = stream.read_uint16();
-
-        array.reserve(count + array.size());
-        for( auto i=0; i<count; i++ )
+        auto type = (StyleMode)stream.read_uint8();
+        if( type == StyleMode::SOLID )
         {
-            LineStyle* line = new LineStyle();
-            line->width = stream.read_uint16();
+            return ShapeFill::create(stream.read_rgba(), stream.read_rgba());
+        }
+        else if( type == StyleMode::LINEAR_GRADIENT )
+        {
+            auto start_matrix = stream.read_matrix().to_pixel();
+            auto end_matrix = stream.read_matrix().to_pixel();
+            auto bitmap = Gradient::read_morph(stream).create_bitmap_linear();
+            return ShapeFill::create(std::move(bitmap), start_matrix, end_matrix);
+        }
+        else if( type == StyleMode::RADIAL_GRADIENT || type == StyleMode::FOCAL_RADIAL_GRADIENT )
+        {
+            auto start_matrix = stream.read_matrix().to_pixel();
+            auto end_matrix = stream.read_matrix().to_pixel();
+            auto bitmap = Gradient::read_morph(stream).create_bitmap_radial();
+            return ShapeFill::create(std::move(bitmap), start_matrix, end_matrix);
+        }
+        else if( type == StyleMode::REPEATING_BITMAP ||
+            type == StyleMode::CLIPPED_BITMAP ||
+            type == StyleMode::NON_SMOOTHED_REPEATING_BITMAP ||
+            type == StyleMode::NON_SMOOTHED_CLIPPED_BITMAP )
+        {
+            auto cid = stream.read_uint16();
+            auto start_matrix = stream.read_matrix().to_pixel();
+            auto end_matrix = stream.read_matrix().to_pixel();
+            return ShapeFill::create(cid, start_matrix, end_matrix);
+        }
+        else
+            assert(false);
+    }
 
-            if( type == TagCode::DEFINE_SHAPE4 )
-            {   // line style 2
-                line->start_cap  = (Capcode)stream.read_bits_as_uint32(2);
-                line->join       = (Joincode)stream.read_bits_as_uint32(2);
-                line->has_fill   = stream.read_bits_as_uint32(1) > 0;
-                line->no_hscale  = stream.read_bits_as_uint32(1) > 0;
-                line->no_vscale  = stream.read_bits_as_uint32(1) > 0;
-                line->pixel_hinting = stream.read_bits_as_uint32(1) > 0;
+    static ShapeLinePtr read_line_style(Stream& stream, TagCode type)
+    {
+        auto width = stream.read_uint16() * TWIPS_TO_PIXEL;
 
-                assert( stream.read_bits_as_uint32(5) == 0 ); //reserved bits
-                
-                line->no_close    = stream.read_bits_as_uint32(1) > 0;
-                line->end_cap    = (Capcode)stream.read_bits_as_uint32(2);
-                line->miter_limit_factor = line->join == Joincode::MITER ? stream.read_uint16() : 0;
-                
-                if( line->has_fill )
-                    line->fill = read_fill_style(stream, type);
-                else
-                    line->color = stream.read_rgba();
+        if( type == TagCode::DEFINE_SHAPE4 )
+        {   // line style 2
+            stream.read_bits_as_uint32(2); // Start Capcode
+            auto join = (Joincode)stream.read_bits_as_uint32(2); // Joincode
+            auto has_fill = stream.read_bits_as_uint32(1);
+            stream.read_bits_as_uint32(1); // no_hscale
+            stream.read_bits_as_uint32(1); // no_vscale
+            stream.read_bits_as_uint32(1); // pixel_hinting
+
+            assert( stream.read_bits_as_uint32(5) == 0 ); //reserved bits
+            
+            stream.read_bits_as_uint32(1); // no_close
+            stream.read_bits_as_uint32(2); // End Capcode
+
+            if( join == Joincode::MITER )
+                stream.read_uint16(); // miter limit factor
+            
+            if( has_fill )
+            {
+                read_fill_style(stream, type); // fill style
+                return ShapeLine::create(width, Color::black);
             }
             else
-            {   // line style
-                if( type == TagCode::DEFINE_SHAPE3 )
-                    line->color = stream.read_rgba();
-                else
-                    line->color = stream.read_rgb();
-            }
-            
-            array.push_back(LinePtr(line));
+                return ShapeLine::create(width, stream.read_rgba());
+        }
+        else
+        {   // line style
+            if( type == TagCode::DEFINE_SHAPE3 )
+                return ShapeLine::create(width, stream.read_rgba());
+            else
+                return ShapeLine::create(width, stream.read_rgb());
         }
     }
 
-    static void read_fill_styles(Stream& stream, std::vector<ShapeFillPtr>& array, TagCode tag)
+    static ShapeLinePtr read_morph_line_style(Stream& stream, TagCode type)
+    {
+        if( type == TagCode::DEFINE_MORPH_SHAPE )
+        {
+            return ShapeLine::create(
+                stream.read_uint16() * TWIPS_TO_PIXEL,
+                stream.read_uint16() * TWIPS_TO_PIXEL,
+                stream.read_rgba(),
+                stream.read_rgba());
+        }
+        else
+        {
+            auto width_start = stream.read_uint16();
+            auto width_end = stream.read_uint16();
+
+            stream.read_bits_as_uint32(2); // Start Capcode
+            auto join = (Joincode)stream.read_bits_as_uint32(2); // Joincode
+            auto has_fill = stream.read_bits_as_uint32(1);
+            stream.read_bits_as_uint32(1); // no_hscale
+            stream.read_bits_as_uint32(1); // no_vscale
+            stream.read_bits_as_uint32(1); // pixel_hinting
+
+            assert( stream.read_bits_as_uint32(5) == 0 ); //reserved bits
+            
+            stream.read_bits_as_uint32(1); // no_close
+            stream.read_bits_as_uint32(2); // End Capcode
+
+            if( join == Joincode::MITER )
+                stream.read_uint16(); // miter limit factor
+
+            if( has_fill )
+            {
+                read_morph_line_style(stream, type);
+                return ShapeLine::create(width_start, width_end, Color::black, Color::black);
+            }
+            else
+                return ShapeLine::create(width_start, width_end,
+                    stream.read_rgba(), stream.read_rgba());
+        }
+    }
+
+    static void read_line_styles(Stream& stream, ShapeLineList& line_styles, TagCode type)
     {
         uint8_t count = stream.read_uint8();
         if( count == 0xFF ) count = stream.read_uint16();
 
-        array.reserve(count + array.size());
+        line_styles.reserve(count + line_styles.size());
         for( auto i=0; i<count; i++ )
-            array.push_back(read_fill_style(stream, tag));
+        {
+            if( type == TagCode::DEFINE_MORPH_SHAPE ||
+                type == TagCode::DEFINE_MORPH_SHAPE2 )
+            {
+                line_styles.push_back(read_morph_line_style(stream, type));
+            }
+            else
+            {
+                line_styles.push_back(read_line_style(stream, type));
+            }
+        }
+    }
+
+    static void read_fill_styles(Stream& stream, std::vector<ShapeFillPtr>& fill_styles, TagCode tag)
+    {
+        uint8_t count = stream.read_uint8();
+        if( count == 0xFF ) count = stream.read_uint16();
+
+        fill_styles.reserve(count + fill_styles.size());
+        for( auto i=0; i<count; i++ )
+        {
+            if( tag == TagCode::DEFINE_MORPH_SHAPE ||
+               tag == TagCode::DEFINE_MORPH_SHAPE2 )
+            {
+                fill_styles.push_back(read_morph_fill_style(stream, tag));
+            }
+            else
+            {
+                fill_styles.push_back(read_fill_style(stream, tag));
+            }
+        }
     }
 
     typedef std::vector<Point2f>    Segments;
@@ -343,7 +473,7 @@ namespace record
         return false;
     }
 
-    static void contour_push_path(Contours& contours, const record::ShapePath& path)
+    static void contour_push_path(Contours& contours, const ShapePath& path)
     {
         Segments segments;
         segments.reserve(path.edges.size() + 1);
@@ -364,35 +494,10 @@ namespace record
         // if( !contour_merge_segments(contours, segments) )
     }
 
-    Shape* DefineShape::create(Stream& stream, TagCode type)
+    static ShapePathList read_shape_path(Stream& stream,
+        ShapeFillList& fill_styles, ShapeLineList& line_styles, TagCode type)
     {
-        assert( 
-            type == TagCode::DEFINE_SHAPE ||
-            type == TagCode::DEFINE_SHAPE2 ||
-            type == TagCode::DEFINE_SHAPE3 ||
-            type == TagCode::DEFINE_SHAPE4 );
-
-        uint16_t character_id   = stream.read_uint16();
-        Rect bounds             = stream.read_rect();
-        Rect edge_bounds        = Rect();
-
-        if( type == TagCode::DEFINE_SHAPE4 )
-        {
-            edge_bounds = stream.read_rect();
-            stream.read_bits_as_uint32(5);
-            stream.read_bits_as_uint32(1);
-            stream.read_bits_as_uint32(1);
-            stream.read_bits_as_uint32(1);
-        }
-
-        std::vector<ShapePath>      paths;
-        std::vector<ShapeFillPtr>  fill_styles;
-        std::vector<LinePtr>        line_styles;
-
-        read_fill_styles(stream, fill_styles, type);
-        read_line_styles(stream, line_styles, type);
-
-        // parse shape records
+        ShapePathList paths;
         uint32_t fill_index_bits = stream.read_bits_as_uint32(4);
         uint32_t line_index_bits = stream.read_bits_as_uint32(4);
         uint32_t fill_index_base = 0, line_index_base = 0;
@@ -511,9 +616,13 @@ namespace record
             }
         }
 
-        // tesselate polygons into simple triangles
+        return paths;
+    }
+
+    static ShapeRecordPtr create_shape_record(const ShapePathList& paths, const Rect& bounds,
+        ShapeFillList& fill_styles, ShapeLineList& line_styles, TagCode type)
+    {
         auto mesh_set = std::vector<Contours>(fill_styles.size(), Contours());
-        // auto lines = std::vector<Contours>(line_styles.size(), Contours());
 
         for( auto& path : paths )
         {
@@ -524,9 +633,6 @@ namespace record
 
             if( path.right_fill > 0 )
                 contour_push_path( mesh_set[path.right_fill-1], path );
-
-            // if( path.line > 0 )
-            //     contour_push_path( lines[path.line-1], path );
         }
 
         int numv = 0;
@@ -567,9 +673,90 @@ namespace record
 
         assert( contour_indices.size() == fill_styles.size() );
 
-        auto record = ShapeRecord::create(bounds, std::move(vertices), std::move(contour_indices));
+        return ShapeRecord::create(bounds, std::move(vertices), std::move(contour_indices));
+    }
+
+    Shape* DefineShape::create(Stream& stream, TagCode type)
+    {
+        assert( 
+            type == TagCode::DEFINE_SHAPE ||
+            type == TagCode::DEFINE_SHAPE2 ||
+            type == TagCode::DEFINE_SHAPE3 ||
+            type == TagCode::DEFINE_SHAPE4 );
+
+        auto character_id   = stream.read_uint16();
+        auto bounds         = stream.read_rect();
+        auto edge_bounds    = Rect();
+
+        if( type == TagCode::DEFINE_SHAPE4 )
+        {
+            edge_bounds = stream.read_rect();
+            stream.read_bits_as_uint32(5);
+            stream.read_bits_as_uint32(1);
+            stream.read_bits_as_uint32(1);
+            stream.read_bits_as_uint32(1);
+        }
+
+        ShapeFillList   fill_styles;
+        ShapeLineList   line_styles;
+
+        read_fill_styles(stream, fill_styles, type);
+        read_line_styles(stream, line_styles, type);
+
+        auto paths = read_shape_path(stream, fill_styles, line_styles, type);
+        auto record = create_shape_record(paths, bounds, fill_styles, line_styles, type);
         return Shape::create(character_id,
              std::move(fill_styles), std::move(line_styles), std::move(record));
+    }
+
+    MorphShape* DefineShape::create_morph(Stream& stream, TagCode type)
+    {
+        assert(
+            type == TagCode::DEFINE_MORPH_SHAPE ||
+            type == TagCode::DEFINE_MORPH_SHAPE2 );
+
+        auto character_id   = stream.read_uint16();
+        auto start_bounds   = stream.read_rect();
+        auto end_bounds     = stream.read_rect();
+
+        if( type == TagCode::DEFINE_MORPH_SHAPE2 )
+        {
+            stream.read_rect(); // StartEdgeBounds
+            stream.read_rect(); // EndEdgeBounds
+            assert( stream.read_bits_as_uint32(6) == 0 ); // RESERVED
+            stream.read_bits_as_uint32(1); // UsesNonScalingStrokes
+            stream.read_bits_as_uint32(1); // UsesScalingStrokes
+        }
+
+        auto offset = stream.read_uint32() + stream.get_position(); // offset
+
+        ShapeFillList   fill_styles;
+        ShapeLineList   line_styles;
+
+        read_fill_styles(stream, fill_styles, type);
+        read_line_styles(stream, line_styles, type);
+
+        auto start_paths = read_shape_path(stream, fill_styles, line_styles, type);
+        auto start_record = create_shape_record(start_paths, start_bounds, fill_styles, line_styles, type);
+
+        assert(stream.get_position() == offset);
+        stream.set_position(offset); // clean unused bits
+        auto end_paths = read_shape_path(stream, fill_styles, line_styles, type);
+
+        assert( start_paths.size() == end_paths.size() );
+        for( auto i=0; i<start_paths.size(); i++ )
+        {
+            end_paths[i].left_fill = start_paths[i].left_fill;
+            end_paths[i].right_fill = start_paths[i].right_fill;
+            end_paths[i].line = start_paths[i].line;
+
+            assert( end_paths[i].edges.size() == start_paths[i].edges.size() );
+        }
+        auto end_record = create_shape_record(end_paths, end_bounds, fill_styles, line_styles, type);
+
+        return MorphShape::create(character_id,
+            std::move(fill_styles), std::move(line_styles),
+            std::move(start_record), std::move(end_record));
     }
 
     /// TAG = 20， 36
