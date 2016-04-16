@@ -559,6 +559,8 @@ namespace record
                 {
                     push_path();
                     current_path.line = stream.read_bits_as_uint32(line_index_bits);
+                    if( current_path.line > 0 )
+                        current_path.line += line_index_base;
                 }
 
                 if( mask & SHAPE_NEW_STYLE ) // StateNewStyles, used by DefineShape2, DefineShape3 only.
@@ -849,6 +851,8 @@ namespace record
             for( int j=0; j<width; j++ )
                 bitmap->get(i, j).a = bytes[i*width+j];
 
+        delete[] bytes;
+
         jpeg_finish_decompress(&jds);
         jpeg_destroy_decompress(&jds);
         return std::move(bitmap);
@@ -859,7 +863,7 @@ namespace record
         auto character_id = stream.read_uint16();
         auto size = stream.read_uint32();
         auto start_pos = stream.get_position();
-        
+
         auto byte1 = stream.read_uint8();
         if( byte1 == 0xFF )
         {
@@ -876,7 +880,7 @@ namespace record
             }
 
             assert( byte2 == 0xD8 );
-            
+
             stream.set_position(start_pos);
             auto bitmap = read_from_jpeg(stream.get_current_ptr(),
                 size, header.end_pos-start_pos-size);
@@ -906,7 +910,7 @@ namespace record
         }
         else
             assert(false);
-        
+
         return nullptr;
     }
 
