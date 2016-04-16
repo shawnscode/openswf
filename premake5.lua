@@ -46,7 +46,7 @@ workspace("test")
     targetdir( "bin" )
 
     project( "01-unit-test" )
-        links({ "tess2", "glfw3", "glew", "z" })
+        links({ "tess2", "glfw3", "glew", "z", "jpeg" })
         linkoptions { "-framework OpenGL", "-framework Cocoa", "-framework IOKit", "-framework CoreVideo" }
         files({ "test/01-unit-test/*.cpp", "test/00-common/*.cpp", "source/*.cpp" })
 
