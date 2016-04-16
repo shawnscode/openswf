@@ -31,7 +31,7 @@ namespace openswf
 
         fill->m_texture_cid = cid;
         fill->m_bitmap = std::move(bitmap);
-        fill->m_texture = 0;
+        fill->m_texture_rid = 0;
 
         fill->m_additive_start = additive_start;
         fill->m_additive_end = additive_end;
@@ -72,23 +72,32 @@ namespace openswf
         return create(cid, nullptr, Color::black, Color::black, start, end);
     }
 
-    Rid ShapeFill::get_bitmap(Player* env)
+    void ShapeFill::attach(Player* env)
     {
-        if( m_texture == 0 )
+        if( m_texture_cid != 0 ) // bitmap
         {
             auto texture = env->get_character<Bitmap>(m_texture_cid);
-            if( texture )
+            if( texture != nullptr )
             {
-                m_texture = texture->get_texture_rid();
-            }
-            else if( m_bitmap != nullptr )
-            {
-                m_texture = Render::get_instance().create_texture(
-                    m_bitmap->get_ptr(), m_bitmap->get_width(), m_bitmap->get_height(), m_bitmap->get_format(), 1);
+                m_coordinate.reset(0, texture->get_width(), 0, texture->get_height());
+                m_texture_rid = texture->get_texture_rid();
             }
         }
 
-        return m_texture;
+        if( m_bitmap != nullptr ) // gradient
+        {
+            m_coordinate.reset(-16384, 16384, -16384, 16384);
+            m_texture_rid = Render::get_instance().create_texture(
+                m_bitmap->get_ptr(),
+                m_bitmap->get_width(), m_bitmap->get_height(), m_bitmap->get_format(), 1);
+        }
+
+        // solid
+    }
+
+    Rid ShapeFill::get_bitmap() const
+    {
+        return m_texture_rid;
     }
 
     Color ShapeFill::get_additive_color(uint16_t ratio) const
@@ -101,14 +110,13 @@ namespace openswf
 
     Point2f ShapeFill::get_texcoord(const Point2f& position, uint16_t ratio) const
     {
-        static const Rect coordinates = Rect(-16384, 16384, -16384, 16384).to_pixel();
-
         auto transform = this->m_texcoord_start;
         if( ratio != 0 )
             transform = Matrix::lerp(this->m_texcoord_start, this->m_texcoord_end, (float)ratio/65535.f);
 
-        Point2f ll = transform * Point2f(coordinates.xmin, coordinates.ymin);
-        Point2f ru = transform * Point2f(coordinates.xmax, coordinates.ymax);
+        // gradient texcoord transformation
+        Point2f ll = transform*Point2f(m_coordinate.xmin, m_coordinate.ymin);
+        Point2f ru = transform*Point2f(m_coordinate.xmax, m_coordinate.ymax);
 
         return Point2f( (position.x-ll.x) / (ru.x - ll.x), (position.y-ll.y) / (ru.y - ll.y) );
     }
@@ -193,8 +201,8 @@ namespace openswf
             for( int j=0; j<vcount; j++ )
             {
                 auto position = Point2f(tess_vertices[j*2], tess_vertices[j*2+1]).to_pixel();
-                auto texcoord = fill_styles[i]->get_texcoord(position);
-                out_vertices.push_back( {position.x, position.y, texcoord.x, texcoord.y} );
+                // auto texcoord = fill_styles[i]->get_texcoord(position);
+                out_vertices.push_back( {position.x, position.y, 0, 0} );
             }
 
             auto ind_base_size = out_indices.size();
@@ -251,9 +259,17 @@ namespace openswf
             this->vertices, this->vertices_size, this->indices, this->indices_size);
     }
 
-    INode* Shape::create_instance(Player* env)
+    INode* Shape::create_instance()
     {
-        return new ShapeNode(env, this);
+        return new ShapeNode(this->m_environment, this);
+    }
+
+    void Shape::attach(Player* env)
+    {
+        ICharacter::attach(env);
+
+        for( auto& style : fill_styles )
+            style->attach(env);
     }
 
     uint16_t Shape::get_character_id() const
@@ -282,11 +298,15 @@ namespace openswf
             auto ibase = i == 0 ? 0 : m_shape->indices_size[i-1];
             auto icount = m_shape->indices_size[i] - ibase;
 
-            auto color = m_shape->fill_styles[i]->get_additive_color();
+            auto& style = m_shape->fill_styles[i];
+            auto color = style->get_additive_color();
             for( auto j=vbase; j<vbase+vcount; j++ )
+            {
+                m_shape->vertices[j].texcoord = style->get_texcoord(m_shape->vertices[j].position);
                 m_shape->vertices[j].additive = color;
+            }
 
-            shader.set_texture(0, m_shape->fill_styles[i]->get_bitmap(m_environment));
+            shader.set_texture(0, m_shape->fill_styles[i]->get_bitmap());
             shader.draw(
                 vcount, m_shape->vertices.data()+vbase,
                 icount, m_shape->indices.data()+ibase,
@@ -317,14 +337,21 @@ namespace openswf
         return morph;
     }
 
+    void MorphShape::attach(Player* env)
+    {
+        ICharacter::attach(env);
+        for( auto& style : fill_styles )
+            style->attach(env);
+    }
+
     uint16_t MorphShape::get_character_id() const
     {
         return this->character_id;
     }
 
-    INode* MorphShape::create_instance(Player* env)
+    INode* MorphShape::create_instance()
     {
-        return new MorphShapeNode(env, this);
+        return new MorphShapeNode(this->m_environment, this);
     }
 
     void MorphShape::tesselate(uint16_t ratio, 
@@ -384,7 +411,7 @@ namespace openswf
                 m_vertices[j].texcoord = style->get_texcoord(m_vertices[j].position, m_current_ratio);
             }
 
-            shader.set_texture(0, m_morph_shape->fill_styles[i]->get_bitmap(m_environment));
+            shader.set_texture(0, m_morph_shape->fill_styles[i]->get_bitmap());
             shader.draw(
                 vcount, m_vertices.data()+vbase,
                 icount, m_indices.data()+ibase,

@@ -12,10 +12,16 @@ namespace openswf
 
     class ICharacter
     {
+    protected:
+        Player* m_environment;
+
     public:
+        ICharacter() : m_environment(nullptr) {}
+
         virtual ~ICharacter() {}
-        virtual INode*   create_instance(Player*) = 0;
+        virtual void     attach(Player* env) { m_environment = env; }
         virtual uint16_t get_character_id() const = 0;
+        virtual INode*   create_instance() = 0;
     };
 
     class INode

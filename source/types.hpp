@@ -234,6 +234,14 @@ namespace openswf
         Rect(float xmin, float xmax, float ymin, float ymax) 
         : xmin(xmin), xmax(xmax), ymin(ymin), ymax(ymax) {}
 
+        void reset(float xmin, float xmax, float ymin, float ymax)
+        {
+            this->xmin = xmin;
+            this->xmax = xmax;
+            this->ymin = ymin;
+            this->ymax = ymax;
+        }
+
         float get_width() const 
         { 
             return this->xmax - this->xmin; 
@@ -287,6 +295,7 @@ namespace openswf
         static Color lerp(const Color& from, const Color& to, const float ratio);
         static const Color white;
         static const Color black;
+        static const Color empty;
     };
 
     // the MATRIX record represents a standard 2x3 transformation matrix of 
@@ -325,10 +334,19 @@ namespace openswf
             values[r][c] = value;
         }
 
-        Matrix& to_pixel()
+        Matrix& to_pixel(bool scale = true, bool trans = true)
         {
-            values[0][2] *= TWIPS_TO_PIXEL;
-            values[1][2] *= TWIPS_TO_PIXEL;
+            if( trans )
+            {
+                values[0][2] *= TWIPS_TO_PIXEL;
+                values[1][2] *= TWIPS_TO_PIXEL;
+            }
+
+            if( scale )
+            {
+                values[0][0] *= TWIPS_TO_PIXEL;
+                values[1][1] *= TWIPS_TO_PIXEL;
+            }
             return *this;
         }
 
@@ -336,6 +354,8 @@ namespace openswf
         {
             values[0][2] *= PIXEL_TO_TWIPS;
             values[1][2] *= PIXEL_TO_TWIPS;
+            values[0][0] *= PIXEL_TO_TWIPS;
+            values[1][1] *= PIXEL_TO_TWIPS;
             return *this;
         }
 
@@ -378,7 +398,7 @@ namespace openswf
 
         float set(int r, int c, float value)
         {
-            assert(r>=0 && r<4 && c>=0 && c<=2);
+            assert(r>=0 && r<4 && c>=0 && c<=3);
             return values[r][c];
         }
 

@@ -110,12 +110,9 @@ namespace openswf
         // Opacity/transparency information is not a standard feature in JPEG images,
         // so the alpha channel information is encoded separately from the JPEG data,
         // and compressed using the ZLIB standard for compression.
-        struct DefineBits
+        struct DefineBitsJPEG3
         {
-            uint16_t    character_id;   // id for this character
-            uint32_t    alpha_offset;   // count of bytes in image
-            BytesPtr    image; // compressed image data in either JPEG, PNG, GIF89a format
-            BytesPtr    alpha; // zlib compressed array of alpha data.
+            static Bitmap* create(Stream& stream, TagHeader& header);
         };
 
         // TAG = 8

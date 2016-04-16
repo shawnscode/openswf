@@ -25,13 +25,13 @@ namespace openswf
 
         VertexPack(float vx, float vy, float tx, float ty)
         : position(Point2f(vx, vy)), texcoord(Point2f(tx, ty)),
-        diffuse(Color::white), additive(Color::black) {}
+        diffuse(Color::white), additive(Color::empty) {}
 
         VertexPack(const Point2f& position, const Point2f& texcoord)
-        : position(position), texcoord(texcoord), diffuse(Color::white), additive(Color::black) {}
+        : position(position), texcoord(texcoord), diffuse(Color::white), additive(Color::empty) {}
 
         VertexPack()
-        : diffuse(Color::white), additive(Color::black) {}
+        : diffuse(Color::white), additive(Color::empty) {}
     };
 
     class Screen

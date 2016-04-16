@@ -56,7 +56,6 @@ namespace openswf
         auto tag = TagHeader::read(*stream);
         while( tag.code != TagCode::END || current_sprite.character_id != 0 )
         {
-            printf("tag: %s\n", get_tag_str(tag.code));
             switch(tag.code)
             {
                 case TagCode::END:
@@ -70,6 +69,7 @@ namespace openswf
                         commands,
                         indices);
 
+                    sprite->attach(this);
                     set_character(current_sprite.character_id, sprite);
 
                     current_sprite.character_id = 0;
@@ -102,7 +102,10 @@ namespace openswf
                 {
                     auto shape = DefineShape::create(*stream, tag.code);
                     if( shape != nullptr )
+                    {
+                        shape->attach(this);
                         set_character(shape->get_character_id(), shape);
+                    }
                     break;
                 }
 
@@ -111,21 +114,43 @@ namespace openswf
                 {
                     auto shape = DefineShape::create_morph(*stream, tag.code);
                     if( shape != nullptr )
+                    {
+                        shape->attach(this);
                         set_character(shape->get_character_id(), shape);
+                    }
+                    break;
+                }
+
+                case TagCode::DEFINE_BITS_JPEG3:
+                {
+                    auto texture = DefineBitsJPEG3::create(*stream, tag);
+                    if( texture != nullptr )
+                    {
+                        texture->attach(this);
+                        set_character(texture->get_character_id(), texture);
+                    }
                     break;
                 }
 
                 case TagCode::DEFINE_BITS_LOSSLESS:
                 {
                     auto texture = DefineBitsLossless::create(*stream, tag);
-                    if( texture != nullptr ) set_character(texture->get_character_id(), texture);
+                    if( texture != nullptr )
+                    {
+                        texture->attach(this);
+                        set_character(texture->get_character_id(), texture);
+                    }
                     break;
                 }
 
                 case TagCode::DEFINE_BITS_LOSSLESS2:
                 {
                     auto texture = DefineBitsLossless2::create(*stream, tag);
-                    if( texture != nullptr ) set_character(texture->get_character_id(), texture);
+                    if( texture != nullptr )
+                    {
+                        texture->attach(this);
+                        set_character(texture->get_character_id(), texture);
+                    }
                     break;
                 }
 

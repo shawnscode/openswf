@@ -24,6 +24,13 @@ namespace openswf
 
     BitmapDataPtr BitmapData::create(TextureFormat format, uint32_t width, uint32_t height)
     {
+        return BitmapData::create(
+            BytesPtr(new (std::nothrow) uint8_t[width*height*get_sizeof(format)]),
+            format, width, height);
+    }
+
+    BitmapDataPtr BitmapData::create(BytesPtr bytes, TextureFormat format, uint32_t width, uint32_t height)
+    {
         auto bitmap = new (std::nothrow) BitmapData();
         if( bitmap )
         {
@@ -31,7 +38,7 @@ namespace openswf
             bitmap->m_width = width;
             bitmap->m_height = height;
             bitmap->m_elesize = get_sizeof(format);
-            bitmap->m_source = BytesPtr(new (std::nothrow) uint8_t[width*height*bitmap->m_elesize]);
+            bitmap->m_source = std::move(bytes);
 
             if( bitmap->m_source != nullptr )
                 return BitmapDataPtr(bitmap);
@@ -102,9 +109,9 @@ namespace openswf
         return m_rid;
     }
 
-    INode* Bitmap::create_instance(Player* env)
+    INode* Bitmap::create_instance()
     {
-        return new BitmapNode(env, this);
+        return new BitmapNode(this->m_environment, this);
     }
 
     uint16_t Bitmap::get_character_id() const

@@ -14,7 +14,9 @@ namespace openswf
         uint16_t        m_texture_cid;
         BitmapDataPtr   m_bitmap;
 
-        Rid         m_texture;
+        Rid         m_texture_rid;
+        Rect        m_coordinate;
+
         Color       m_additive_start, m_additive_end;
         Matrix      m_texcoord_start, m_texcoord_end;
 
@@ -30,7 +32,8 @@ namespace openswf
         static ShapeFillPtr create(uint16_t cid, const Matrix&);
         static ShapeFillPtr create(uint16_t cid, const Matrix&, const Matrix&);
 
-        Rid     get_bitmap(Player* env);
+        void    attach(Player* env);
+        Rid     get_bitmap() const;
         Color   get_additive_color(uint16_t ratio = 0) const;
         Point2f get_texcoord(const Point2f&, uint16_t ratio = 0) const;
     };
@@ -83,11 +86,12 @@ namespace openswf
         IndexList       vertices_size;
         IndexList       indices_size;
 
-        static Shape* create(uint16_t, ShapeFillList&&, ShapeLineList&&, ShapeRecordPtr);
         bool initialize(uint16_t, ShapeFillList&&, ShapeLineList&&, ShapeRecordPtr);
+        static Shape* create(uint16_t, ShapeFillList&&, ShapeLineList&&, ShapeRecordPtr);
 
+        virtual void     attach(Player* env);
         virtual uint16_t get_character_id() const;
-        virtual INode*   create_instance(Player*);
+        virtual INode*   create_instance();
     };
 
     class ShapeNode : public INode
@@ -113,8 +117,9 @@ namespace openswf
 
         static MorphShape* create(uint16_t, ShapeFillList&&, ShapeLineList&&, ShapeRecordPtr, ShapeRecordPtr);
 
+        virtual void     attach(Player* env);
         virtual uint16_t get_character_id() const;
-        virtual INode*   create_instance(Player*);
+        virtual INode*   create_instance();
 
         void tesselate(uint16_t ratio,
             VertexPackList& out_vertices,

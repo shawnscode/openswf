@@ -10,6 +10,7 @@
 
 extern "C" {
     #include "zlib.h"
+    #include "jpeglib.h"
 }
 
 namespace openswf
@@ -305,13 +306,13 @@ namespace record
             stream.read_bits_as_uint32(1); // pixel_hinting
 
             assert( stream.read_bits_as_uint32(5) == 0 ); //reserved bits
-            
+
             stream.read_bits_as_uint32(1); // no_close
             stream.read_bits_as_uint32(2); // End Capcode
 
             if( join == Joincode::MITER )
                 stream.read_uint16(); // miter limit factor
-            
+
             if( has_fill )
             {
                 read_fill_style(stream, type); // fill style
@@ -352,7 +353,7 @@ namespace record
             stream.read_bits_as_uint32(1); // pixel_hinting
 
             assert( stream.read_bits_as_uint32(5) == 0 ); //reserved bits
-            
+
             stream.read_bits_as_uint32(1); // no_close
             stream.read_bits_as_uint32(2); // End Capcode
 
@@ -793,6 +794,96 @@ namespace record
 
         assert( inflate(&strm, Z_NO_FLUSH) != Z_STREAM_ERROR );
         inflateEnd(&strm);
+    }
+
+    static BitmapDataPtr read_from_jpeg(const uint8_t* source, int src_size)
+    {
+        struct jpeg_decompress_struct jds;
+        struct jpeg_error_mgr jem;
+        JSAMPARRAY buffer;
+
+        jds.err = jpeg_std_error(&jem);
+        jpeg_create_decompress(&jds);
+        jpeg_mem_src(&jds, (unsigned char*)source, (unsigned long)src_size);
+
+        (void)jpeg_read_header(&jds, TRUE);
+        jpeg_start_decompress(&jds);
+
+        auto width  = jds.output_width;
+        auto height = jds.output_height;
+        auto depth  = jds.output_components;
+
+        buffer = (*jds.mem->alloc_sarray)((j_common_ptr)&jds, JPOOL_IMAGE, width*depth, 1);
+
+        uint8_t* dst = new uint8_t[width*height*depth];
+        memset(dst, 0, width*height*depth);
+
+        auto iterator = dst;
+        while( jds.output_scanline < height )
+        {
+            (void)jpeg_read_scanlines(&jds, buffer, 1);
+            memcpy(iterator, *buffer, width*depth);
+            iterator += width*depth;
+        }
+
+        jpeg_finish_decompress(&jds);
+        jpeg_destroy_decompress(&jds);
+
+        return BitmapData::create(BytesPtr(dst), TextureFormat::RGB8, width, height);
+    }
+
+    Bitmap* DefineBitsJPEG3::create(Stream& stream, TagHeader& header)
+    {
+        auto character_id = stream.read_uint16();
+        auto size = stream.read_uint32();
+        
+        auto start_pos = stream.get_position();
+        
+        auto byte1 = stream.read_uint8();
+        if( byte1 == 0xFF )
+        {
+            auto byte2 = stream.read_uint8();
+            // erroneous bytes before the jpeg soi marker for version before swf 8
+            if( byte2 == 0xD9 )
+            {
+                assert(
+                    stream.read_uint8() == 0xFF &&
+                    stream.read_uint8() == 0xD8 &&
+                    stream.read_uint8() == 0xFF &&
+                    stream.read_uint8() == 0xD8);
+                // load jpeg
+            }
+
+            assert( byte2 == 0xD8 );
+            
+            stream.set_position(start_pos);
+            auto data = read_from_jpeg(stream.get_current_ptr(), size);
+            return Bitmap::create(character_id, std::move(data));
+        }
+        else if( byte1 == 0x89 )
+        {
+            assert(
+                stream.read_uint8() == 0x50 &&
+                stream.read_uint8() == 0x4E &&
+                stream.read_uint8() == 0x47 &&
+                stream.read_uint8() == 0x0D &&
+                stream.read_uint8() == 0x0A &&
+                stream.read_uint8() == 0x1A &&
+                stream.read_uint8() == 0x0A );
+            // load png
+        }
+        else if( byte1 == 0x47 )
+        {
+            assert(
+                stream.read_uint8() == 0x49 &&
+                stream.read_uint8() == 0x46 &&
+                stream.read_uint8() == 0x38 &&
+                stream.read_uint8() == 0x39 &&
+                stream.read_uint8() == 0x61 );
+            // load non-animated GIF89a
+        }
+        else
+            assert(false);
     }
 
     Bitmap* DefineBitsLossless::create(Stream& stream, TagHeader& header)

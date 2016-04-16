@@ -18,6 +18,7 @@ namespace openswf
 
     public:
         static BitmapDataPtr create(TextureFormat format, uint32_t width, uint32_t height);
+        static BitmapDataPtr create(BytesPtr bytes, TextureFormat format, uint32_t width, uint32_t height);
 
         void set(int row, int col, uint32_t value);
         uint32_t get_width() const;
@@ -43,7 +44,7 @@ namespace openswf
         static Bitmap* create(uint16_t cid, BitmapDataPtr data);
         bool initialize(uint16_t cid, BitmapDataPtr data);
 
-        virtual INode*   create_instance(Player*);
+        virtual INode*   create_instance();
         virtual uint16_t get_character_id() const;
 
         Rid             get_texture_rid();

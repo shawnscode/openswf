@@ -87,6 +87,7 @@ namespace openswf
 
     const Color Color::white = Color(255, 255, 255);
     const Color Color::black = Color(0, 0, 0);
+    const Color Color::empty = Color(0, 0, 0, 0);
 
     Color Color::operator * (float ratio) const
     {

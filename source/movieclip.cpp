@@ -59,7 +59,7 @@ namespace openswf
 
             if( node == nullptr ) return;
 
-            node->set_transform(stream.read_matrix().to_pixel());
+            node->set_transform(stream.read_matrix().to_pixel(false));
 
             if( stream.get_position() < m_header.size )
                 node->set_cxform(stream.read_cxform_rgb());
@@ -78,7 +78,7 @@ namespace openswf
             if( node == nullptr ) return;
 
             if( mask & PLACE_2_HAS_MATRIX )
-                node->set_transform(stream.read_matrix().to_pixel());
+                node->set_transform(stream.read_matrix().to_pixel(false));
 
             if( mask & PLACE_2_HAS_CXFORM )
                 node->set_cxform(stream.read_cxform_rgba());
@@ -119,7 +119,7 @@ namespace openswf
             if( node == nullptr ) return;
 
             if( mask2 & PLACE_2_HAS_MATRIX )
-                node->set_transform(stream.read_matrix().to_pixel());
+                node->set_transform(stream.read_matrix().to_pixel(false));
 
             if( mask2 & PLACE_2_HAS_CXFORM )
                 node->set_cxform(stream.read_cxform_rgba());
@@ -168,9 +168,9 @@ namespace openswf
         return nullptr;
     }
 
-    INode* MovieClip::create_instance(Player* env)
+    INode* MovieClip::create_instance()
     {
-        return new MovieClipNode(env, this);
+        return new MovieClipNode(this->m_environment, this);
     }
 
     uint16_t MovieClip::get_character_id() const
@@ -199,6 +199,8 @@ namespace openswf
         m_frame_rate = sprite->get_frame_rate();
         m_frame_delta = 1.f / m_frame_rate;
         goto_and_play(1);
+
+        assert(env != nullptr);
     }
 
     MovieClipNode::~MovieClipNode()
@@ -248,7 +250,7 @@ namespace openswf
             return iter->second;
 
         auto cache = m_deprecated.find(depth);
-        if( cache != m_children.end() )
+        if( cache != m_deprecated.end() )
         {
             m_children[depth] = m_deprecated[depth];
             m_deprecated.erase(cache);
@@ -284,7 +286,7 @@ namespace openswf
         auto ch = m_environment->get_character(cid);
         if( ch != nullptr )
         {
-            m_children[depth] = ch->create_instance(m_environment);
+            m_children[depth] = ch->create_instance();
             return m_children[depth];
         }
         return nullptr;

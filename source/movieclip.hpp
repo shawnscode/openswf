@@ -45,7 +45,7 @@ namespace openswf
             std::vector<CommandPtr>& commands,
             std::vector<uint32_t>& indices);
 
-        virtual INode*   create_instance(Player*);
+        virtual INode*   create_instance();
         virtual uint16_t get_character_id() const;
 
         void    execute(MovieClipNode& display, uint32_t frame);
