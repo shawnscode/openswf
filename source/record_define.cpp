@@ -1,7 +1,6 @@
 #include "debug.hpp"
 #include "record.hpp"
 #include "character.hpp"
-#include "image.hpp"
 #include "shape.hpp"
 
 #include <unordered_map>
@@ -191,10 +190,10 @@ namespace record
             static const int width = 64;
             static const int height = 1;
 
-            auto source = Bitmap::create(TextureFormat::RGBA8, width, height);
+            auto source = BitmapRGBA8::create(width, height);
             for( auto i=0; i<source->get_height(); i++ )
                 for( auto j=0; j<source->get_width(); j++ )
-                    source->set(i, j, sample(255.f*(float)j/(float)width).to_value());
+                    source->set(i, j, sample(255.f*(float)j/(float)width));
 
             return std::move(source);
         }
@@ -204,7 +203,7 @@ namespace record
             static const int width = 16;
             static const int height = 16;
 
-            auto source = Bitmap::create(TextureFormat::RGBA8, width, height);
+            auto source = BitmapRGBA8::create(width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -214,7 +213,7 @@ namespace record
                     float x = (i - radius) / radius;
                     int ratio = (int) floorf(255.5f * sqrt(x * x + y * y));
                     if( ratio > 255.f ) ratio = 255.f;
-                    source->set(i, j, sample(ratio).to_value());
+                    source->set(i, j, sample(ratio));
                 }
             }
 
@@ -316,7 +315,7 @@ namespace record
             if( has_fill )
             {
                 read_fill_style(stream, type); // fill style
-                return ShapeLine::create(width, Color::black);
+                return ShapeLine::create(width, Color::empty);
             }
             else
                 return ShapeLine::create(width, stream.read_rgba());
@@ -363,7 +362,7 @@ namespace record
             if( has_fill )
             {
                 read_morph_line_style(stream, type);
-                return ShapeLine::create(width_start, width_end, Color::black, Color::black);
+                return ShapeLine::create(width_start, width_end, Color::empty, Color::empty);
             }
             else
                 return ShapeLine::create(width_start, width_end,
@@ -796,7 +795,7 @@ namespace record
         inflateEnd(&strm);
     }
 
-    static BitmapPtr read_from_jpeg(const uint8_t* source, int src_size)
+    static BitmapPtr read_from_jpeg(const uint8_t* source, int jpeg_size, int alpha_size)
     {
         struct jpeg_decompress_struct jds;
         struct jpeg_error_mgr jem;
@@ -804,7 +803,7 @@ namespace record
 
         jds.err = jpeg_std_error(&jem);
         jpeg_create_decompress(&jds);
-        jpeg_mem_src(&jds, (unsigned char*)source, (unsigned long)src_size);
+        jpeg_mem_src(&jds, (unsigned char*)source, (unsigned long)jpeg_size);
 
         (void)jpeg_read_header(&jds, TRUE);
         jpeg_start_decompress(&jds);
@@ -814,22 +813,45 @@ namespace record
         auto depth  = jds.output_components;
 
         buffer = (*jds.mem->alloc_sarray)((j_common_ptr)&jds, JPOOL_IMAGE, width*depth, 1);
+        
+        if( alpha_size <= 0 )
+        {
+            auto bitmap = BitmapRGB8::create(width, height);
+            uint8_t* iterator = bitmap->get_ptr();
+            while( jds.output_scanline < height )
+            {
+                (void)jpeg_read_scanlines(&jds, buffer, 1);
+                memcpy(iterator, *buffer, width*depth);
+                iterator += width*depth;
+            }
 
-        uint8_t* dst = new uint8_t[width*height*depth];
-        memset(dst, 0, width*height*depth);
+            jpeg_finish_decompress(&jds);
+            jpeg_destroy_decompress(&jds);
+            return std::move(bitmap);
+        }
 
-        auto iterator = dst;
+        auto bitmap = BitmapRGBA8::create(width, height);
+        auto iterator = bitmap->get_ptr();
         while( jds.output_scanline < height )
         {
             (void)jpeg_read_scanlines(&jds, buffer, 1);
-            memcpy(iterator, *buffer, width*depth);
-            iterator += width*depth;
+            for( auto i=0; i < width; i++ )
+            {
+                memcpy(iterator, *buffer+i*3, 3);
+                iterator += 4;
+            }
         }
+
+        auto bytes = new uint8_t[width*height];
+        decompress(source+jpeg_size, alpha_size, bytes, width*height);
+
+        for( int i=0; i<height; i++ )
+            for( int j=0; j<width; j++ )
+                bitmap->get(i, j).a = bytes[i*width+j];
 
         jpeg_finish_decompress(&jds);
         jpeg_destroy_decompress(&jds);
-
-        return Bitmap::create(BytesPtr(dst), TextureFormat::RGB8, width, height);
+        return std::move(bitmap);
     }
 
     Image* DefineBitsJPEG3::create(Stream& stream, TagHeader& header)
@@ -856,8 +878,9 @@ namespace record
             assert( byte2 == 0xD8 );
             
             stream.set_position(start_pos);
-            auto data = read_from_jpeg(stream.get_current_ptr(), size);
-            return Image::create(character_id, std::move(data));
+            auto bitmap = read_from_jpeg(stream.get_current_ptr(),
+                size, header.end_pos-start_pos-size);
+            return Image::create(character_id, std::move(bitmap));
         }
         else if( byte1 == 0x89 )
         {
@@ -883,6 +906,8 @@ namespace record
         }
         else
             assert(false);
+        
+        return nullptr;
     }
 
     Image* DefineBitsLossless::create(Stream& stream, TagHeader& header)
@@ -900,61 +925,33 @@ namespace record
             auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
             decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
 
-            auto bitmap = Bitmap::create(TextureFormat::RGB8, width, height);
+            auto bitmap = BitmapRGB8::create(width, height);
             for( auto i=0; i<height; i++ )
-            {
                 for( auto j=0; j<width; j++ )
                 {
                     auto base = bytes[table_size*3+i*width+j]*3;
-                    bitmap->set(i, j,
-                        ((uint32_t)bytes[base+1]<<16) |
-                        ((uint32_t)bytes[base+2]<< 8) |
-                        ((uint32_t)bytes[base+3]<< 0) );
+                    bitmap->set(i, j, bytes.get()+base);
                 }
-            }
 
             return Image::create(cid, std::move(bitmap));
         }
         else if( format == BitmapFormat::RGB15)
         {
             auto src_size = header.end_pos - stream.get_position();
-            auto dst_size = width * height * 2;
-            auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
-            decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
+            auto bitmap = BitmapRGB565::create(width, height);
+            decompress(stream.get_current_ptr(), src_size, bitmap->get_ptr(), bitmap->get_size());
 
-            auto bitmap = Bitmap::create(TextureFormat::RGB565, width, height);
             for( auto i=0; i<height; i++ )
-            {
                 for( auto j=0; j<width; j++ )
-                {
-                    auto base = (i*width+j)*2;
-                    bitmap->set(i, j,
-                        ((uint32_t)bytes[base+0] << 8) |
-                        ((uint32_t)bytes[base+1] << 0) );
-                }
-            }
+                    bitmap->get(i, j).cast_from_1555();
 
             return Image::create(cid, std::move(bitmap));
         }
         else if( format == BitmapFormat::RGB24 )
         {
             auto src_size = header.end_pos - stream.get_position();
-            auto dst_size = width * height * 4;
-            auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
-            decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
-
-            auto bitmap = Bitmap::create(TextureFormat::RGB8, width, height);
-            for( auto i=0; i<height; i++ )
-            {
-                for( auto j=0; j<width; j++ )
-                {
-                    auto base = (i*width+j)*4;
-                    bitmap->set(i, j,
-                        ((uint32_t)bytes[base+1]<<16) |
-                        ((uint32_t)bytes[base+2]<< 8) |
-                        ((uint32_t)bytes[base+3]<< 0) );
-                }
-            }
+            auto bitmap = BitmapRGB8::create(width, height);
+            decompress(stream.get_current_ptr(), src_size, bitmap->get_ptr(), bitmap->get_size());
 
             return Image::create(cid, std::move(bitmap));
         }
@@ -978,42 +975,25 @@ namespace record
             auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
             decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
 
-            auto bitmap = Bitmap::create(TextureFormat::RGBA8, width, height);
+            auto bitmap = BitmapRGBA8::create(width, height);
             for( auto i=0; i<height; i++ )
-            {
                 for( auto j=0; j<width; j++ )
                 {
                     auto base = bytes[table_size*4+i*width+j]*4;
-                    bitmap->set(i, j,
-                        ((uint32_t)bytes[base+0]<< 0) |
-                        ((uint32_t)bytes[base+1]<<24) |
-                        ((uint32_t)bytes[base+2]<<16) |
-                        ((uint32_t)bytes[base+3]<< 8) );
+                    bitmap->set(i, j, bytes.get()+base);
                 }
-            }
 
             return Image::create(cid, std::move(bitmap));
         }
         else if( format == BitmapFormat::RGB15 || format == BitmapFormat::RGB24 )
         {
             auto src_size = header.end_pos - stream.get_position();
-            auto dst_size = width * height * 4;
-            auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
-            decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
+            auto bitmap = BitmapRGBA8::create(width, height);
+            decompress(stream.get_current_ptr(), src_size, bitmap->get_ptr(), bitmap->get_size());
 
-            auto bitmap = Bitmap::create(TextureFormat::RGBA8, width, height);
-            for( auto i=0; i<height; i++ )
-            {
-                for( auto j=0; j<width; j++ )
-                {
-                    auto base = (i*width+j)*4;
-                    bitmap->set(i, j,
-                        ((uint32_t)bytes[base+0]<< 0) |
-                        ((uint32_t)bytes[base+1]<<24) |
-                        ((uint32_t)bytes[base+2]<<16) |
-                        ((uint32_t)bytes[base+3]<< 8) );
-                }
-            }
+            for( int i=0; i<height; i++ )
+                for( int j=0; j<width; j++ )
+                    bitmap->get(i, j).cast_from_argb();
 
             return Image::create(cid, std::move(bitmap));
         }

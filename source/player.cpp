@@ -56,6 +56,7 @@ namespace openswf
         auto tag = TagHeader::read(*stream);
         while( tag.code != TagCode::END || current_sprite.character_id != 0 )
         {
+            printf("tag: %s\n", get_tag_str(tag.code));
             switch(tag.code)
             {
                 case TagCode::END:

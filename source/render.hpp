@@ -29,7 +29,6 @@ namespace openswf
         RGB8,
         RGB565,
         ALPHA8,
-        DEPTH8,  // use for render target
         // PVR2,
         // PVR4,
         // ETC1,

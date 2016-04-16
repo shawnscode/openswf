@@ -54,22 +54,22 @@ namespace openswf
 
     ShapeFillPtr ShapeFill::create(BitmapPtr bitmap, const Matrix& transform)
     {
-        return create(0, std::move(bitmap), Color::black, Color::black, transform, transform);
+        return create(0, std::move(bitmap), Color::empty, Color::empty, transform, transform);
     }
 
     ShapeFillPtr ShapeFill::create(BitmapPtr bitmap, const Matrix& start, const Matrix& end)
     {
-        return create(0, std::move(bitmap), Color::black, Color::black, start, end);
+        return create(0, std::move(bitmap), Color::empty, Color::empty, start, end);
     }
 
     ShapeFillPtr ShapeFill::create(uint16_t cid, const Matrix& transform)
     {
-        return create(cid, nullptr, Color::black, Color::black, transform, transform);
+        return create(cid, nullptr, Color::empty, Color::empty, transform, transform);
     }
 
     ShapeFillPtr ShapeFill::create(uint16_t cid, const Matrix& start, const Matrix& end)
     {
-        return create(cid, nullptr, Color::black, Color::black, start, end);
+        return create(cid, nullptr, Color::empty, Color::empty, start, end);
     }
 
     void ShapeFill::attach(Player* env)
@@ -289,6 +289,7 @@ namespace openswf
     {
         auto& shader = Shader::get_instance();
         shader.set_program(PROGRAM_DEFAULT);
+        shader.set_blend(BlendFunc::ONE, BlendFunc::ONE_MINUS_SRC_ALPHA);
 
         for( auto i=0; i<m_shape->vertices_size.size(); i++ )
         {
@@ -394,6 +395,7 @@ namespace openswf
     {
         auto& shader = Shader::get_instance();
         shader.set_program(PROGRAM_DEFAULT);
+        shader.set_blend(BlendFunc::ONE, BlendFunc::ONE_MINUS_SRC_ALPHA);
 
         for( auto i=0; i<m_vertices_size.size(); i++ )
         {

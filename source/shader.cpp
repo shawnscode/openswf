@@ -151,6 +151,8 @@ namespace openswf
         if( m_iused > 0 && m_current_program >= 0 )
         {
             auto& render = Render::get_instance();
+            render.set_blend(m_blend_src, m_blend_dst);
+
             render.bind_shader(m_programs[m_current_program]);
 
             render.update_buffer(m_vertices, m_vbuffer, m_vused*sizeof(VertexPack));

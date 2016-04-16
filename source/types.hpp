@@ -287,11 +287,6 @@ namespace openswf
         Color operator+ (const Color& rh) const;
         Color operator- (const Color& rh) const;
 
-        uint32_t to_value() const
-        {
-            return (r << 24) | (g << 16) | (b << 8) | (a << 0);
-        }
-
         static Color lerp(const Color& from, const Color& to, const float ratio);
         static const Color white;
         static const Color black;
@@ -310,8 +305,6 @@ namespace openswf
     //      y' = x * ratate_skew_0 + y * scale_x + translate_y
     struct Matrix
     {
-        const static Matrix identity;
-
         float values[2][3];
 
         Matrix() { set_identity(); }
@@ -363,6 +356,7 @@ namespace openswf
         Point2f operator * (const Point2f& rh) const;
 
         static Matrix lerp(const Matrix& lh, const Matrix& rh, float ratio);
+        const static Matrix identity;
     };
 
     // the cxform record defines a simple transform that can be applied to 
@@ -378,8 +372,6 @@ namespace openswf
     // A' = max(0, min(A * alpha_mult_term + alpha_add_term,  255))
     struct ColorTransform
     {
-        const static ColorTransform identity;
-
         float values[2][4]; // [mult, add][RGBA]
 
         ColorTransform() { set_identity(); }
@@ -404,5 +396,7 @@ namespace openswf
 
         ColorTransform operator * (const ColorTransform& rh) const;
         Color operator * (const Color& rh) const;
+
+        const static ColorTransform identity;
     };
 }

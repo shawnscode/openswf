@@ -42,6 +42,7 @@ namespace openswf
         auto& shader = Shader::get_instance();
         shader.create(PROGRAM_DEFAULT, default_vs, default_fs, 1, textures, 1, uniforms);
         shader.set_program(PROGRAM_DEFAULT);
+        shader.set_blend(BlendFunc::ONE, BlendFunc::ONE_MINUS_SRC_ALPHA);
         return true;
     }
 }

@@ -84,7 +84,6 @@ namespace openswf
                 return width * height * 3;
 
             case TextureFormat::ALPHA8:
-            case TextureFormat::DEPTH8:
                 return width * height;
 
 //            case TextureFormat::PVR2:
@@ -909,8 +908,7 @@ namespace openswf
                 element = GL_UNSIGNED_SHORT_5_6_5;
                 break;
             case TextureFormat::ALPHA8:
-            case TextureFormat::DEPTH8:
-                nformat = GL_RED;
+                nformat = GL_ALPHA;
                 element = GL_UNSIGNED_BYTE;
                 break;
             default:
