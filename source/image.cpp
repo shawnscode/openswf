@@ -1,4 +1,4 @@
-#include "bitmap.hpp"
+#include "image.hpp"
 
 namespace openswf
 {
@@ -22,16 +22,16 @@ namespace openswf
         }
     }
 
-    BitmapDataPtr BitmapData::create(TextureFormat format, uint32_t width, uint32_t height)
+    BitmapPtr Bitmap::create(TextureFormat format, uint32_t width, uint32_t height)
     {
-        return BitmapData::create(
+        return Bitmap::create(
             BytesPtr(new (std::nothrow) uint8_t[width*height*get_sizeof(format)]),
             format, width, height);
     }
 
-    BitmapDataPtr BitmapData::create(BytesPtr bytes, TextureFormat format, uint32_t width, uint32_t height)
+    BitmapPtr Bitmap::create(BytesPtr bytes, TextureFormat format, uint32_t width, uint32_t height)
     {
-        auto bitmap = new (std::nothrow) BitmapData();
+        auto bitmap = new (std::nothrow) Bitmap();
         if( bitmap )
         {
             bitmap->m_format = format;
@@ -41,14 +41,14 @@ namespace openswf
             bitmap->m_source = std::move(bytes);
 
             if( bitmap->m_source != nullptr )
-                return BitmapDataPtr(bitmap);
+                return BitmapPtr(bitmap);
         }
 
         if( bitmap ) delete bitmap;
         return nullptr;
     }
 
-    void BitmapData::set(int row, int col, uint32_t value)
+    void Bitmap::set(int row, int col, uint32_t value)
     {
         assert( row >= 0 && row < m_width );
         assert( col >= 0 && row < m_height );
@@ -79,9 +79,9 @@ namespace openswf
     }
 
     /// TEXTURE CHARACTER
-    Bitmap* Bitmap::create(uint16_t cid, BitmapDataPtr data)
+    Image* Image::create(uint16_t cid, BitmapPtr data)
     {
-        auto texture = new (std::nothrow) Bitmap();
+        auto texture = new (std::nothrow) Image();
         if( texture && texture->initialize(cid, std::move(data)) )
             return texture;
 
@@ -89,7 +89,7 @@ namespace openswf
         return nullptr;
     }
 
-    bool Bitmap::initialize(uint16_t cid, BitmapDataPtr data)
+    bool Image::initialize(uint16_t cid, BitmapPtr data)
     {
         m_character_id  = cid;
         m_bitmap = std::move(data);
@@ -97,7 +97,7 @@ namespace openswf
         return true;
     }
 
-    Rid Bitmap::get_texture_rid()
+    Rid Image::get_texture_rid()
     {
         if( m_rid == 0 )
         {
@@ -109,21 +109,21 @@ namespace openswf
         return m_rid;
     }
 
-    INode* Bitmap::create_instance()
+    INode* Image::create_instance()
     {
-        return new BitmapNode(this->m_environment, this);
+        return new ImageNode(this->m_environment, this);
     }
 
-    uint16_t Bitmap::get_character_id() const
+    uint16_t Image::get_character_id() const
     {
         return m_character_id;
     }
 
     /// TEXTURE NODE
-    void BitmapNode::update(float dt)
+    void ImageNode::update(float dt)
     {}
 
-    void BitmapNode::render(const Matrix& matrix, const ColorTransform& cxform)
+    void ImageNode::render(const Matrix& matrix, const ColorTransform& cxform)
     {
         auto& shader = Shader::get_instance();
         shader.set_program(PROGRAM_DEFAULT);

@@ -1,7 +1,7 @@
 #include "debug.hpp"
 #include "record.hpp"
 #include "character.hpp"
-#include "bitmap.hpp"
+#include "image.hpp"
 #include "shape.hpp"
 
 #include <unordered_map>
@@ -186,12 +186,12 @@ namespace record
             return this->controls[this->count-1].color;
         }
 
-        BitmapDataPtr create_bitmap_linear() const
+        BitmapPtr create_bitmap_linear() const
         {
             static const int width = 64;
             static const int height = 1;
 
-            auto source = BitmapData::create(TextureFormat::RGBA8, width, height);
+            auto source = Bitmap::create(TextureFormat::RGBA8, width, height);
             for( auto i=0; i<source->get_height(); i++ )
                 for( auto j=0; j<source->get_width(); j++ )
                     source->set(i, j, sample(255.f*(float)j/(float)width).to_value());
@@ -199,12 +199,12 @@ namespace record
             return std::move(source);
         }
 
-        BitmapDataPtr create_bitmap_radial() const
+        BitmapPtr create_bitmap_radial() const
         {
             static const int width = 16;
             static const int height = 16;
 
-            auto source = BitmapData::create(TextureFormat::RGBA8, width, height);
+            auto source = Bitmap::create(TextureFormat::RGBA8, width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -796,7 +796,7 @@ namespace record
         inflateEnd(&strm);
     }
 
-    static BitmapDataPtr read_from_jpeg(const uint8_t* source, int src_size)
+    static BitmapPtr read_from_jpeg(const uint8_t* source, int src_size)
     {
         struct jpeg_decompress_struct jds;
         struct jpeg_error_mgr jem;
@@ -829,14 +829,13 @@ namespace record
         jpeg_finish_decompress(&jds);
         jpeg_destroy_decompress(&jds);
 
-        return BitmapData::create(BytesPtr(dst), TextureFormat::RGB8, width, height);
+        return Bitmap::create(BytesPtr(dst), TextureFormat::RGB8, width, height);
     }
 
-    Bitmap* DefineBitsJPEG3::create(Stream& stream, TagHeader& header)
+    Image* DefineBitsJPEG3::create(Stream& stream, TagHeader& header)
     {
         auto character_id = stream.read_uint16();
         auto size = stream.read_uint32();
-        
         auto start_pos = stream.get_position();
         
         auto byte1 = stream.read_uint8();
@@ -858,7 +857,7 @@ namespace record
             
             stream.set_position(start_pos);
             auto data = read_from_jpeg(stream.get_current_ptr(), size);
-            return Bitmap::create(character_id, std::move(data));
+            return Image::create(character_id, std::move(data));
         }
         else if( byte1 == 0x89 )
         {
@@ -886,7 +885,7 @@ namespace record
             assert(false);
     }
 
-    Bitmap* DefineBitsLossless::create(Stream& stream, TagHeader& header)
+    Image* DefineBitsLossless::create(Stream& stream, TagHeader& header)
     {
         auto cid = stream.read_uint16();
         auto format = (BitmapFormat)stream.read_uint8();
@@ -901,7 +900,7 @@ namespace record
             auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
             decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
 
-            auto bitmap = BitmapData::create(TextureFormat::RGB8, width, height);
+            auto bitmap = Bitmap::create(TextureFormat::RGB8, width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -914,7 +913,7 @@ namespace record
                 }
             }
 
-            return Bitmap::create(cid, std::move(bitmap));
+            return Image::create(cid, std::move(bitmap));
         }
         else if( format == BitmapFormat::RGB15)
         {
@@ -923,7 +922,7 @@ namespace record
             auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
             decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
 
-            auto bitmap = BitmapData::create(TextureFormat::RGB565, width, height);
+            auto bitmap = Bitmap::create(TextureFormat::RGB565, width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -935,7 +934,7 @@ namespace record
                 }
             }
 
-            return Bitmap::create(cid, std::move(bitmap));
+            return Image::create(cid, std::move(bitmap));
         }
         else if( format == BitmapFormat::RGB24 )
         {
@@ -944,7 +943,7 @@ namespace record
             auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
             decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
 
-            auto bitmap = BitmapData::create(TextureFormat::RGB8, width, height);
+            auto bitmap = Bitmap::create(TextureFormat::RGB8, width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -957,14 +956,14 @@ namespace record
                 }
             }
 
-            return Bitmap::create(cid, std::move(bitmap));
+            return Image::create(cid, std::move(bitmap));
         }
 
         assert(false);
         return nullptr;
     }
 
-    Bitmap* DefineBitsLossless2::create(Stream& stream, TagHeader& header)
+    Image* DefineBitsLossless2::create(Stream& stream, TagHeader& header)
     {
         auto cid = stream.read_uint16();
         auto format = (BitmapFormat)stream.read_uint8();
@@ -979,7 +978,7 @@ namespace record
             auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
             decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
 
-            auto bitmap = BitmapData::create(TextureFormat::RGBA8, width, height);
+            auto bitmap = Bitmap::create(TextureFormat::RGBA8, width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -993,7 +992,7 @@ namespace record
                 }
             }
 
-            return Bitmap::create(cid, std::move(bitmap));
+            return Image::create(cid, std::move(bitmap));
         }
         else if( format == BitmapFormat::RGB15 || format == BitmapFormat::RGB24 )
         {
@@ -1002,7 +1001,7 @@ namespace record
             auto bytes = BytesPtr(new (std::nothrow) uint8_t[dst_size]);
             decompress(stream.get_current_ptr(), src_size, bytes.get(), dst_size);
 
-            auto bitmap = BitmapData::create(TextureFormat::RGBA8, width, height);
+            auto bitmap = Bitmap::create(TextureFormat::RGBA8, width, height);
             for( auto i=0; i<height; i++ )
             {
                 for( auto j=0; j<width; j++ )
@@ -1016,7 +1015,7 @@ namespace record
                 }
             }
 
-            return Bitmap::create(cid, std::move(bitmap));
+            return Image::create(cid, std::move(bitmap));
         }
 
         assert(false);

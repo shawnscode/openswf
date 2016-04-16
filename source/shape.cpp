@@ -7,7 +7,7 @@
 #include "player.hpp"
 #include "shader.hpp"
 #include "shape.hpp"
-#include "bitmap.hpp"
+#include "image.hpp"
 
 extern "C" {
     #include "tesselator.h"
@@ -22,7 +22,7 @@ namespace openswf
 
     ShapeFillPtr ShapeFill::create(
         uint16_t cid, 
-        BitmapDataPtr bitmap,
+        BitmapPtr bitmap,
         const Color& additive_start, const Color& additive_end,
         const Matrix& matrix_start, const Matrix& matrix_end)
     {
@@ -52,12 +52,12 @@ namespace openswf
         return create(0, nullptr, start, end, Matrix::identity, Matrix::identity);
     }
 
-    ShapeFillPtr ShapeFill::create(BitmapDataPtr bitmap, const Matrix& transform)
+    ShapeFillPtr ShapeFill::create(BitmapPtr bitmap, const Matrix& transform)
     {
         return create(0, std::move(bitmap), Color::black, Color::black, transform, transform);
     }
 
-    ShapeFillPtr ShapeFill::create(BitmapDataPtr bitmap, const Matrix& start, const Matrix& end)
+    ShapeFillPtr ShapeFill::create(BitmapPtr bitmap, const Matrix& start, const Matrix& end)
     {
         return create(0, std::move(bitmap), Color::black, Color::black, start, end);
     }
@@ -76,7 +76,7 @@ namespace openswf
     {
         if( m_texture_cid != 0 ) // bitmap
         {
-            auto texture = env->get_character<Bitmap>(m_texture_cid);
+            auto texture = env->get_character<Image>(m_texture_cid);
             if( texture != nullptr )
             {
                 m_coordinate.reset(0, texture->get_width(), 0, texture->get_height());

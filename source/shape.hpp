@@ -1,7 +1,7 @@
 #pragma once
 
 #include "character.hpp"
-#include "bitmap.hpp"
+#include "image.hpp"
 
 namespace openswf
 {
@@ -12,7 +12,7 @@ namespace openswf
     {
     protected:
         uint16_t        m_texture_cid;
-        BitmapDataPtr   m_bitmap;
+        BitmapPtr   m_bitmap;
 
         Rid         m_texture_rid;
         Rect        m_coordinate;
@@ -21,14 +21,14 @@ namespace openswf
         Matrix      m_texcoord_start, m_texcoord_end;
 
         static ShapeFillPtr create(uint16_t cid,
-            BitmapDataPtr bitmap,
+            BitmapPtr bitmap,
             const Color&, const Color&,
             const Matrix&, const Matrix&);
     public:
         static ShapeFillPtr create(const Color&);
         static ShapeFillPtr create(const Color&, const Color&);
-        static ShapeFillPtr create(BitmapDataPtr bitmap, const Matrix&);
-        static ShapeFillPtr create(BitmapDataPtr bitmap, const Matrix&, const Matrix&);
+        static ShapeFillPtr create(BitmapPtr bitmap, const Matrix&);
+        static ShapeFillPtr create(BitmapPtr bitmap, const Matrix&, const Matrix&);
         static ShapeFillPtr create(uint16_t cid, const Matrix&);
         static ShapeFillPtr create(uint16_t cid, const Matrix&, const Matrix&);
 

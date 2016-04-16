@@ -6,7 +6,7 @@
 #include "shader.hpp"
 
 #include "shape.hpp"
-#include "bitmap.hpp"
+#include "image.hpp"
 #include "movieclip.hpp"
 
 // SWF 6 and Later compatiable

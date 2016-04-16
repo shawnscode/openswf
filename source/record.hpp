@@ -31,7 +31,7 @@ namespace openswf
 {
     class Shape;
     class MorphShape;
-    class Bitmap;
+    class Image;
 
     namespace record // should we hide this details from interface?
     {
@@ -112,7 +112,7 @@ namespace openswf
         // and compressed using the ZLIB standard for compression.
         struct DefineBitsJPEG3
         {
-            static Bitmap* create(Stream& stream, TagHeader& header);
+            static Image* create(Stream& stream, TagHeader& header);
         };
 
         // TAG = 8
@@ -134,13 +134,13 @@ namespace openswf
         // TAG = 20
         struct DefineBitsLossless
         {
-            static Bitmap* create(Stream& stream, TagHeader& header);
+            static Image* create(Stream& stream, TagHeader& header);
         };
 
         // TAG = 36
         struct DefineBitsLossless2
         {
-            static Bitmap* create(Stream& stream, TagHeader& header);
+            static Image* create(Stream& stream, TagHeader& header);
         };
 
         // TAG = 9

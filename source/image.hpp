@@ -5,10 +5,10 @@
 
 namespace openswf
 {
-    class BitmapData;
-    typedef std::unique_ptr<BitmapData> BitmapDataPtr;
+    class Bitmap;
+    typedef std::unique_ptr<Bitmap> BitmapPtr;
 
-    class BitmapData
+    class Bitmap
     {
     protected:
         TextureFormat   m_format;
@@ -17,8 +17,8 @@ namespace openswf
         BytesPtr        m_source;
 
     public:
-        static BitmapDataPtr create(TextureFormat format, uint32_t width, uint32_t height);
-        static BitmapDataPtr create(BytesPtr bytes, TextureFormat format, uint32_t width, uint32_t height);
+        static BitmapPtr create(TextureFormat format, uint32_t width, uint32_t height);
+        static BitmapPtr create(BytesPtr bytes, TextureFormat format, uint32_t width, uint32_t height);
 
         void set(int row, int col, uint32_t value);
         uint32_t get_width() const;
@@ -33,16 +33,16 @@ namespace openswf
     // lossless compression, best for precise images such as diagrams, icons,
     // or screen captures, is provided by ZLIB bitmaps. Both types of bitmaps
     // can optionally contain alpha channel (opacity) information.
-    class Bitmap : public ICharacter
+    class Image : public ICharacter
     {
     protected:
-        uint16_t        m_character_id;
-        BitmapDataPtr   m_bitmap;
-        Rid             m_rid;
+        uint16_t    m_character_id;
+        BitmapPtr   m_bitmap;
+        Rid         m_rid;
 
     public:
-        static Bitmap* create(uint16_t cid, BitmapDataPtr data);
-        bool initialize(uint16_t cid, BitmapDataPtr data);
+        static Image* create(uint16_t cid, BitmapPtr data);
+        bool initialize(uint16_t cid, BitmapPtr data);
 
         virtual INode*   create_instance();
         virtual uint16_t get_character_id() const;
@@ -53,13 +53,13 @@ namespace openswf
         float           get_height() const;
     };
 
-    class BitmapNode : public INode
+    class ImageNode : public INode
     {
     protected:
-        Bitmap*  m_bitmap;
+        Image*  m_bitmap;
 
     public:
-        BitmapNode(Player* env, Bitmap* bitmap)
+        ImageNode(Player* env, Image* bitmap)
         : INode(env, bitmap), m_bitmap(bitmap) {}
 
         virtual void update(float dt);
@@ -67,37 +67,37 @@ namespace openswf
     };
 
     // INLINE METHODS
-    inline uint32_t BitmapData::get_width() const
+    inline uint32_t Bitmap::get_width() const
     {
         return m_width;
     }
 
-    inline uint32_t BitmapData::get_height() const
+    inline uint32_t Bitmap::get_height() const
     {
         return m_height;
     }
 
-    inline TextureFormat BitmapData::get_format() const
+    inline TextureFormat Bitmap::get_format() const
     {
         return m_format;
     }
 
-    inline const uint8_t* BitmapData::get_ptr() const
+    inline const uint8_t* Bitmap::get_ptr() const
     {
         return m_source.get();
     }
 
-    inline TextureFormat Bitmap::get_texture_format() const
+    inline TextureFormat Image::get_texture_format() const
     {
         return m_bitmap->get_format();
     }
 
-    inline float Bitmap::get_width() const
+    inline float Image::get_width() const
     {
         return m_bitmap->get_width();
     }
 
-    inline float Bitmap::get_height() const
+    inline float Image::get_height() const
     {
         return m_bitmap->get_height();
     }
