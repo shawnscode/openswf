@@ -137,13 +137,13 @@ namespace openswf
     Matrix Matrix::operator * (const Matrix& rh) const
     {
         Matrix result;
-        result.values[0][0] = values[0][0] * rh.values[0][0] + values[1][0] * rh.values[0][1];
-        result.values[0][1] = values[0][0] * rh.values[1][0] + values[1][0] * rh.values[1][1];
-        result.values[1][0] = values[1][0] * rh.values[0][0] + values[1][1] * rh.values[0][1];
-        result.values[1][1] = values[1][0] * rh.values[1][0] + values[1][1] * rh.values[1][1];
+        result.values[0][0] = values[0][0] * rh.values[0][0] + values[0][1] * rh.values[1][0];
+        result.values[0][1] = values[0][0] * rh.values[0][1] + values[0][1] * rh.values[1][1];
+        result.values[1][0] = values[1][0] * rh.values[0][0] + values[1][1] * rh.values[1][0];
+        result.values[1][1] = values[1][0] * rh.values[0][1] + values[1][1] * rh.values[1][1];
 
-        result.values[0][2] = values[0][2] + rh.values[0][2];
-        result.values[1][2] = values[1][2] + rh.values[1][2];
+        result.values[0][2] = values[0][0] * rh.values[0][2] + values[0][1] * rh.values[1][2] + values[0][2];
+        result.values[1][2] = values[1][0] * rh.values[0][2] + values[1][1] * rh.values[1][2] + values[1][2];
 
         return result;
     }

@@ -174,19 +174,17 @@ namespace openswf
     inline int32_t Stream::read_bits_as_int32(const int bitcount)
     {
         int32_t value = (int32_t)read_bits_as_uint32(bitcount);
-        if( value & (1<<(bitcount-1)) ) value |= (-1 << bitcount);
+        if( value & (1<<(bitcount-1)) ) value |= ((~0) << bitcount);
         return value;
     }
 
     inline float Stream::read_bits_as_fixed16(const int bitcount)
     {
-        if( bitcount <= 8 ) return (double)read_bits_as_uint32(bitcount)/256.0;
         return (double)read_bits_as_int32(bitcount)/256.0;
     }
 
     inline float Stream::read_bits_as_fixed32(const int bitcount)
     {
-        if( bitcount <= 16 ) return (double)read_bits_as_uint32(bitcount)/65536.0;
         return (double)read_bits_as_int32(bitcount)/65536.0;
     }
 
