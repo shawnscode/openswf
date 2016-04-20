@@ -93,10 +93,10 @@ TEST_CASE( "STREAM_READ_BITS", "[OPENSWF]" )
     SECTION( "continues bits values" )
     {
         uint8_t buffer[] = {
-            0x32, 0xe5, 0xf2, 0x23, // offset:3, 
+            0x32, 0xe5, 0xf0, 0x23, // offset:3, 
                                     // unsigned int:11(1001 0111 001),
                                     // signed integer:8(01 1111 00), 
-                                    // fixed32:10(10 0010 0011),
+                                    // fixed32:10(00 0010 0011),
             0xff, 0x85, 0x92        // fixed16:18(1111 1111 1000 0101 10), signed integer:6(01 0010)
         };
 
@@ -104,7 +104,7 @@ TEST_CASE( "STREAM_READ_BITS", "[OPENSWF]" )
         REQUIRE( records.read_bits_as_uint32(3) == 1 );
         REQUIRE( records.read_bits_as_uint32(11) == 1209 );
         REQUIRE( records.read_bits_as_int32(8) == 124 );
-        REQUIRE( records.read_bits_as_fixed32(10) == Approx((double)0x223/(double)65536.0) );
+        REQUIRE( records.read_bits_as_fixed32(10) == Approx((double)35/(double)65536.0) );
 
         int32_t value = 0x3fe16; // sign expansion
         int32_t negative = -1;
@@ -116,20 +116,18 @@ TEST_CASE( "STREAM_READ_BITS", "[OPENSWF]" )
     SECTION( "byte aligned bits values" )
     {
         uint8_t buffer[] = {
-            0x32, 0xe5, 0xf2, // offset:3, unsigned int:11, signed integer:8, offset:2, 
-            0xa2, // extra
-            0x88, 0xff, 0xe1, 0x6a, 0x80 // fixed32:10, fixed16:18, signed integer:6(), offset:6
-            //(1000 1000) (11|11 1111) (1110 0001) (0110 | 1010) (10|00 0000)
+            0x32, 0xe5, 0xf2, // offset:3, unsigned int:11, signed integer:8, offset:2,  // 24
+            0xa2, // extra // 8
+            0x08, 0xff, 0xe1, 0x6a, 0x80 // fixed32:10, fixed16:18, signed integer:6(), offset:6 // 40
+            //(0000 1000) (11|11 1111) (1110 0001) (0110 | 1010) (10|00 0000)
         };
 
         auto records = openswf::Stream(buffer, sizeof(buffer));
-        REQUIRE( records.read_bits_as_uint32(3)     == 1 );
-        REQUIRE( records.read_bits_as_uint32(11)    == 1209 );
-        REQUIRE( records.read_bits_as_int32(8)      == 124  );
-
-        records.read_uint8();
-
-        REQUIRE( records.read_bits_as_fixed32(10) == Approx((double)0x223/(double)65536.0) );
+        REQUIRE( records.read_bits_as_uint32(3) == 1 );
+        REQUIRE( records.read_bits_as_uint32(11) == 1209 );
+        REQUIRE( records.read_bits_as_int32(8) == 124  );
+        records.read_bits_as_fixed32(10);
+        REQUIRE( records.read_bits_as_fixed32(10) == Approx((double)35/(double)65536.0) );
 
         int32_t value = 0x3fe16; // sign expansion
         int32_t negative = -1;
