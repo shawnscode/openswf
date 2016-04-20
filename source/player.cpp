@@ -48,10 +48,10 @@ namespace openswf
         
         DefineSpriteHeader current_sprite;
         auto commands = std::vector<CommandPtr>();
-        auto indices = std::vector<uint32_t>();
+        auto indices = std::vector<uint16_t>();
 
-        auto interrupted_commands = std::vector<CommandPtr>();
-        auto interrupted_indices = std::vector<uint32_t>();
+        auto interrupted_commands = CommandList();
+        auto interrupted_indices = std::vector<uint16_t>();
 
         auto tag = TagHeader::read(*stream);
         while( tag.code != TagCode::END || current_sprite.character_id != 0 )
@@ -67,8 +67,8 @@ namespace openswf
                     auto sprite = MovieClip::create(
                         current_sprite.character_id,
                         header.frame_rate,
-                        commands,
-                        indices);
+                        std::move(commands),
+                        std::move(indices));
 
                     sprite->attach(this);
                     set_character(current_sprite.character_id, sprite);
@@ -155,6 +155,12 @@ namespace openswf
                     break;
                 }
 
+                case TagCode::DO_ACTION:
+                {
+                    commands.push_back(FrameAction::create(tag, stream->extract(tag.size)));
+                    break;
+                }
+
                 case TagCode::PLACE_OBJECT:
                 case TagCode::PLACE_OBJECT2:
                 case TagCode::PLACE_OBJECT3:
@@ -179,7 +185,9 @@ namespace openswf
         }
 
         assert( header.frame_count == indices.size() );
-        m_sprite = MovieClip::create(0, header.frame_rate, commands, indices);
+        m_sprite = MovieClip::create(0, header.frame_rate,
+            std::move(commands),
+            std::move(indices));
         m_size = header.frame_size;
         m_root = new MovieClipNode(this, m_sprite);
         return true;

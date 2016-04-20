@@ -1,5 +1,6 @@
 #include "movieclip.hpp"
 #include "player.hpp"
+#include "avm/action.hpp"
 
 namespace openswf
 {
@@ -147,11 +148,33 @@ namespace openswf
         }
     }
 
+    CommandPtr FrameAction::create(record::TagHeader header, BytesPtr bytes)
+    {
+        auto action = new (std::nothrow) FrameAction();
+        if( action )
+        {
+            assert(header.code == TagCode::DO_ACTION);
+
+            action->m_header = header;
+            action->m_bytes = std::move(bytes);
+            return CommandPtr(action);
+        }
+
+        return CommandPtr();
+    }
+
+    void FrameAction::execute(MovieClipNode& display)
+    {
+        auto stream = Stream(m_bytes.get(), m_header.size);
+        auto env = avm::Environment(stream, display);
+        while(avm::Action::execute(env));
+    }
+
     MovieClip* MovieClip::create(
         uint16_t cid,
         float frame_rate,
-        std::vector<CommandPtr>& commands,
-        std::vector<uint32_t>& indices)
+        CommandList&& commands,
+        std::vector<uint16_t>&& indices)
     {
         auto sprite = new (std::nothrow) MovieClip();
         if( sprite )
@@ -178,7 +201,7 @@ namespace openswf
         return m_character_id;
     }
 
-    void MovieClip::execute(MovieClipNode& display, uint32_t frame)
+    void MovieClip::execute(MovieClipNode& display, uint16_t frame)
     {
         if( frame < 1 || frame > m_indices.size() )
             return;
@@ -228,7 +251,7 @@ namespace openswf
                     frame ++;
                 }
 
-                goto_frame(frame);
+                step_to_frame(frame);
             }
         }
 
@@ -243,6 +266,16 @@ namespace openswf
     }
 
     // PROTECTED METHODS
+    INode* MovieClipNode::get(const std::string& name)
+    {
+        for( auto& pair : m_children )
+        {
+            if( pair.second->get_name() == name )
+                return pair.second;
+        }
+        return nullptr;
+    }
+
     INode* MovieClipNode::get(uint16_t depth)
     {
         auto iter = m_children.find(depth);
@@ -305,25 +338,31 @@ namespace openswf
     void MovieClipNode::reset()
     {
         m_current_frame = 0;
-        goto_frame(1);
+        step_to_frame(1);
         update(0);
     }
 
-    void MovieClipNode::goto_and_play(uint32_t frame)
+    void MovieClipNode::goto_frame(uint16_t frame)
+    {
+        step_to_frame(frame);
+        update(0);
+    }
+
+    void MovieClipNode::goto_and_play(uint16_t frame)
     {
         m_paused = false;
-        goto_frame(frame);
+        step_to_frame(frame);
         update(0);
     }
 
-    void MovieClipNode::goto_and_stop(uint32_t frame)
+    void MovieClipNode::goto_and_stop(uint16_t frame)
     {
         m_paused = true;
-        goto_frame(frame);
+        step_to_frame(frame);
         update(0);
     }
 
-    void MovieClipNode::goto_frame(uint32_t frame)
+    void MovieClipNode::step_to_frame(uint16_t frame)
     {
         if( frame < 1 ) frame = 1;
         if( m_current_frame == frame )

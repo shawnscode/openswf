@@ -1,4 +1,5 @@
 #include "openswf.hpp"
+#include "avm/action.hpp"
 
 namespace openswf
 {
@@ -33,7 +34,16 @@ namespace openswf
 
     bool initialize(float width, float height)
     {
-        if( !Render::initialize() || !Shader::initialize() || !Screen::initialize(width, height) )
+        if( !avm::Action::initialize() )
+            return false;
+
+        if( !Render::initialize() )
+            return false;
+
+        if( !Shader::initialize() )
+            return false;
+
+        if( !Screen::initialize(width, height) )
             return false;
 
         const char* textures[] = { "texture0" };

@@ -152,6 +152,16 @@ namespace openswf
             static SetBackgroundColor read(Stream& stream);
         };
 
+        // TAG = 12
+        // DoAction instructs Flash Player to perform a list of actions when the current 
+        // frame is complete. The actions are performed when the ShowFrame tag is encountered,
+        // regardless of where in the frame the DoAction tag appears.
+
+        // * Starting with swf 9, if the as2 field of the FileAttributes tag is 1, the contents
+        // of the DoAction tag will be ignored.
+        struct DoAction
+        {};
+
         // TAG = 39
         // The DefineSprite tag defines a sprite character.
         // It consists of a character ID and a frame count, followed by a series of control tags.

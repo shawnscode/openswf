@@ -29,7 +29,7 @@ workspace("openswf")
         buildoptions({"-std=c++11", "-stdlib=libc++"})
         libdirs({ "libs/3rd", "/usr/local/lib/" })
         -- links({ "tess2", "glfw3" })
-        files({ "source/*.cpp" })
+        files({ "source/**.cpp" })
         includedirs({ "3rd/libtess2/Include", "/usr/local/include", "source" })
         targetdir( "libs" )
 
@@ -48,14 +48,14 @@ workspace("test")
     project( "01-unit-test" )
         links({ "tess2", "glfw3", "glew", "z", "jpeg" })
         linkoptions { "-framework OpenGL", "-framework Cocoa", "-framework IOKit", "-framework CoreVideo" }
-        files({ "test/01-unit-test/*.cpp", "test/00-common/*.cpp", "source/*.cpp" })
+        files({ "test/01-unit-test/*.cpp", "test/00-common/*.cpp", "source/**.cpp" })
 
     project("02-simple-shape")
         links({ "tess2", "glfw3", "glew", "z", "jpeg" })
         linkoptions { "-framework OpenGL", "-framework Cocoa", "-framework IOKit", "-framework CoreVideo" }
-        files({ "test/02-simple-shape/*.cpp", "test/00-common/*.cpp", "source/*.cpp" })
+        files({ "test/02-simple-shape/*.cpp", "test/00-common/*.cpp", "source/**.cpp" })
 
     project("03-simple-timeline")
         links({ "tess2", "glfw3", "glew", "z", "jpeg", "openswf" })
         linkoptions { "-framework OpenGL", "-framework Cocoa", "-framework IOKit", "-framework CoreVideo" }
-        files({ "test/03-simple-timeline/*.cpp", "test/00-common/*.cpp", "source/*.cpp" })
+        files({ "test/03-simple-timeline/*.cpp", "test/00-common/*.cpp", "source/**.cpp" })

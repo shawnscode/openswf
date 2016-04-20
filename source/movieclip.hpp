@@ -5,6 +5,7 @@
 #include "character.hpp"
 
 #include <map>
+#include <unordered_map>
 
 namespace openswf
 {
@@ -12,6 +13,7 @@ namespace openswf
     class MovieClipNode;
     class FrameCommand;
     typedef std::unique_ptr<FrameCommand> CommandPtr;
+    typedef std::vector<CommandPtr> CommandList;
 
     class FrameCommand
     {
@@ -21,7 +23,18 @@ namespace openswf
 
     public:
         static CommandPtr create(record::TagHeader header, BytesPtr bytes);
-        void execute(MovieClipNode& display);
+        virtual void execute(MovieClipNode& display);
+    };
+
+    class FrameAction;
+    typedef std::unique_ptr<FrameAction> ActionPtr;
+    typedef std::vector<ActionPtr> ActionList;
+
+    class FrameAction : FrameCommand
+    {
+    public:
+        static CommandPtr create(record::TagHeader header, BytesPtr bytes);
+        virtual void execute(MovieClipNode& display);
     };
 
     // A sprite corresponds to a movie clip in the Adobe Flash authoring application.
@@ -35,20 +48,21 @@ namespace openswf
     protected:
         uint16_t                m_character_id;
         float                   m_frame_rate;
+
         std::vector<CommandPtr> m_commands;
-        std::vector<uint32_t>   m_indices;
+        std::vector<uint16_t>   m_indices;
 
     public:
         static MovieClip* create(
             uint16_t character_id,
             float frame_rate,
-            std::vector<CommandPtr>& commands,
-            std::vector<uint32_t>& indices);
+            CommandList&& commands,
+            std::vector<uint16_t>&& indices);
 
         virtual INode*   create_instance();
         virtual uint16_t get_character_id() const;
 
-        void    execute(MovieClipNode& display, uint32_t frame);
+        void    execute(MovieClipNode& display, uint16_t frame);
         int32_t get_frame_count() const;
         float   get_frame_rate() const;
     };
@@ -65,12 +79,13 @@ namespace openswf
 
     class MovieClipNode : public INode
     {
-        typedef std::map<uint16_t, INode*> Dictionary;
+        typedef std::map<uint16_t, INode*> DisplayList;
 
-        Dictionary  m_children;
-        Dictionary  m_deprecated;
+        DisplayList     m_children;
+        DisplayList     m_deprecated;
+
         MovieClip*  m_sprite;
-        uint32_t    m_current_frame;
+        uint16_t    m_current_frame;
         float       m_frame_delta;
         float       m_frame_rate;
         float       m_frame_timer;
@@ -82,29 +97,49 @@ namespace openswf
         virtual void update(float dt);
         virtual void render(const Matrix& matrix, const ColorTransform& cxform);
 
+        template<typename T> T* get(const std::string& name)
+        {
+            return dynamic_cast<T*>(get(name));
+        }
+
         INode*  set(uint16_t depth, uint16_t cid);
         INode*  get(uint16_t depth);
+        INode*  get(const std::string& name);
         void    erase(uint16_t depth);
 
         void reset();
-        void goto_and_play(uint32_t frame);
-        void goto_and_stop(uint32_t frame);
 
-        uint32_t    get_frame_count() const;
-        uint32_t    get_current_frame() const;
+        void play();
+        void stop();
+        void goto_frame(uint16_t frame);
+        void goto_and_play(uint16_t frame);
+        void goto_and_stop(uint16_t frame);
+
+        uint16_t    get_frame_count() const;
+        uint16_t    get_current_frame() const;
         float       get_frame_rate() const;
         void        set_frame_rate(float rate);
 
     protected:
-        void goto_frame(uint32_t frame);
+        void step_to_frame(uint16_t frame);
     };
 
-    inline uint32_t MovieClipNode::get_frame_count() const
+    inline void MovieClipNode::play()
+    {
+        m_paused = false;
+    }
+
+    inline void MovieClipNode::stop()
+    {
+        m_paused = true;
+    }
+
+    inline uint16_t MovieClipNode::get_frame_count() const
     {
         return m_sprite->get_frame_count();
     }
 
-    inline uint32_t MovieClipNode::get_current_frame() const
+    inline uint16_t MovieClipNode::get_current_frame() const
     {
         return m_current_frame;
     }
