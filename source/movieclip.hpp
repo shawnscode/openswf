@@ -1,8 +1,8 @@
 #pragma once
 
 #include "types.hpp"
-#include "record.hpp"
 #include "character.hpp"
+#include "swf/record.hpp"
 
 #include <map>
 #include <unordered_map>
@@ -12,17 +12,18 @@ namespace openswf
     class Player;
     class MovieClipNode;
     class FrameCommand;
+    class Parser;
     typedef std::unique_ptr<FrameCommand> CommandPtr;
     typedef std::vector<CommandPtr> CommandList;
 
     class FrameCommand
     {
     protected:
-        record::TagHeader   m_header;
-        BytesPtr            m_bytes;
+        TagHeader   m_header;
+        BytesPtr    m_bytes;
 
     public:
-        static CommandPtr create(record::TagHeader header, BytesPtr bytes);
+        static CommandPtr create(TagHeader header, BytesPtr bytes);
         virtual void execute(MovieClipNode& display);
     };
 
@@ -33,7 +34,7 @@ namespace openswf
     class FrameAction : FrameCommand
     {
     public:
-        static CommandPtr create(record::TagHeader header, BytesPtr bytes);
+        static ActionPtr create(TagHeader header, BytesPtr bytes);
         virtual void execute(MovieClipNode& display);
     };
 
@@ -43,35 +44,53 @@ namespace openswf
     // 1. Most of the control tags that can be used in the main file.
     // 2. A timeline that can stop, start, and play independently of the main file.
     // 3. A streaming sound track that is automatically mixed with the main sound track.
+    enum FrameTaskMask
+    {
+        FRAME_COMMANDS  = 0x1,
+        FRAME_ACTIONS   = 0x2
+    };
+
+    struct MovieFrame
+    {
+        CommandList commands;
+        ActionList  actions;
+    };
+
     class MovieClip : public ICharacter
     {
+        friend class Parser;
+        typedef std::unordered_map<std::string, uint16_t> NamedFrames;
+
     protected:
         uint16_t                m_character_id;
         float                   m_frame_rate;
 
-        std::vector<CommandPtr> m_commands;
-        std::vector<uint16_t>   m_indices;
+        std::vector<MovieFrame> m_frames;
+        NamedFrames             m_named_frames;
 
     public:
-        static MovieClip* create(
-            uint16_t character_id,
-            float frame_rate,
-            CommandList&& commands,
-            std::vector<uint16_t>&& indices);
+        MovieClip(uint16_t cid, uint16_t frame_count);
 
         virtual INode*   create_instance();
         virtual uint16_t get_character_id() const;
 
-        void    execute(MovieClipNode& display, uint16_t frame);
-        void    execute_actions(MovieClipNode& display, uint16_t frame);
+        void    execute(MovieClipNode& display, uint16_t frame, FrameTaskMask mask);
 
-        int32_t get_frame_count() const;
-        float   get_frame_rate() const;
+        uint16_t    get_frame(const std::string&) const;
+        int32_t     get_frame_count() const;
+        float       get_frame_rate() const;
     };
+
+    inline uint16_t MovieClip::get_frame(const std::string& name) const
+    {
+        auto found = m_named_frames.find(name);
+        if( found == m_named_frames.end() ) return 0;
+        return found->second;
+    }
 
     inline int32_t MovieClip::get_frame_count() const
     {
-        return m_indices.size();
+        return m_frames.size();
     }
 
     inline float MovieClip::get_frame_rate() const
@@ -118,10 +137,10 @@ namespace openswf
         void goto_and_stop(uint16_t frame);
         void execute_frame_actions(uint16_t frame);
 
-        void goto_frame(const std::string&) {}
-        void goto_and_play(const std::string&) {}
-        void goto_and_stop(const std::string&) {}
-        void execute_frame_actions(const std::string&) {}
+        void goto_frame(const std::string&);
+        void goto_and_play(const std::string&);
+        void goto_and_stop(const std::string&);
+        void execute_frame_actions(const std::string&);
 
         uint16_t    get_frame_count() const;
         uint16_t    get_current_frame() const;
@@ -164,4 +183,27 @@ namespace openswf
         m_frame_delta = 1.f / rate;
     }
 
+    inline void MovieClipNode::goto_frame(const std::string& name)
+    {
+        auto frame = m_sprite->get_frame(name);
+        if( frame != 0 ) goto_frame(frame);
+    }
+
+    inline void MovieClipNode::goto_and_play(const std::string& name)
+    {
+        auto frame = m_sprite->get_frame(name);
+        if( frame != 0 ) goto_and_play(frame);
+    }
+
+    inline void MovieClipNode::goto_and_stop(const std::string& name)
+    {
+        auto frame = m_sprite->get_frame(name);
+        if( frame != 0 ) goto_and_stop(frame);
+    }
+    
+    inline void MovieClipNode::execute_frame_actions(const std::string& name)
+    {
+        auto frame = m_sprite->get_frame(name);
+        if( frame != 0 ) execute_frame_actions(frame);
+    }
 }

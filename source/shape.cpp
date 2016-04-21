@@ -2,7 +2,6 @@
 #include <algorithm>
 
 #include "debug.hpp"
-#include "record.hpp"
 #include "stream.hpp"
 #include "player.hpp"
 #include "shader.hpp"
@@ -12,8 +11,6 @@
 extern "C" {
     #include "tesselator.h"
 }
-
-using namespace openswf::record;
 
 namespace openswf
 {

@@ -1,9 +1,10 @@
 #pragma once
 
-#include <vector>
 #include "types.hpp"
-#include "record.hpp"
 #include "shader.hpp"
+
+#include <vector>
+#include <string>
 
 namespace openswf
 {

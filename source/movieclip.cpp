@@ -29,7 +29,7 @@ namespace openswf
         PLACE_3_RESERVED_1          = 0x80,
     };
 
-    CommandPtr FrameCommand::create(record::TagHeader header, BytesPtr bytes)
+    CommandPtr FrameCommand::create(TagHeader header, BytesPtr bytes)
     {
         auto command = new (std::nothrow) FrameCommand();
         if( command )
@@ -98,7 +98,7 @@ namespace openswf
         else if( m_header.code == TagCode::PLACE_OBJECT3 )
         {
             auto mask2 = stream.read_uint8();
-            auto mask3 = stream.read_uint8();
+            /*auto mask3 = */stream.read_uint8();
             auto depth = stream.read_uint16();
 
 //            std::string name;
@@ -148,7 +148,7 @@ namespace openswf
         }
     }
 
-    CommandPtr FrameAction::create(record::TagHeader header, BytesPtr bytes)
+    ActionPtr FrameAction::create(TagHeader header, BytesPtr bytes)
     {
         auto action = new (std::nothrow) FrameAction();
         if( action )
@@ -157,10 +157,10 @@ namespace openswf
 
             action->m_header = header;
             action->m_bytes = std::move(bytes);
-            return CommandPtr(action);
+            return ActionPtr(action);
         }
 
-        return CommandPtr();
+        return ActionPtr();
     }
 
     void FrameAction::execute(MovieClipNode& display)
@@ -170,25 +170,10 @@ namespace openswf
         while(avm::Action::execute(env));
     }
 
-    MovieClip* MovieClip::create(
-        uint16_t cid,
-        float frame_rate,
-        CommandList&& commands,
-        std::vector<uint16_t>&& indices)
+    MovieClip::MovieClip(uint16_t cid, uint16_t frame_count)
+    : m_character_id(cid), m_frame_rate(24.0f)
     {
-        auto sprite = new (std::nothrow) MovieClip();
-        if( sprite )
-        {
-            sprite->m_character_id = cid;
-            sprite->m_frame_rate = frame_rate;
-            sprite->m_commands = std::move(commands);
-            sprite->m_indices = std::move(indices);
-            return sprite;
-        }
-
-        LWARNING("failed to initialize sprite!");
-        if( sprite ) delete sprite;
-        return nullptr;
+        m_frames.reserve(frame_count);
     }
 
     INode* MovieClip::create_instance()
@@ -201,32 +186,22 @@ namespace openswf
         return m_character_id;
     }
 
-    void MovieClip::execute(MovieClipNode& display, uint16_t frame)
+    void MovieClip::execute(MovieClipNode& display, uint16_t index, FrameTaskMask mask)
     {
-        if( frame < 1 || frame > m_indices.size() )
+        if( index < 1 || index > m_frames.size() )
             return;
 
-        auto start_ind = 0;
-        auto end_ind = m_indices[frame-1];
-        if( frame > 1 ) start_ind = m_indices[frame-2];
-
-        for( int i=start_ind; i<end_ind; i++ )
-            m_commands[i]->execute(display);
-    }
-
-    void MovieClip::execute_actions(MovieClipNode& display, uint16_t frame)
-    {
-        if( frame < 1 || frame > m_indices.size() )
-            return;
-
-        auto start_ind = 0;
-        auto end_ind = m_indices[frame-1];
-        if( frame > 1 ) start_ind = m_indices[frame-2];
-
-        for( int i=start_ind; i<end_ind; i++ )
+        auto& frame = m_frames[index-1];
+        if( mask & FRAME_COMMANDS )
         {
-            if(dynamic_cast<FrameAction*>(m_commands[i].get()) != nullptr)
-                m_commands[i]->execute(display);
+            for( auto& command : frame.commands )
+                command->execute(display);
+        }
+
+        if( mask & FRAME_ACTIONS )
+        {
+            for( auto& action : frame.actions )
+                action->execute(display);
         }
     }
 
@@ -380,7 +355,7 @@ namespace openswf
 
     void MovieClipNode::execute_frame_actions(uint16_t frame)
     {
-        m_sprite->execute_actions(*this, frame);
+        m_sprite->execute(*this, frame, FRAME_ACTIONS);
     }
 
     void MovieClipNode::step_to_frame(uint16_t frame)
@@ -399,7 +374,7 @@ namespace openswf
             m_current_frame < frame &&
             m_current_frame < m_sprite->get_frame_count() )
         {
-            m_sprite->execute(*this, ++m_current_frame);
+            m_sprite->execute(*this, ++m_current_frame, (FrameTaskMask)(FRAME_COMMANDS | FRAME_ACTIONS));
         }
 
         for( auto& pair : m_deprecated )
