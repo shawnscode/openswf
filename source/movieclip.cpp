@@ -1,5 +1,6 @@
 #include "movieclip.hpp"
 #include "player.hpp"
+#include "stream.hpp"
 #include "avm/action.hpp"
 
 namespace openswf
@@ -166,19 +167,22 @@ namespace openswf
     void FrameAction::execute(MovieClipNode& display)
     {
         auto stream = Stream(m_bytes.get(), m_header.size);
-        auto env = avm::Environment(stream, display);
+
+        auto& env = display.get_environment();
+        env.set_stream(&stream);
+        
         while(avm::Action::execute(env));
     }
 
-    MovieClip::MovieClip(uint16_t cid, uint16_t frame_count)
-    : m_character_id(cid), m_frame_rate(24.0f)
+    MovieClip::MovieClip(uint16_t cid, uint16_t frame_count, float frame_rate)
+    : m_character_id(cid), m_frame_rate(frame_rate)
     {
         m_frames.reserve(frame_count);
     }
 
     INode* MovieClip::create_instance()
     {
-        return new MovieClipNode(this->m_environment, this);
+        return new MovieClipNode(m_player, this);
     }
 
     uint16_t MovieClip::get_character_id() const
@@ -206,15 +210,16 @@ namespace openswf
     }
 
     ////
-    MovieClipNode::MovieClipNode(Player* env, MovieClip* sprite)
-    : INode(env, sprite), m_sprite(sprite), m_frame_timer(0), m_current_frame(0), m_paused(false)
+    MovieClipNode::MovieClipNode(Player* player, MovieClip* sprite)
+    : INode(player, sprite),
+    m_sprite(sprite), m_frame_timer(0), m_current_frame(0), m_paused(false),
+    m_environment(this, player->get_version())
     {
         assert( sprite->get_frame_rate() < 64 && sprite->get_frame_rate() > 0.1f );
+
         m_frame_rate = sprite->get_frame_rate();
         m_frame_delta = 1.f / m_frame_rate;
         goto_and_play(1);
-
-        assert(env != nullptr);
     }
 
     MovieClipNode::~MovieClipNode()
@@ -307,7 +312,7 @@ namespace openswf
             return m_children[depth];
         }
 
-        auto ch = m_environment->get_character(cid);
+        auto ch = m_player->get_character(cid);
         if( ch != nullptr )
         {
             m_children[depth] = ch->create_instance();

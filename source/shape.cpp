@@ -258,7 +258,7 @@ namespace openswf
 
     INode* Shape::create_instance()
     {
-        return new ShapeNode(this->m_environment, this);
+        return new ShapeNode(this->m_player, this);
     }
 
     void Shape::attach(Player* env)
@@ -349,7 +349,7 @@ namespace openswf
 
     INode* MorphShape::create_instance()
     {
-        return new MorphShapeNode(this->m_environment, this);
+        return new MorphShapeNode(this->m_player, this);
     }
 
     void MorphShape::tesselate(uint16_t ratio, 

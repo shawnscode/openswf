@@ -26,11 +26,15 @@ namespace openswf
         Rect            m_size;
         MovieClipNode*  m_root;
         Color           m_background;
-
+        uint8_t         m_version;
         uint16_t        m_script_max_recursion, m_script_timeout;
 
-    public:
+    protected:
         Player();
+        bool initialize(Stream& stream);
+
+    public:
+        static Player* create(Stream& stream);
         ~Player();
 
         void update(float dt);
@@ -53,6 +57,7 @@ namespace openswf
 
         const Color&    get_background_color() const;
         const Rect&     get_size() const;
+        const uint8_t   get_version() const;
 
         MovieClip&              get_root_def();
         const MovieClip&        get_root_def() const;
@@ -65,6 +70,7 @@ namespace openswf
     inline void Player::set_character(uint16_t cid, ICharacter* ch)
     {
         assert( ch != nullptr );
+        ch->attach(this);
         m_dictionary[cid] = ch;
     }
 
@@ -92,6 +98,11 @@ namespace openswf
     inline const Rect& Player::get_size() const
     {
         return m_size;
+    }
+
+    inline const uint8_t Player::get_version() const
+    {
+        return m_version;
     }
 
     inline MovieClip& Player::get_root_def()

@@ -11,7 +11,7 @@ namespace openswf
         auto cid = env.stream.read_uint16();
         auto frame_count = env.stream.read_uint16();
 
-        env.movie = new MovieClip(cid, frame_count);
+        env.movie = new MovieClip(cid, frame_count, env.header.frame_rate);
     }
 
     void Parser::PlaceObject(Environment& env)

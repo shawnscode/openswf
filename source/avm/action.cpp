@@ -1,5 +1,8 @@
 #include "action.hpp"
 
+#include "stream.hpp"
+#include "movieclip.hpp"
+
 #include <unordered_map>
 #include <cmath>
 
@@ -38,13 +41,13 @@ namespace avm
 
     bool Action::execute(Environment& env)
     {
-        auto code = (ActionCode)env.stream.read_uint8();
+        auto code = (ActionCode)env.stream->read_uint8();
         if( code == ActionCode::END ) return false;
 
         // get variable length of this action
-        auto end_pos = env.stream.get_position();
+        auto end_pos = env.stream->get_position();
         if( (uint8_t)code >= 0x80 )
-            end_pos = env.stream.read_uint16() + env.stream.get_position();
+            end_pos = env.stream->read_uint16() + env.stream->get_position();
 
         auto found = s_handlers.find((uint8_t)code);
         if( found != s_handlers.end() )
@@ -55,7 +58,7 @@ namespace avm
             printf("\tskip undefined action code 0x%x\n", (int)code);
 
         // skip remaining buffer
-        env.stream.set_position(end_pos);
+        env.stream->set_position(end_pos);
         return true;
     }
 
@@ -73,8 +76,8 @@ namespace avm
 
     void Action::GotoFrame(Environment& env)
     {
-        auto frame = env.stream.read_uint16();
-        env.movie.goto_frame(frame);
+        auto frame = env.stream->read_uint16();
+        env.owner->goto_frame(frame);
     }
 
     void Action::GetUrl(Environment& env)
@@ -83,22 +86,22 @@ namespace avm
 
     void Action::NextFrame(Environment& env)
     {
-        env.movie.goto_frame(env.movie.get_current_frame()+1);
+        env.owner->goto_frame(env.owner->get_current_frame()+1);
     }
 
     void Action::PrevFrame(Environment& env)
     {
-        env.movie.goto_frame(env.movie.get_current_frame()-1);
+        env.owner->goto_frame(env.owner->get_current_frame()-1);
     }
 
     void Action::Play(Environment& env)
     {
-        env.movie.play();
+        env.owner->play();
     }
 
     void Action::Stop(Environment& env)
     {
-        env.movie.stop();
+        env.owner->stop();
     }
 
     void Action::ToggleQuality(Environment& env)
@@ -130,15 +133,15 @@ namespace avm
     void Action::Push(Environment& env)
     {
         auto stream = env.stream;
-        auto type = (PushType)stream.read_uint8();
+        auto type = (PushType)stream->read_uint8();
         switch( type )
         {
             case PushType::STRING:
-                env.stack.push_back(Value().set(stream.read_string()));
+                env.stack.push_back(Value().set(stream->read_string()));
                 break;
 
             case PushType::FLOAT:
-                env.stack.push_back(Value().set((double)stream.read_float32()));
+                env.stack.push_back(Value().set((double)stream->read_float32()));
                 break;
 
             case PushType::NULLPTR:
@@ -153,21 +156,23 @@ namespace avm
                 break;
 
             case PushType::BOOLEAN:
-                env.stack.push_back(Value().set((bool)stream.read_uint8()));
+                env.stack.push_back(Value().set((bool)stream->read_uint8()));
                 break;
 
             case PushType::DOUBLE:
-                env.stack.push_back(Value().set(stream.read_float64()));
+                env.stack.push_back(Value().set(stream->read_float64()));
                 break;
 
             case PushType::INTEGER:
-                env.stack.push_back(Value().set((double)stream.read_uint32()));
+                env.stack.push_back(Value().set((double)stream->read_uint32()));
                 break;
 
-            case PushType::CONSTANT8: // ??
+            case PushType::CONSTANT8:
+                env.stack.push_back(Value().set((double)stream->read_uint8()));
                 break;
 
-            case PushType::CONSTANT16: // ??
+            case PushType::CONSTANT16:
+                env.stack.push_back(Value().set((double)stream->read_uint16()));
                 break;
 
             default:
@@ -437,8 +442,8 @@ namespace avm
 
     void Action::Jump(Environment& env)
     {
-        auto offset = env.stream.read_int16();
-        env.stream.set_position(env.stream.get_position()+offset);
+        auto offset = env.stream->read_int16();
+        env.stream->set_position(env.stream->get_position()+offset);
     }
 
     void Action::If(Environment& env)
@@ -446,9 +451,9 @@ namespace avm
         auto size = env.stack.size();
         assert(size >= 1);
 
-        auto offset = env.stream.read_int16();
+        auto offset = env.stream->read_int16();
         if( env.stack[size-1].to_boolean() )
-            env.stream.set_position(env.stream.get_position()+offset);
+            env.stream->set_position(env.stream->get_position()+offset);
     }
 
     static bool parse_path(const std::string& str, std::string& path, std::string& var)
@@ -493,16 +498,16 @@ namespace avm
             std::string path, var;
             if( parse_path(str_value, path, var) )
             {
-                target = env.movie.get<MovieClipNode>(path);
+                target = env.owner->get<MovieClipNode>(path);
                 if( target != nullptr )
                     target->execute_frame_actions(var);
             }
             else
-                env.movie.execute_frame_actions(str_value);
+                env.owner->execute_frame_actions(str_value);
         }
         else if( env.stack.back().is<double>() )
         {
-            env.movie.execute_frame_actions(value.to_integer());
+            env.owner->execute_frame_actions(value.to_integer());
         }
     }
 

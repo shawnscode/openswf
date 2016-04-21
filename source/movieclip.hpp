@@ -3,6 +3,8 @@
 #include "types.hpp"
 #include "character.hpp"
 #include "swf/record.hpp"
+#include "avm/value.hpp"
+#include "avm/action.hpp"
 
 #include <map>
 #include <unordered_map>
@@ -69,7 +71,7 @@ namespace openswf
         NamedFrames             m_named_frames;
 
     public:
-        MovieClip(uint16_t cid, uint16_t frame_count);
+        MovieClip(uint16_t cid, uint16_t frame_count, float frame_rate);
 
         virtual INode*   create_instance();
         virtual uint16_t get_character_id() const;
@@ -102,6 +104,7 @@ namespace openswf
     {
         typedef std::map<uint16_t, INode*> DisplayList;
 
+    protected:
         DisplayList     m_children;
         DisplayList     m_deprecated;
 
@@ -111,6 +114,8 @@ namespace openswf
         float       m_frame_rate;
         float       m_frame_timer;
         bool        m_paused;
+
+        avm::Environment m_environment;
 
     public:
         MovieClipNode(Player* env, MovieClip* sprite);
@@ -146,6 +151,8 @@ namespace openswf
         uint16_t    get_current_frame() const;
         float       get_frame_rate() const;
         void        set_frame_rate(float rate);
+
+        avm::Environment& get_environment();
 
     protected:
         void step_to_frame(uint16_t frame);
@@ -205,5 +212,10 @@ namespace openswf
     {
         auto frame = m_sprite->get_frame(name);
         if( frame != 0 ) execute_frame_actions(frame);
+    }
+
+    inline avm::Environment& MovieClipNode::get_environment()
+    {
+        return m_environment;
     }
 }

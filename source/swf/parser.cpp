@@ -6,14 +6,17 @@
 
 namespace openswf
 {
-    Environment::Environment(Stream& stream, Player& player)
-    : stream(stream), player(player)
+    Environment::Environment(Stream& stream, Player& player, const SWFHeader& header)
+    : stream(stream), player(player), header(header)
     {
-        stream.set_position(0);
-
         this->movie = &player.get_root_def();
-        this->tag.code = TagCode::END;
-        this->header = SWFHeader::read(stream);
+    }
+
+    void Environment::advance()
+    {
+        if( this->tag.code != TagCode::END )
+            this->stream.set_position(this->tag.end_pos);
+        this->tag = TagHeader::read(this->stream);
     }
 
     typedef std::function<void(Environment&)> TagHandler;
@@ -107,38 +110,13 @@ namespace openswf
         return record;
     }
 
-    Player* Parser::read(Stream& stream)
+    bool Parser::execute(Environment& env)
     {
-        auto player = new Player();
-        auto env    = Environment(stream, *player);
+        auto found = s_handlers.find((uint32_t)env.tag.code);
+        if( found == s_handlers.end() ) return false;
 
-        player->m_size = env.header.frame_size;
-
-        for(;;)
-        {
-            env.tag = TagHeader::read(env.stream);
-            if( env.tag.code == TagCode::END )
-            {
-                assert(env.movie != nullptr);
-                env.movie->m_frame_rate = env.header.frame_rate;
-
-                if( env.movie == &player->get_root_def() )
-                {
-                    player->get_root().goto_and_play(1);
-                    return player;
-                }
-
-                player->set_character(env.movie->get_character_id(), env.movie);
-                env.movie = &player->get_root_def();
-            }
-
-            auto found = s_handlers.find((uint32_t)env.tag.code);
-            if( found == s_handlers.end() )
-                printf("[WARN] tag %s has not defined handler.\n", Parser::to_string(env.tag.code));
-            else
-                found->second(env);
-            stream.set_position(env.tag.end_pos);
-        }
+        found->second(env);
+        return true;
     }
 
     const char* Parser::to_string(TagCode code)

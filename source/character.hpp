@@ -14,13 +14,13 @@ namespace openswf
     class ICharacter
     {
     protected:
-        Player* m_environment;
+        Player* m_player;
 
     public:
-        ICharacter() : m_environment(nullptr) {}
+        ICharacter() : m_player(nullptr) {}
 
         virtual ~ICharacter() {}
-        virtual void     attach(Player* env) { m_environment = env; }
+        virtual void     attach(Player* env) { m_player = env; }
         virtual uint16_t get_character_id() const = 0;
         virtual INode*   create_instance() = 0;
     };
@@ -29,7 +29,7 @@ namespace openswf
     {
     protected:
         ICharacter*     m_character;
-        Player*         m_environment;
+        Player*         m_player;
         Matrix          m_matrix;
         ColorTransform  m_cxform;
         uint16_t        m_ratio;
@@ -38,7 +38,7 @@ namespace openswf
 
     public:
         INode(Player* env, ICharacter* ch)
-        : m_environment(env), m_character(ch), m_ratio(0) {}
+        : m_player(env), m_character(ch), m_ratio(0) {}
 
         virtual ~INode() {}
         virtual void update(float dt) = 0;

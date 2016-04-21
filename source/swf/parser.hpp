@@ -13,8 +13,6 @@ namespace openswf
     class Parser;
     struct Environment
     {
-        friend class Parser;
-    protected:
         Stream&         stream;
         Player&         player;
 
@@ -23,15 +21,16 @@ namespace openswf
         TagHeader       tag;
 
         SWFHeader       header;
-    public:
-        Environment(Stream& stream, Player& player);
+
+        Environment(Stream& stream, Player& player, const SWFHeader& header);
+        void advance();
     };
 
     class Parser
     {
     public:
         static bool         initialize();
-        static Player*      read(Stream& stream);
+        static bool         execute(Environment& env);
         static const char*  to_string(TagCode);
 
     protected:
@@ -99,11 +98,11 @@ namespace openswf
         // the End tag indicates the end of file or sprite definition
         // static void End(Environment&);
 
+
         /// ----------------------------------------------------------------------------
         /// SHAPE DEFINITION TAGS
         // shape in swf is similar to most vector formats which are defined by a list of
         // edges called a path.
-
         // the DefineShape tag defines a shape for later use by control tags such as PlaceObject.
         static void DefineShape(Environment&);
 
@@ -127,9 +126,9 @@ namespace openswf
         // a new morph line style record in the morph shape. 
         static void DefineMorphShape2(Environment&);
 
+
         /// ----------------------------------------------------------------------------
         /// IMAGE DEFINITION TAGS
-
         // the DefineBits defines a bitmap character with JPEG compression.
         // It contains only the JPEG compressed image data (from the Frame Header onward).
         // A separate JPEGTables tag contains the JPEG encoding data used to encode this

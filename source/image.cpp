@@ -35,7 +35,7 @@ namespace openswf
 
     INode* Image::create_instance()
     {
-        return new ImageNode(this->m_environment, this);
+        return new ImageNode(this->m_player, this);
     }
 
     uint16_t Image::get_character_id() const

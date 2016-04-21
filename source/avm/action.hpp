@@ -1,11 +1,15 @@
 #pragma once
-
-#include "stream.hpp"
-#include "movieclip.hpp"
 #include "avm/value.hpp"
+
+#include <vector>
+#include <unordered_map>
 
 namespace openswf
 {
+
+class MovieClipNode;
+class Stream;
+class Action;
 namespace avm
 {
     enum class ActionCode : uint8_t
@@ -27,22 +31,24 @@ namespace avm
 
     };
 
-    class Action;
     class Environment
     {
         friend class Action;
+        typedef std::unordered_map<std::string, avm::Value> Variables;
 
     protected:
-        Stream&             stream;   // action bytes
-        uint32_t            pcounter; // program counter
-        uint32_t            version;  // swf version
+        MovieClipNode*      owner;
+        Stream*             stream;   // action bytes
 
-        MovieClipNode&      movie;
         std::vector<Value>  stack;
+        Variables           variables;
+        const int32_t       version;  // swf version
 
     public:
-        Environment(Stream& stream, MovieClipNode& node, int version = 10)
-        : stream(stream), movie(node), version(version) {}
+        Environment(MovieClipNode* owner, int version = 10)
+        : owner(owner), version(version) {}
+
+        void set_stream(Stream* stream) { this->stream = stream; }
     };
 
     typedef std::function<void(Environment&)> ActionHandler;
@@ -67,8 +73,7 @@ namespace avm
         static void StopSounds(Environment&);
         static void WaitForFrame(Environment&);
 
-
-        // SWF4 ACTION MODEL
+        /// SWF4 ACTION MODEL
         static void Push(Environment&); // stack based opeartions
         static void Pop(Environment&);
 
