@@ -46,7 +46,7 @@ int main(int argc, char* argv[])
     auto& shader = Shader::get_instance();
 
     auto stream = create_from_file("../test/resources/simple-shape-2.swf");
-    auto player = Player::create(&stream);
+    auto player = Parser::read(stream);
 
     shader.set_program(PROGRAM_DEFAULT);
     while( !glfwWindowShouldClose(window) )

@@ -4,7 +4,6 @@
 #include "openswf_common.hpp"
 
 using namespace openswf;
-using namespace openswf::record;
 
 Stream create_from_file(const char* path) 
 {
@@ -33,7 +32,7 @@ Stream create_from_file(const char* path)
 TagHeader get_tag_at(Stream& stream, uint32_t pos)
 {
     stream.set_position(0);
-    Header::read(stream);
+    SWFHeader::read(stream);
     for( int i=0; i<pos-1; i++ )
     {
         auto tag = TagHeader::read(stream);

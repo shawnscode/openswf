@@ -50,8 +50,8 @@ int main(int argc, char* argv[])
     }
 
     auto stream = create_from_file("../test/resources/simple-timeline-2.swf");
-    auto player = Player::create(&stream);
-        
+    auto player = Parser::read(stream);
+
     auto& render = Render::get_instance();
     auto& shader = Shader::get_instance();
     auto last_time = glfwGetTime();
@@ -59,9 +59,7 @@ int main(int argc, char* argv[])
     while( !glfwWindowShouldClose(window) )
     {
         glfwGetWindowSize(window, &width, &height);
-
         render.set_viewport(0, 0, width, height);
-        render.clear(CLEAR_COLOR | CLEAR_DEPTH, 100, 100, 100, 255);
 
         auto now_time = glfwGetTime();
         player->update(now_time-last_time);

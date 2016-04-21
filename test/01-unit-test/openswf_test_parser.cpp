@@ -1,7 +1,6 @@
 #include "openswf_test.hpp"
 
 using namespace openswf;
-using namespace openswf::record;
 
 TEST_CASE("PARSE_TAG_HEADER", "[OPENSWF]")
 {
@@ -10,7 +9,7 @@ TEST_CASE("PARSE_TAG_HEADER", "[OPENSWF]")
     REQUIRE( stream.get_bit_position() == 0 );
     REQUIRE( stream.get_size() == 1340 );
 
-    auto header = Header::read(stream);
+    auto header = SWFHeader::read(stream);
 
     REQUIRE( header.frame_count == 1 );
     REQUIRE( header.frame_rate == Approx(24) );
