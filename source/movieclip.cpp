@@ -214,6 +214,22 @@ namespace openswf
             m_commands[i]->execute(display);
     }
 
+    void MovieClip::execute_actions(MovieClipNode& display, uint16_t frame)
+    {
+        if( frame < 1 || frame > m_indices.size() )
+            return;
+
+        auto start_ind = 0;
+        auto end_ind = m_indices[frame-1];
+        if( frame > 1 ) start_ind = m_indices[frame-2];
+
+        for( int i=start_ind; i<end_ind; i++ )
+        {
+            if(dynamic_cast<FrameAction*>(m_commands[i].get()) != nullptr)
+                m_commands[i]->execute(display);
+        }
+    }
+
     ////
     MovieClipNode::MovieClipNode(Player* env, MovieClip* sprite)
     : INode(env, sprite), m_sprite(sprite), m_frame_timer(0), m_current_frame(0), m_paused(false)
@@ -360,6 +376,11 @@ namespace openswf
         m_paused = true;
         step_to_frame(frame);
         update(0);
+    }
+
+    void MovieClipNode::execute_frame_actions(uint16_t frame)
+    {
+        m_sprite->execute_actions(*this, frame);
     }
 
     void MovieClipNode::step_to_frame(uint16_t frame)

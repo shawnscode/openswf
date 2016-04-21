@@ -50,7 +50,7 @@ namespace openswf
         // three types of floating-point numbers are supported: half, float, double.
         float read_float16();
         float read_float32();
-        float read_float64();
+        double read_float64();
 
         // SWF 9 and later supports the use of integers encoded with a variable number of bytes.
         // The variable-length encoding for u30, u32, and s32 uses one to five bytes,
@@ -163,7 +163,7 @@ namespace openswf
         return value;
     }
 
-    inline float Stream::read_float64()
+    inline double Stream::read_float64()
     {
         double      value = 0;
         uint64_t&   ref = *((uint64_t*)&value);

@@ -63,6 +63,8 @@ namespace openswf
         virtual uint16_t get_character_id() const;
 
         void    execute(MovieClipNode& display, uint16_t frame);
+        void    execute_actions(MovieClipNode& display, uint16_t frame);
+
         int32_t get_frame_count() const;
         float   get_frame_rate() const;
     };
@@ -108,12 +110,18 @@ namespace openswf
         void    erase(uint16_t depth);
 
         void reset();
-
         void play();
         void stop();
+
         void goto_frame(uint16_t frame);
         void goto_and_play(uint16_t frame);
         void goto_and_stop(uint16_t frame);
+        void execute_frame_actions(uint16_t frame);
+
+        void goto_frame(const std::string&) {}
+        void goto_and_play(const std::string&) {}
+        void goto_and_stop(const std::string&) {}
+        void execute_frame_actions(const std::string&) {}
 
         uint16_t    get_frame_count() const;
         uint16_t    get_current_frame() const;
