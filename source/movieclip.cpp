@@ -170,7 +170,7 @@ namespace openswf
 
         auto& env = display.get_environment();
         env.set_stream(&stream);
-        
+        env.set_context(&display);
         while(avm::Action::execute(env));
     }
 
@@ -192,10 +192,10 @@ namespace openswf
 
     void MovieClip::execute(MovieClipNode& display, uint16_t index, FrameTaskMask mask)
     {
-        if( index < 1 || index > m_frames.size() )
+        if( index >= m_frames.size() )
             return;
 
-        auto& frame = m_frames[index-1];
+        auto& frame = m_frames[index];
         if( mask & FRAME_COMMANDS )
         {
             for( auto& command : frame.commands )
@@ -212,14 +212,14 @@ namespace openswf
     ////
     MovieClipNode::MovieClipNode(Player* player, MovieClip* sprite)
     : INode(player, sprite),
-    m_sprite(sprite), m_frame_timer(0), m_current_frame(0), m_paused(false),
+    m_sprite(sprite), m_frame_timer(0),
+    m_target_frame(1), m_current_frame(0), m_paused(false),
     m_environment(this, player->get_version())
     {
         assert( sprite->get_frame_rate() < 64 && sprite->get_frame_rate() > 0.1f );
 
         m_frame_rate = sprite->get_frame_rate();
         m_frame_delta = 1.f / m_frame_rate;
-        goto_and_play(1);
     }
 
     MovieClipNode::~MovieClipNode()
@@ -237,20 +237,22 @@ namespace openswf
             m_frame_timer += dt;
             if( m_frame_timer > m_frame_delta )
             {
-                auto frame = m_current_frame;
                 while( m_frame_timer > m_frame_delta )
                 {
                     m_frame_timer -= m_frame_delta;
 
-                    if( frame >= m_sprite->get_frame_count() )
-                        frame = 0;
-                    frame ++;
+                    if( m_target_frame >= m_sprite->get_frame_count() )
+                        m_target_frame = 0;
+                    m_target_frame ++;
                 }
-
-                step_to_frame(frame);
             }
         }
 
+        if( m_target_frame < 1 )
+            m_target_frame = 1;
+
+        step_to_frame(m_target_frame);
+        assert( m_deprecated.size() == 0 );
         for( auto& pair : m_children )
             pair.second->update(dt);
     }
@@ -262,13 +264,47 @@ namespace openswf
     }
 
     // PROTECTED METHODS
-    INode* MovieClipNode::get(const std::string& name)
+    static bool parse_path(const std::string& str, std::string& first, std::string& remaining)
     {
-        for( auto& pair : m_children )
+        if( str.empty() ) return false;
+
+        auto search_start = 0;
+        if( str[0] == '/' ) search_start = 1;
+
+        auto pos = str.find('/', search_start);
+        if( pos == std::string::npos ) return false;
+
+        first = str.substr(search_start, pos-search_start);
+        remaining = str.substr(pos+1);
+
+        return true;
+    }
+
+    MovieClipNode* MovieClipNode::get(const std::string& name)
+    {
+        if( name.empty() )
+            return nullptr;
+
+        std::string current, remaining;
+        if( parse_path(name, current, remaining) )
         {
-            if( pair.second->get_name() == name )
-                return pair.second;
+            for( auto& pair : m_children )
+            {
+                auto clip = dynamic_cast<MovieClipNode*>(pair.second);
+                if( clip != nullptr && clip->get_name() == current )
+                    return clip->get(remaining);
+            }
         }
+        else
+        {
+            for( auto& pair : m_children )
+            {
+                auto clip = dynamic_cast<MovieClipNode*>(pair.second);
+                if( clip != nullptr && clip->get_name() == name )
+                    return clip;
+            }
+        }
+
         return nullptr;
     }
 
@@ -333,31 +369,31 @@ namespace openswf
 
     void MovieClipNode::reset()
     {
-        m_current_frame = 0;
-        step_to_frame(1);
-        update(0);
-    }
-
-    void MovieClipNode::goto_frame(uint16_t frame)
-    {
-        step_to_frame(frame);
-        update(0);
-    }
-
-    void MovieClipNode::goto_and_play(uint16_t frame)
-    {
         m_paused = false;
-        step_to_frame(frame);
-        update(0);
+        m_target_frame = 1;
+        m_current_frame = 0;
+
+        for( auto& pair : m_deprecated )
+            delete pair.second;
+        m_deprecated.clear();
+
+        for( auto& pair : m_children )
+            delete pair.second;
+        m_children.clear();
     }
 
-    void MovieClipNode::goto_and_stop(uint16_t frame)
+    void MovieClipNode::goto_frame(uint16_t frame, MovieGoto status, int offset)
     {
-        m_paused = true;
-        step_to_frame(frame);
-        update(0);
+        set_status(status);
+        if( m_target_frame != (frame+offset) )
+            m_target_frame = (frame+offset);
     }
 
+    // the actions in frame is not executed immediately, but is added to a list
+    // of actions to be processed. the list is executed on a ShowFrame tag,
+    // or after the button state has changed. an action can cause other actions
+    // to be triggered, in which case, the action is added to the list of actions
+    // to be processed. actions are processed until the action list is empty.
     void MovieClipNode::execute_frame_actions(uint16_t frame)
     {
         m_sprite->execute(*this, frame, FRAME_ACTIONS);
@@ -365,26 +401,28 @@ namespace openswf
 
     void MovieClipNode::step_to_frame(uint16_t frame)
     {
-        if( frame < 1 ) frame = 1;
-        if( m_current_frame == frame )
+        assert( frame > 0 );
+
+        if( frame == m_current_frame )
             return;
 
-        if( m_current_frame > (int)frame )
+        if( m_current_frame > frame )
         {
             m_current_frame = 0;
             m_deprecated = std::move(m_children);
         }
 
-        while(
-            m_current_frame < frame &&
-            m_current_frame < m_sprite->get_frame_count() )
+        auto mask = (FrameTaskMask)(FRAME_COMMANDS | FRAME_ACTIONS);
+        while(m_current_frame < frame &&
+              m_current_frame < m_sprite->get_frame_count())
         {
-            m_sprite->execute(*this, ++m_current_frame, (FrameTaskMask)(FRAME_COMMANDS | FRAME_ACTIONS));
+            m_sprite->execute(*this, m_current_frame++, mask);
         }
 
-        for( auto& pair : m_deprecated )
-            delete pair.second;
-        m_deprecated.clear();
+        if( m_deprecated.size() > 0 )
+        {
+            for( auto& pair : m_deprecated ) delete pair.second;
+            m_deprecated.clear();
+        }
     }
-
 }

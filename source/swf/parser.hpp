@@ -16,6 +16,7 @@ namespace openswf
         Stream&         stream;
         Player&         player;
 
+        MovieFrame      interrupted;
         MovieFrame      frame;
         MovieClip*      movie;
         TagHeader       tag;
@@ -23,7 +24,7 @@ namespace openswf
         SWFHeader       header;
 
         Environment(Stream& stream, Player& player, const SWFHeader& header);
-        void advance();
+        bool advance();
     };
 
     class Parser
@@ -96,7 +97,7 @@ namespace openswf
         static void ShowFrame(Environment&);
 
         // the End tag indicates the end of file or sprite definition
-        // static void End(Environment&);
+        static void End(Environment&);
 
 
         /// ----------------------------------------------------------------------------

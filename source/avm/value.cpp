@@ -1,5 +1,7 @@
 #include "value.hpp"
 
+#include <boost/lexical_cast.hpp>
+
 namespace openswf
 {
 namespace avm
@@ -33,7 +35,7 @@ namespace avm
 
     std::string Value::double_to_string(double value, int radix)
     {
-        return "";
+        return boost::lexical_cast<std::string>(value);
     }
 }
 }

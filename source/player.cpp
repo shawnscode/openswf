@@ -5,10 +5,13 @@
 #include "render.hpp"
 #include "swf/parser.hpp"
 
+#include <ctime>
+
 namespace openswf
 {
-    const static int    MaxRecursionDepth = 256;
-    const static float  TimeoutSeconds = 1.0f;
+    const static int        MaxRecursionDepth = 256;
+    const static float      TimeoutSeconds = 0.1f;
+    const static uint32_t   ClocksPerMs = CLOCKS_PER_SEC * 0.001;
 
     Player::Player()
     : m_script_max_recursion(MaxRecursionDepth), m_script_timeout(TimeoutSeconds), m_version(10)
@@ -29,32 +32,28 @@ namespace openswf
         stream.set_position(0);
         auto header = SWFHeader::read(stream);
 
+        auto timer = time(nullptr);
+
         m_sprite = new MovieClip(0, header.frame_count, header.frame_rate);
         m_size = header.frame_size;
         m_version = header.version;
+        m_start_ms = clock() / ClocksPerMs;
 
         auto env = Environment(stream, *this, header);
-        for(;;)
+        while( env.advance() )
         {
-            env.advance();
-            if( env.tag.code == TagCode::END )
-            {
-                assert(env.movie != nullptr);
-                if( env.movie == m_sprite )
-                {
-                    m_root = new MovieClipNode(this, m_sprite);
-                    return true;
-                }
-
-                set_character(env.movie->get_character_id(), env.movie);
-                env.movie = m_sprite;
-            }
+            if( env.movie == m_sprite )
+                printf("%s %d\n", Parser::to_string(env.tag.code), env.tag.size);
+            else
+                printf("\t%s %d\n", Parser::to_string(env.tag.code), env.tag.size);
 
             if( !Parser::execute(env) )
-                printf("[WARN] tag %s has not defined handler.\n", Parser::to_string(env.tag.code));
+                printf("[WARN] tag %s has not defined handler.\n",
+                    Parser::to_string(env.tag.code));
         }
 
-        return false;
+        m_root = new MovieClipNode(this, m_sprite);
+        return true;
     }
 
     Player::~Player()
@@ -86,5 +85,10 @@ namespace openswf
         Render::get_instance().clear(CLEAR_COLOR | CLEAR_DEPTH,
             m_background.r, m_background.g, m_background.b, m_background.a);
         m_root->render(Matrix::identity, ColorTransform::identity);
+    }
+
+    uint32_t Player::get_eplased_ms() const
+    {
+        return clock() / ClocksPerMs - m_start_ms;
     }
 }

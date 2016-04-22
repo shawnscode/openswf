@@ -25,15 +25,15 @@ uint32_t Stream::read_uint32()
 uint64_t Stream::read_uint64()
 {
     align();
-    uint64_t value = 0;
-    value |= m_data[m_offset++];
-    value |= ((uint64_t)m_data[m_offset++] << 8);
-    value |= ((uint64_t)m_data[m_offset++] << 16);
-    value |= ((uint64_t)m_data[m_offset++] << 24);
+    uint64_t value = 0; // ???
     value |= ((uint64_t)m_data[m_offset++] << 32);
     value |= ((uint64_t)m_data[m_offset++] << 40);
     value |= ((uint64_t)m_data[m_offset++] << 48);
     value |= ((uint64_t)m_data[m_offset++] << 56);
+    value |= ((uint64_t)m_data[m_offset++] << 0);
+    value |= ((uint64_t)m_data[m_offset++] << 8);
+    value |= ((uint64_t)m_data[m_offset++] << 16);
+    value |= ((uint64_t)m_data[m_offset++] << 24);
     return value;
 }
 

@@ -55,9 +55,9 @@ namespace avm
         Value() : m_value(boost::blank()), m_code(ValueCode::UNDEFINED) {}
         Value(const Value& rh) : m_value(rh.m_value), m_code(rh.m_code) {}
 
-        template<typename T> bool is() const
+        bool is(ValueCode code) const
         {
-            return m_code == ValueCodeSpec<T>::code;
+            return m_code == code;
         }
 
         template<typename T> Value& set(T& value)

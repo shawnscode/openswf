@@ -40,12 +40,6 @@ namespace openswf
         virtual void execute(MovieClipNode& display);
     };
 
-    // A sprite corresponds to a movie clip in the Adobe Flash authoring application.
-    // It is a SWF file contained within another SWF file, and supports many of the
-    // features of a regular SWF file, such as the following:
-    // 1. Most of the control tags that can be used in the main file.
-    // 2. A timeline that can stop, start, and play independently of the main file.
-    // 3. A streaming sound track that is automatically mixed with the main sound track.
     enum FrameTaskMask
     {
         FRAME_COMMANDS  = 0x1,
@@ -100,16 +94,29 @@ namespace openswf
         return m_frame_rate;
     }
 
+    enum class MovieGoto : uint8_t
+    {
+        NOCHANGE    = 0,
+        PLAY        = 1,
+        STOP        = 2
+    };
+
+    // A sprite corresponds to a movie clip in the Adobe Flash authoring application.
+    // It is a SWF file contained within another SWF file, and supports many of the
+    // features of a regular SWF file, such as the following:
+    // 1. most of the control tags that can be used in the main file.
+    // 2. a timeline that can stop, start, and play independently of the main file.
+    // 3. a streaming sound track that is automatically mixed with the main sound track.
     class MovieClipNode : public INode
     {
-        typedef std::map<uint16_t, INode*> DisplayList;
+        typedef std::map<uint16_t, INode*>  DisplayList;
 
     protected:
         DisplayList     m_children;
         DisplayList     m_deprecated;
 
         MovieClip*  m_sprite;
-        uint16_t    m_current_frame;
+        uint16_t    m_current_frame, m_target_frame;
         float       m_frame_delta;
         float       m_frame_rate;
         float       m_frame_timer;
@@ -130,42 +137,35 @@ namespace openswf
 
         INode*  set(uint16_t depth, uint16_t cid);
         INode*  get(uint16_t depth);
-        INode*  get(const std::string& name);
+        MovieClipNode*  get(const std::string& name);
         void    erase(uint16_t depth);
 
         void reset();
-        void play();
-        void stop();
+        void set_status(MovieGoto status);
 
-        void goto_frame(uint16_t frame);
-        void goto_and_play(uint16_t frame);
-        void goto_and_stop(uint16_t frame);
+        void goto_frame(uint16_t frame, MovieGoto status = MovieGoto::NOCHANGE, int offset = 0);
         void execute_frame_actions(uint16_t frame);
 
-        void goto_frame(const std::string&);
-        void goto_and_play(const std::string&);
-        void goto_and_stop(const std::string&);
-        void execute_frame_actions(const std::string&);
+        void goto_frame(const std::string& label, MovieGoto status = MovieGoto::NOCHANGE, int offset = 0);
+        void execute_frame_actions(const std::string& label);
 
         uint16_t    get_frame_count() const;
         uint16_t    get_current_frame() const;
         float       get_frame_rate() const;
         void        set_frame_rate(float rate);
 
-        avm::Environment& get_environment();
+        avm::Environment&   get_environment();
+        void                set_variable(const char* name, avm::Value value);
+        avm::Value          get_variable(const char* name) const;
 
     protected:
         void step_to_frame(uint16_t frame);
     };
 
-    inline void MovieClipNode::play()
+    inline void MovieClipNode::set_status(MovieGoto status)
     {
-        m_paused = false;
-    }
-
-    inline void MovieClipNode::stop()
-    {
-        m_paused = true;
+        if( status == MovieGoto::PLAY ) m_paused = false;
+        else if( status == MovieGoto::STOP ) m_paused= true;
     }
 
     inline uint16_t MovieClipNode::get_frame_count() const
@@ -173,6 +173,7 @@ namespace openswf
         return m_sprite->get_frame_count();
     }
 
+    // frame start from 1
     inline uint16_t MovieClipNode::get_current_frame() const
     {
         return m_current_frame;
@@ -190,22 +191,10 @@ namespace openswf
         m_frame_delta = 1.f / rate;
     }
 
-    inline void MovieClipNode::goto_frame(const std::string& name)
+    inline void MovieClipNode::goto_frame(const std::string& name, MovieGoto status, int offset)
     {
         auto frame = m_sprite->get_frame(name);
-        if( frame != 0 ) goto_frame(frame);
-    }
-
-    inline void MovieClipNode::goto_and_play(const std::string& name)
-    {
-        auto frame = m_sprite->get_frame(name);
-        if( frame != 0 ) goto_and_play(frame);
-    }
-
-    inline void MovieClipNode::goto_and_stop(const std::string& name)
-    {
-        auto frame = m_sprite->get_frame(name);
-        if( frame != 0 ) goto_and_stop(frame);
+        if( frame != 0 ) goto_frame(frame, status, offset);
     }
     
     inline void MovieClipNode::execute_frame_actions(const std::string& name)
@@ -217,5 +206,15 @@ namespace openswf
     inline avm::Environment& MovieClipNode::get_environment()
     {
         return m_environment;
+    }
+
+    inline void MovieClipNode::set_variable(const char* name, avm::Value value)
+    {
+        m_environment.set_variable(name, value);
+    }
+
+    inline avm::Value MovieClipNode::get_variable(const char* name) const
+    {
+        return m_environment.get_variable(name);
     }
 }

@@ -9,14 +9,20 @@ namespace openswf
     Environment::Environment(Stream& stream, Player& player, const SWFHeader& header)
     : stream(stream), player(player), header(header)
     {
-        this->movie = &player.get_root_def();
+        this->movie         = &player.get_root_def();
+        this->tag.code      = TagCode::END;
+        this->tag.end_pos   = stream.get_position();
     }
 
-    void Environment::advance()
+    bool Environment::advance()
     {
-        if( this->tag.code != TagCode::END )
+        if( this->tag.code != TagCode::DEFINE_SPRITE )
             this->stream.set_position(this->tag.end_pos);
         this->tag = TagHeader::read(this->stream);
+
+        if( this->tag.code == TagCode::END && this->movie == &this->player.get_root_def() )
+            return false;
+        return true;
     }
 
     typedef std::function<void(Environment&)> TagHandler;
@@ -52,7 +58,7 @@ namespace openswf
         s_handlers[(uint32_t)TagCode::FRAME_LABEL]            = FrameLabel;
         s_handlers[(uint32_t)TagCode::DO_ACTION]              = DoAction;
         s_handlers[(uint32_t)TagCode::SHOW_FRAME]             = ShowFrame;
-        // s_handlers[(uint32_t)TagCode::END]                   = End;
+        s_handlers[(uint32_t)TagCode::END]                   = End;
 
         s_handlers[(uint32_t)TagCode::DEFINE_SHAPE]           = DefineShape;
         s_handlers[(uint32_t)TagCode::DEFINE_SHAPE2]          = DefineShape2;

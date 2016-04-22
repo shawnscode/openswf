@@ -28,6 +28,7 @@ namespace openswf
         Color           m_background;
         uint8_t         m_version;
         uint16_t        m_script_max_recursion, m_script_timeout;
+        uint32_t        m_start_ms;
 
     protected:
         Player();
@@ -57,13 +58,17 @@ namespace openswf
 
         const Color&    get_background_color() const;
         const Rect&     get_size() const;
-        const uint8_t   get_version() const;
+        uint8_t         get_version() const;
+        uint16_t        get_recursion_depth() const;
+        uint16_t        get_script_timeout() const;
 
         MovieClip&              get_root_def();
         const MovieClip&        get_root_def() const;
 
         MovieClipNode&          get_root();
         const MovieClipNode&    get_root() const;
+
+        uint32_t        get_eplased_ms() const;
     };
 
     //// INLINE METHODS of PLAYER
@@ -100,9 +105,19 @@ namespace openswf
         return m_size;
     }
 
-    inline const uint8_t Player::get_version() const
+    inline uint8_t Player::get_version() const
     {
         return m_version;
+    }
+
+    inline uint16_t Player::get_recursion_depth() const
+    {
+        return m_script_max_recursion;
+    }
+
+    inline uint16_t Player::get_script_timeout() const
+    {
+        return m_script_timeout;
     }
 
     inline MovieClip& Player::get_root_def()

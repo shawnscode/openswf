@@ -11,7 +11,17 @@ namespace openswf
         auto cid = env.stream.read_uint16();
         auto frame_count = env.stream.read_uint16();
 
+        env.interrupted = std::move(env.frame);
         env.movie = new MovieClip(cid, frame_count, env.header.frame_rate);
+    }
+
+    void Parser::End(Environment& env)
+    {
+        assert(env.movie != nullptr);
+        env.player.set_character(env.movie->get_character_id(), env.movie);
+
+        env.movie = &env.player.get_root_def();
+        env.frame = std::move(env.interrupted);
     }
 
     void Parser::PlaceObject(Environment& env)
