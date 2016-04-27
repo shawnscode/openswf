@@ -50,7 +50,7 @@ int main(int argc, char* argv[])
     }
 
     auto stream = create_from_file("../test/resources/simple-timeline-2.swf");
-    auto player = Parser::read(stream);
+    auto player = Player::create(stream);
 
     auto& render = Render::get_instance();
     auto& shader = Shader::get_instance();
