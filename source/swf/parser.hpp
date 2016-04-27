@@ -1,7 +1,7 @@
 #pragma once
 
 #include "player.hpp"
-#include "movieclip.hpp"
+#include "movie_clip.hpp"
 
 namespace openswf
 {

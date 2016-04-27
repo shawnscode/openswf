@@ -1,5 +1,5 @@
 #include "player.hpp"
-#include "movieclip.hpp"
+#include "movie_clip.hpp"
 #include "shape.hpp"
 #include "stream.hpp"
 #include "render.hpp"
@@ -31,8 +31,6 @@ namespace openswf
     {
         stream.set_position(0);
         auto header = SWFHeader::read(stream);
-
-        auto timer = time(nullptr);
 
         m_sprite = new MovieClip(0, header.frame_count, header.frame_rate);
         m_size = header.frame_size;

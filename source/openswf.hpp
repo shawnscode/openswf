@@ -6,7 +6,7 @@
 
 #include "shape.hpp"
 #include "image.hpp"
-#include "movieclip.hpp"
+#include "movie_clip.hpp"
 
 #include "swf/parser.hpp"
 
