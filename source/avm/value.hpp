@@ -1,130 +1,111 @@
 #pragma once
 
-#include <boost/variant.hpp>
+#include "avm/avm.hpp"
 
-namespace openswf
+#include <string>
+
+NS_AVM_BEGIN
+
+enum class ValueCode : uint8_t
 {
-namespace avm
+    UNDEFINED = 0,
+    NULLPTR,
+    NUMBER,
+    INTEGER,
+    BOOLEAN,
+    OBJECT
+};
+
+struct Value
 {
-    enum class ValueCode : uint8_t
+    union Innervalue
     {
-        UNDEFINED = 0,
-        UNDEFINED_EXCEPT,
-        NULLPTR,
-        NULLPTR_EXCEPT,
-        BOOLEAN,
-        BOOLEAN_EXCEPT,
-        STRING,
-        STRING_EXCEPT,
-        NUMBER,
-        NUMBER_EXCEPT,
-        OBJECT,
-        OBJECT_EXCEPT,
-        DISPLAYOBJECT,
-        DISPLAYOBJECT_EXCEPT
+        GCObject*   object;     // collectable objects
+        int64_t     i;          // integer numbers and booleans
+        double      d;          // float numbers;
     };
 
-    template<typename T> struct ValueCodeSpec
+    ValueCode   type;
+    Innervalue  inner;
+
+    Value() : type(ValueCode::UNDEFINED) {}
+    Value(const Value& rh) : inner(rh.inner), type(rh.type) {}
+
+    Value& as_nil();
+    Value& as_undefined();
+    Value& as_number(double);
+    Value& as_integer(int32_t);
+    Value& as_boolean(bool);
+    Value& as_object(GCObject*);
+
+    std::string to_string() const;
+    double      to_number() const;
+    int32_t     to_integer() const;
+    bool        to_boolean() const;
+
+    GCObject*   get_object()
     {
-        const static ValueCode code = ValueCode::UNDEFINED;
-    };
-    
-    template<> struct ValueCodeSpec<std::string>
-    {
-        const static ValueCode code = ValueCode::STRING;
-    };
-    
-    template<> struct ValueCodeSpec<bool>
-    {
-        const static ValueCode code = ValueCode::BOOLEAN;
-    };
-    
-    template<> struct ValueCodeSpec<double>
-    {
-        const static ValueCode code = ValueCode::NUMBER;
-    };
-
-    typedef boost::variant<boost::blank, double, bool, std::string> GenericValue;
-    class Value
-    {
-    protected:
-        GenericValue    m_value;
-        ValueCode       m_code;
-
-    public:
-        Value() : m_value(boost::blank()), m_code(ValueCode::UNDEFINED) {}
-        Value(const Value& rh) : m_value(rh.m_value), m_code(rh.m_code) {}
-
-        bool is(ValueCode code) const
-        {
-            return m_code == code;
-        }
-
-        template<typename T> Value& set(T& value)
-        {
-            m_value = value;
-            m_code = ValueCodeSpec<T>::code;
-            return *this;
-        }
-
-        template<typename T> Value& set(T&& value)
-        {
-            m_value = std::move(value);
-            m_code = ValueCodeSpec<T>::code;
-            return *this;
-        }
-
-        template<typename T> const T& get() const
-        {
-            assert( ValueCodeSpec<T>::code == m_code );
-            return boost::get<T>(m_value);
-        }
-
-        template<typename T> T& get()
-        {
-            assert( ValueCodeSpec<T>::code == m_code );
-            return boost::get<T>(m_value);
-        }
-
-        Value& as_null();
-        Value& as_undefined();
-
-        std::string to_string() const;
-        double      to_number() const;
-        bool        to_boolean() const;
-        int32_t     to_integer() const;
-
-        static std::string double_to_string(double value, int radix = 10);
-    };
-
-    inline Value& Value::as_null()
-    {
-        m_code = ValueCode::NULLPTR;
-        return *this;
+        if( this->type == ValueCode::OBJECT )
+            return this->inner.object;
+        return nullptr;
     }
 
-    inline Value& Value::as_undefined()
+    template<typename T> T* get_object()
     {
-        m_code = ValueCode::UNDEFINED;
-        return *this;
+        if( this->type == ValueCode::OBJECT )
+            return dynamic_cast<T*>(this->inner.object);
+        return nullptr;
     }
+};
 
-    inline double Value::to_number() const
-    {
-        return m_code == ValueCode::NUMBER ? boost::get<double>(m_value) : 0.0;
-    }
+/// INLINE METHODS
 
-    // 1. converts the value to a number;
-    // 2. discards any digits after the decimal point, resulting in an integer.
-    inline int32_t Value::to_integer() const
-    {
-        return (int32_t)to_number();
-    }
-
-    inline bool Value::to_boolean() const
-    {
-        return m_code == ValueCode::BOOLEAN ?
-            boost::get<bool>(m_value) : to_number() > 0;
-    }
+inline Value& Value::as_nil()
+{
+    this->type = ValueCode::NULLPTR;
+    return *this;
 }
+
+inline Value& Value::as_undefined()
+{
+    this->type = ValueCode::UNDEFINED;
+    return *this;
 }
+
+inline Value& Value::as_number(double num)
+{
+    this->type = ValueCode::NUMBER;
+    this->inner.d = num;
+    return *this;
+}
+
+inline Value& Value::as_integer(int32_t integer)
+{
+    this->type = ValueCode::INTEGER;
+    this->inner.i = integer;
+    return *this;
+}
+
+inline Value& Value::as_boolean(bool boolean)
+{
+    this->type = ValueCode::INTEGER;
+    this->inner.i = boolean ? 1 : 0;
+    return *this;
+}
+
+inline Value& Value::as_object(GCObject* object)
+{
+    if( object != nullptr )
+    {
+        this->type = ValueCode::OBJECT;
+        this->inner.object = object;
+    }
+    else
+    {
+        this->type = ValueCode::NULLPTR;
+    }
+    
+    return *this;
+}
+
+NS_AVM_END

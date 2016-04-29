@@ -34,10 +34,7 @@ namespace openswf
 
     bool initialize(float width, float height)
     {
-       if( !Parser::initialize() )
-           return false;
-
-        if( !avm::Action::initialize() )
+        if( !Parser::initialize() )
             return false;
 
         if( !Render::initialize() )

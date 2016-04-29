@@ -1,7 +1,8 @@
 #include "movie_clip.hpp"
 #include "player.hpp"
 #include "stream.hpp"
-#include "avm/action.hpp"
+
+#include "avm/virtual_machine.hpp"
 
 namespace openswf
 {
@@ -50,14 +51,14 @@ namespace openswf
         return CommandPtr();
     }
 
-    void FrameCommand::execute(MovieClipNode& display)
+    void FrameCommand::execute(MovieClip& movie, MovieClipNode& clip)
     {
         auto stream = Stream(m_bytes.get(), m_header.size);
         if( m_header.code == TagCode::PLACE_OBJECT )
         {
             auto character_id   = stream.read_uint16();
             auto depth          = stream.read_uint16();
-            auto node = display.set(depth, character_id);
+            auto node = clip.set(depth, character_id);
 
             if( node == nullptr ) return;
 
@@ -73,9 +74,9 @@ namespace openswf
 
             INode* node = nullptr;
             if( mask & PLACE_2_HAS_CHARACTER )
-                node = display.set(depth, stream.read_uint16());
+                node = clip.set(depth, stream.read_uint16());
             else
-                node = display.get(depth);
+                node = clip.get(depth);
 
             if( node == nullptr ) return;
 
@@ -113,10 +114,10 @@ namespace openswf
             if( mask2 & PLACE_2_HAS_CHARACTER )
             {
                 auto cid = stream.read_uint16();
-                node = display.set(depth, cid);
+                node = clip.set(depth, cid);
             }
             else
-                node = display.get(depth);
+                node = clip.get(depth);
 
             if( node == nullptr ) return;
 
@@ -141,11 +142,11 @@ namespace openswf
         else if( m_header.code == TagCode::REMOVE_OBJECT )
         {
             stream.read_uint16();
-            display.erase(stream.read_uint16());
+            clip.erase(stream.read_uint16());
         }
         else if( m_header.code == TagCode::REMOVE_OBJECT2 )
         {
-            display.erase(stream.read_uint16());
+            clip.erase(stream.read_uint16());
         }
     }
 
@@ -164,14 +165,9 @@ namespace openswf
         return ActionPtr();
     }
 
-    void FrameAction::execute(MovieClipNode& display)
+    void FrameAction::execute(MovieClip& movie, MovieClipNode& node)
     {
-        auto stream = Stream(m_bytes.get(), m_header.size);
-
-        auto& env = display.get_environment();
-        env.set_stream(&stream);
-        env.set_context(&display);
-        while(avm::Action::execute(env));
+        movie.get_player()->get_virtual_machine().execute(m_bytes.get(), m_header.size);
     }
 
     MovieClip::MovieClip(uint16_t cid, uint16_t frame_count, float frame_rate)
@@ -199,13 +195,13 @@ namespace openswf
         if( mask & FRAME_COMMANDS )
         {
             for( auto& command : frame.commands )
-                command->execute(display);
+                command->execute(*this, display);
         }
 
         if( mask & FRAME_ACTIONS )
         {
             for( auto& action : frame.actions )
-                action->execute(display);
+                action->execute(*this, display);
         }
     }
 
@@ -213,8 +209,7 @@ namespace openswf
     MovieClipNode::MovieClipNode(Player* player, MovieClip* sprite)
     : INode(player, sprite),
     m_sprite(sprite), m_frame_timer(0),
-    m_target_frame(1), m_current_frame(0), m_paused(false),
-    m_environment(this, player->get_version())
+    m_target_frame(1), m_current_frame(0), m_paused(false)
     {
         assert( sprite->get_frame_rate() < 64 && sprite->get_frame_rate() > 0.1f );
 

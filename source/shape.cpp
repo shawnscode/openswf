@@ -261,9 +261,9 @@ namespace openswf
         return new ShapeNode(this->m_player, this);
     }
 
-    void Shape::attach(Player* env)
+    void Shape::set_player(Player* env)
     {
-        ICharacter::attach(env);
+        ICharacter::set_player(env);
 
         for( auto& style : fill_styles )
             style->attach(env);
@@ -335,9 +335,9 @@ namespace openswf
         return morph;
     }
 
-    void MorphShape::attach(Player* env)
+    void MorphShape::set_player(Player* env)
     {
-        ICharacter::attach(env);
+        ICharacter::set_player(env);
         for( auto& style : fill_styles )
             style->attach(env);
     }

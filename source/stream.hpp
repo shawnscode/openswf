@@ -17,7 +17,6 @@ namespace openswf
 
         uint8_t         m_current_byte;
         uint32_t        m_unused_bits;
-        std::string     m_string_buffer;
 
     public:
         Stream()
@@ -80,7 +79,8 @@ namespace openswf
         // terminated by the null character byte.
         // in SWF 6 or later, STRING values are always encoded by using the 
         // Unicode UTF-8 standard.
-        std::string read_string();
+        const char* read_string();
+        const char* read_string(int& length);
 
         // the MATRIX record represents a standard 2x3 transformation matrix of the sort 
         // commonly used in 2D graphics. it is used to describe the scale, rotation, and 
@@ -187,13 +187,22 @@ namespace openswf
     {
         return (double)read_bits_as_int32(bitcount)/65536.0;
     }
-
-    inline std::string Stream::read_string()
+    
+    inline const char* Stream::read_string()
     {
-        m_string_buffer.clear();
-        while(char c = (char)read_uint8())
-            m_string_buffer.push_back(c);
-        return m_string_buffer;
+        int length;
+        return read_string(length);
+    }
+
+    inline const char* Stream::read_string(int& length)
+    {
+        align();
+
+        const char* start = (const char*)(&m_data[m_offset]);
+        length = 0;
+        while( m_data[m_offset++] ) length ++;
+
+        return start;
     }
 
     inline Color Stream::read_rgb()

@@ -3,6 +3,7 @@
 #include "debug.hpp"
 #include "types.hpp"
 #include "movie_clip.hpp"
+#include "avm/avm.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -29,6 +30,8 @@ namespace openswf
         uint8_t         m_version;
         uint16_t        m_script_max_recursion, m_script_timeout;
         uint32_t        m_start_ms;
+
+        avm::VirtualMachine*    m_avm;
 
     protected:
         Player();
@@ -61,21 +64,18 @@ namespace openswf
         uint8_t         get_version() const;
         uint16_t        get_recursion_depth() const;
         uint16_t        get_script_timeout() const;
+        uint32_t        get_eplased_ms() const;
 
         MovieClip&              get_root_def();
-        const MovieClip&        get_root_def() const;
-
         MovieClipNode&          get_root();
-        const MovieClipNode&    get_root() const;
-
-        uint32_t        get_eplased_ms() const;
+        avm::VirtualMachine&    get_virtual_machine();
     };
 
     //// INLINE METHODS of PLAYER
     inline void Player::set_character(uint16_t cid, ICharacter* ch)
     {
         assert( ch != nullptr );
-        ch->attach(this);
+        ch->set_player(this);
         m_dictionary[cid] = ch;
     }
 
@@ -125,18 +125,13 @@ namespace openswf
         return *m_sprite;
     }
 
-    inline const MovieClip& Player::get_root_def() const
-    {
-        return *m_sprite;
-    }
-
     inline MovieClipNode& Player::get_root()
     {
         return *m_root;
     }
 
-    inline const MovieClipNode& Player::get_root() const
+    inline avm::VirtualMachine& Player::get_virtual_machine()
     {
-        return *m_root;
+        return *m_avm;
     }
 }

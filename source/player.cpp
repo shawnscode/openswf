@@ -3,7 +3,10 @@
 #include "shape.hpp"
 #include "stream.hpp"
 #include "render.hpp"
+
 #include "swf/parser.hpp"
+#include "avm/avm.hpp"
+#include "avm/virtual_machine.hpp"
 
 #include <ctime>
 
@@ -33,6 +36,8 @@ namespace openswf
         auto header = SWFHeader::read(stream);
 
         m_sprite = new MovieClip(0, header.frame_count, header.frame_rate);
+        m_sprite->set_player(this);
+
         m_size = header.frame_size;
         m_version = header.version;
         m_start_ms = clock() / ClocksPerMs;
@@ -51,6 +56,7 @@ namespace openswf
         }
 
         m_root = new MovieClipNode(this, m_sprite);
+        m_avm = new avm::VirtualMachine();
         return true;
     }
 

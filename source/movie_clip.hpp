@@ -11,13 +11,15 @@
 
 namespace openswf
 {
-    class Player;
-    class MovieClipNode;
-    class FrameCommand;
     class Parser;
+    class Player;
+    class MovieClip;
+    class MovieClipNode;
+
+    class FrameCommand;
     typedef std::unique_ptr<FrameCommand> CommandPtr;
     typedef std::vector<CommandPtr> CommandList;
-
+    
     class FrameCommand
     {
     protected:
@@ -26,7 +28,7 @@ namespace openswf
 
     public:
         static CommandPtr create(TagHeader header, BytesPtr bytes);
-        virtual void execute(MovieClipNode& display);
+        virtual void execute(MovieClip&, MovieClipNode&);
     };
 
     class FrameAction;
@@ -37,7 +39,7 @@ namespace openswf
     {
     public:
         static ActionPtr create(TagHeader header, BytesPtr bytes);
-        virtual void execute(MovieClipNode& display);
+        virtual void execute(MovieClip&, MovieClipNode&);
     };
 
     enum FrameTaskMask
@@ -109,7 +111,10 @@ namespace openswf
     // 3. a streaming sound track that is automatically mixed with the main sound track.
     class MovieClipNode : public INode
     {
-        typedef std::map<uint16_t, INode*>  DisplayList;
+    public:
+        typedef std::map<uint16_t, INode*>      DisplayList;
+        typedef std::weak_ptr<MovieClipNode>    WeakPtr;
+        typedef std::shared_ptr<MovieClipNode>  SharedPtr;
 
     protected:
         DisplayList     m_children;
@@ -121,8 +126,6 @@ namespace openswf
         float       m_frame_rate;
         float       m_frame_timer;
         bool        m_paused;
-
-        avm::Environment m_environment;
 
     public:
         MovieClipNode(Player* env, MovieClip* sprite);
@@ -153,10 +156,6 @@ namespace openswf
         uint16_t    get_current_frame() const;
         float       get_frame_rate() const;
         void        set_frame_rate(float rate);
-
-        avm::Environment&   get_environment();
-        void                set_variable(const char* name, avm::Value value);
-        avm::Value          get_variable(const char* name) const;
 
     protected:
         void step_to_frame(uint16_t frame);
@@ -201,20 +200,5 @@ namespace openswf
     {
         auto frame = m_sprite->get_frame(name);
         if( frame != 0 ) execute_frame_actions(frame);
-    }
-
-    inline avm::Environment& MovieClipNode::get_environment()
-    {
-        return m_environment;
-    }
-
-    inline void MovieClipNode::set_variable(const char* name, avm::Value value)
-    {
-        m_environment.set_variable(name, value);
-    }
-
-    inline avm::Value MovieClipNode::get_variable(const char* name) const
-    {
-        return m_environment.get_variable(name);
     }
 }

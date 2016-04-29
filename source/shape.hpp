@@ -89,7 +89,7 @@ namespace openswf
         bool initialize(uint16_t, ShapeFillList&&, ShapeLineList&&, ShapeRecordPtr);
         static Shape* create(uint16_t, ShapeFillList&&, ShapeLineList&&, ShapeRecordPtr);
 
-        virtual void     attach(Player* env);
+        virtual void     set_player(Player* env);
         virtual uint16_t get_character_id() const;
         virtual INode*   create_instance();
     };
@@ -117,7 +117,7 @@ namespace openswf
 
         static MorphShape* create(uint16_t, ShapeFillList&&, ShapeLineList&&, ShapeRecordPtr, ShapeRecordPtr);
 
-        virtual void     attach(Player* env);
+        virtual void     set_player(Player* env);
         virtual uint16_t get_character_id() const;
         virtual INode*   create_instance();
 

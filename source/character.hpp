@@ -20,7 +20,8 @@ namespace openswf
         ICharacter() : m_player(nullptr) {}
 
         virtual ~ICharacter() {}
-        virtual void     attach(Player* env) { m_player = env; }
+        virtual void     set_player(Player* env) { m_player = env; }
+        virtual Player*  get_player() { return m_player; }
         virtual uint16_t get_character_id() const = 0;
         virtual INode*   create_instance() = 0;
     };
@@ -51,7 +52,7 @@ namespace openswf
         void set_name(const std::string& name);
         void set_clip_depth(uint16_t clip_depth);
 
-        const std::string& get_name() const;
+        const std::string&  get_name() const;
     };
 
     /// INLINE METHODS
@@ -80,13 +81,13 @@ namespace openswf
         m_name = name;
     }
 
-    inline const std::string& INode::get_name() const
-    {
-        return m_name;
-    }
-
     inline void INode::set_clip_depth(uint16_t clip_depth)
     {
         m_clip_depth = clip_depth;
+    }
+
+    inline const std::string& INode::get_name() const
+    {
+        return m_name;
     }
 }
