@@ -17,6 +17,7 @@ private:
 public:
     GCObject() : m_marked(0), m_next(nullptr) {}
 
+    uint8_t get_marked_value() const { return m_marked; }
     virtual void mark(uint8_t v);
     virtual std::string to_string() const;
 };

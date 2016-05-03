@@ -17,7 +17,8 @@ namespace openswf
     const static uint32_t   ClocksPerMs = CLOCKS_PER_SEC * 0.001;
 
     Player::Player()
-    : m_script_max_recursion(MaxRecursionDepth), m_script_timeout(TimeoutSeconds), m_version(10)
+    : m_version(10),
+    m_avm(nullptr), m_script_max_recursion(MaxRecursionDepth), m_script_timeout(TimeoutSeconds)
     {}
 
     Player* Player::create(Stream& stream)
@@ -56,7 +57,7 @@ namespace openswf
         }
 
         m_root = new MovieNode(this, m_sprite);
-        m_avm = new avm::VirtualMachine();
+        m_avm = new avm::VirtualMachine(m_root);
         return true;
     }
 
@@ -77,6 +78,12 @@ namespace openswf
             delete m_root;
             m_root = nullptr;
         }
+
+        if( m_avm != nullptr )
+        {
+            delete m_avm;
+            m_avm = nullptr;
+        }
     }
 
     void Player::update(float dt)
@@ -89,6 +96,13 @@ namespace openswf
         Render::get_instance().clear(CLEAR_COLOR | CLEAR_DEPTH,
             m_background.r, m_background.g, m_background.b, m_background.a);
         m_root->render(Matrix::identity, ColorTransform::identity);
+    }
+
+    void Player::set_character(uint16_t cid, ICharacter* ch)
+    {
+        assert( ch != nullptr );
+        ch->set_player(this);
+        m_dictionary[cid] = ch;
     }
 
     uint32_t Player::get_eplased_ms() const

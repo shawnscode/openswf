@@ -14,6 +14,7 @@ enum class Opcode : uint8_t
     GET_VARIABLE    = 0x1C,
     TRACE           = 0x26,
 
+    // movie object based operations
     NEXT_FRAME      = 0x04,
     PREV_FRAME      = 0x05,
     GOTO_FRAME      = 0x81, /* >= 0x80 means record has args */

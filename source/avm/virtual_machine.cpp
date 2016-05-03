@@ -2,15 +2,18 @@
 #include "avm/movie_object.hpp"
 
 #include "stream.hpp"
+#include "movie_clip.hpp"
 
 NS_AVM_BEGIN
 
 const static int InitialGCThreshold = 4;
 
-VirtualMachine::VirtualMachine()
+VirtualMachine::VirtualMachine(MovieNode* node)
 : m_gc_threshold(InitialGCThreshold), m_objects(0)
 {
     m_root = new MovieObject();
+    m_root->attach(node);
+    node->set_movie_object(m_root);
 }
 
 VirtualMachine::~VirtualMachine()
@@ -23,10 +26,13 @@ VirtualMachine::~VirtualMachine()
     }
 }
 
-void VirtualMachine::execute(const uint8_t* bytecode, int length)
+void VirtualMachine::execute(MovieObject* object, const uint8_t* bytecode, int length)
 {
+    if( object == nullptr )
+        return;
+
     auto stream = Stream(bytecode, length);
-    m_root->execute(*this, stream);
+    object->execute(*this, stream);
 
     if( m_objects > m_gc_threshold )
         gabarge_collect();
@@ -66,5 +72,23 @@ void VirtualMachine::gabarge_collect()
 #endif
 }
 
+MovieObject* VirtualMachine::new_movie_object(MovieNode* node)
+{
+    if( node == nullptr )
+        return nullptr;
+
+    auto movie = new_object<MovieObject>();
+    movie->attach(node);
+    node->set_movie_object(movie);
+    return movie;
+}
+
+void VirtualMachine::free_movie_object(MovieObject* object)
+{
+    if( object == nullptr )
+        return;
+
+    object->detach();
+}
 
 NS_AVM_END

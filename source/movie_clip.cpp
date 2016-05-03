@@ -167,7 +167,9 @@ namespace openswf
 
     void FrameAction::execute(MovieClip& movie, MovieNode& node)
     {
-        movie.get_player()->get_virtual_machine().execute(m_bytes.get(), m_header.size);
+        auto& vm = movie.get_player()->get_virtual_machine();
+        auto object = node.get_movie_object();
+        vm.execute(object, m_bytes.get(), m_header.size);
     }
 
     MovieClip::MovieClip(uint16_t cid, uint16_t frame_count, float frame_rate)
@@ -209,7 +211,8 @@ namespace openswf
     MovieNode::MovieNode(Player* player, MovieClip* sprite)
     : INode(player, sprite),
     m_sprite(sprite), m_frame_timer(0),
-    m_target_frame(1), m_current_frame(0), m_paused(false)
+    m_target_frame(1), m_current_frame(0), m_paused(false),
+    m_object(nullptr)
     {
         assert( sprite->get_frame_rate() < 64 && sprite->get_frame_rate() > 0.1f );
 
@@ -219,6 +222,8 @@ namespace openswf
 
     MovieNode::~MovieNode()
     {
+        m_player->get_virtual_machine().free_movie_object(m_object);
+
         for( auto& pair : m_children )
             delete pair.second;
         m_children.clear();
@@ -346,8 +351,16 @@ namespace openswf
         auto ch = m_player->get_character(cid);
         if( ch != nullptr )
         {
+            auto instance = ch->create_instance();
+            auto node = dynamic_cast<MovieNode*>(instance);
+            if( node != nullptr )
+            {
+                auto object = m_player->get_virtual_machine().new_movie_object(node);
+                this->m_object->attach_movie(object);
+            }
+
             m_children[depth] = ch->create_instance();
-            return m_children[depth];
+            return instance;
         }
         return nullptr;
     }

@@ -15,6 +15,9 @@ namespace openswf
     class Player;
     class MovieClip;
     class MovieNode;
+    namespace avm {
+    class MovieObject;
+    }
 
     class FrameCommand;
     typedef std::unique_ptr<FrameCommand> CommandPtr;
@@ -74,12 +77,12 @@ namespace openswf
 
         void    execute(MovieNode& display, uint16_t frame, FrameTaskMask mask);
 
-        uint16_t    get_frame(const std::string&) const;
+        uint16_t    get_frame(const char*) const;
         int32_t     get_frame_count() const;
         float       get_frame_rate() const;
     };
 
-    inline uint16_t MovieClip::get_frame(const std::string& name) const
+    inline uint16_t MovieClip::get_frame(const char* name) const
     {
         auto found = m_named_frames.find(name);
         if( found == m_named_frames.end() ) return 0;
@@ -120,7 +123,9 @@ namespace openswf
         DisplayList     m_children;
         DisplayList     m_deprecated;
 
-        MovieClip*  m_sprite;
+        MovieClip*          m_sprite;
+        avm::MovieObject*   m_object;
+
         uint16_t    m_current_frame, m_target_frame;
         float       m_frame_delta;
         float       m_frame_rate;
@@ -145,12 +150,14 @@ namespace openswf
 
         void reset();
         void set_status(MovieGoto status);
+        void set_movie_object(avm::MovieObject*);
+        avm::MovieObject* get_movie_object();
 
         void goto_frame(uint16_t frame, MovieGoto status = MovieGoto::NOCHANGE, int offset = 0);
         void execute_frame_actions(uint16_t frame);
 
-        void goto_frame(const std::string& label, MovieGoto status = MovieGoto::NOCHANGE, int offset = 0);
-        void execute_frame_actions(const std::string& label);
+        void goto_frame(const char* label, MovieGoto status = MovieGoto::NOCHANGE, int offset = 0);
+        void execute_frame_actions(const char* label);
 
         uint16_t    get_frame_count() const;
         uint16_t    get_current_frame() const;
@@ -160,6 +167,17 @@ namespace openswf
     protected:
         void step_to_frame(uint16_t frame);
     };
+
+    /// INLINE METHODS
+    inline void MovieNode::set_movie_object(avm::MovieObject* object)
+    {
+        m_object = object;
+    }
+
+    inline avm::MovieObject* MovieNode::get_movie_object()
+    {
+        return m_object;
+    }
 
     inline void MovieNode::set_status(MovieGoto status)
     {
@@ -190,13 +208,13 @@ namespace openswf
         m_frame_delta = 1.f / rate;
     }
 
-    inline void MovieNode::goto_frame(const std::string& name, MovieGoto status, int offset)
+    inline void MovieNode::goto_frame(const char* name, MovieGoto status, int offset)
     {
         auto frame = m_sprite->get_frame(name);
         if( frame != 0 ) goto_frame(frame, status, offset);
     }
     
-    inline void MovieNode::execute_frame_actions(const std::string& name)
+    inline void MovieNode::execute_frame_actions(const char* name)
     {
         auto frame = m_sprite->get_frame(name);
         if( frame != 0 ) execute_frame_actions(frame);

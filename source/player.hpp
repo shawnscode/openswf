@@ -72,13 +72,6 @@ namespace openswf
     };
 
     //// INLINE METHODS of PLAYER
-    inline void Player::set_character(uint16_t cid, ICharacter* ch)
-    {
-        assert( ch != nullptr );
-        ch->set_player(this);
-        m_dictionary[cid] = ch;
-    }
-
     inline ICharacter* Player::get_character(uint16_t cid)
     {
         auto found = m_dictionary.find(cid);

@@ -7,17 +7,17 @@ const char* opcode_to_string(Opcode code)
     switch(code)
     {
     case Opcode::END                : return "END             ";
-    // case Opcode::NEXT_FRAME         : return "NEXT_FRAME      ";
-    // case Opcode::PREV_FRAME         : return "PREV_FRAME      ";
-    // case Opcode::PLAY               : return "PLAY            ";
-    // case Opcode::STOP               : return "STOP            ";
+    case Opcode::NEXT_FRAME         : return "NEXT_FRAME      ";
+    case Opcode::PREV_FRAME         : return "PREV_FRAME      ";
+    case Opcode::PLAY               : return "PLAY            ";
+    case Opcode::STOP               : return "STOP            ";
     // case Opcode::TOGGLE_QUALITY     : return "TOGGLE_QUALITY  ";
     // case Opcode::STOP_SOUNDS        : return "STOP_SOUNDS     ";
-    // case Opcode::GOTO_FRAME         : return "GOTO_FRAME      ";
+    case Opcode::GOTO_FRAME         : return "GOTO_FRAME      ";
     // case Opcode::GET_URL            : return "GET_URL         ";
     // case Opcode::WAIT_FOR_FRAME     : return "WAIT_FOR_FRAME  ";
     // case Opcode::SET_TARGET         : return "SET_TARGET      ";
-    // case Opcode::GOTO_LABEL         : return "GOTO_LABEL      ";
+    case Opcode::GOTO_LABEL         : return "GOTO_LABEL      ";
     case Opcode::PUSH               : return "PUSH            ";
     case Opcode::POP                : return "POP             ";
     // case Opcode::ADD                : return "ADD             ";

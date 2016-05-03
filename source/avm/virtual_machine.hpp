@@ -13,12 +13,12 @@ protected:
     uint32_t        m_objects;
 
 public:
-    VirtualMachine();
+    VirtualMachine(MovieNode*);
     ~VirtualMachine();
 
-    void execute(const uint8_t* bytes, int length);
-
+    void execute(MovieObject*, const uint8_t* bytes, int length);
     void gabarge_collect();
+
     template<typename T> T* new_object()
     {
         auto nv = new T();
@@ -27,6 +27,9 @@ public:
         m_objects ++;
         return nv;
     }
+
+    MovieObject* new_movie_object(MovieNode* node);
+    void free_movie_object(MovieObject* movie);
 };
 
 NS_AVM_END
