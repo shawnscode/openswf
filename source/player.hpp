@@ -25,7 +25,7 @@ namespace openswf
 
         MovieClip*      m_sprite;
         Rect            m_size;
-        MovieClipNode*  m_root;
+        MovieNode*      m_root;
         Color           m_background;
         uint8_t         m_version;
         uint16_t        m_script_max_recursion, m_script_timeout;
@@ -67,7 +67,7 @@ namespace openswf
         uint32_t        get_eplased_ms() const;
 
         MovieClip&              get_root_def();
-        MovieClipNode&          get_root();
+        MovieNode&              get_root();
         avm::VirtualMachine&    get_virtual_machine();
     };
 
@@ -125,7 +125,7 @@ namespace openswf
         return *m_sprite;
     }
 
-    inline MovieClipNode& Player::get_root()
+    inline MovieNode& Player::get_root()
     {
         return *m_root;
     }

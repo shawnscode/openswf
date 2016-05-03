@@ -55,7 +55,7 @@ namespace openswf
                     Parser::to_string(env.tag.code));
         }
 
-        m_root = new MovieClipNode(this, m_sprite);
+        m_root = new MovieNode(this, m_sprite);
         m_avm = new avm::VirtualMachine();
         return true;
     }

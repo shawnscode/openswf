@@ -14,7 +14,7 @@ namespace openswf
     class Parser;
     class Player;
     class MovieClip;
-    class MovieClipNode;
+    class MovieNode;
 
     class FrameCommand;
     typedef std::unique_ptr<FrameCommand> CommandPtr;
@@ -28,7 +28,7 @@ namespace openswf
 
     public:
         static CommandPtr create(TagHeader header, BytesPtr bytes);
-        virtual void execute(MovieClip&, MovieClipNode&);
+        virtual void execute(MovieClip&, MovieNode&);
     };
 
     class FrameAction;
@@ -39,7 +39,7 @@ namespace openswf
     {
     public:
         static ActionPtr create(TagHeader header, BytesPtr bytes);
-        virtual void execute(MovieClip&, MovieClipNode&);
+        virtual void execute(MovieClip&, MovieNode&);
     };
 
     enum FrameTaskMask
@@ -72,7 +72,7 @@ namespace openswf
         virtual INode*   create_instance();
         virtual uint16_t get_character_id() const;
 
-        void    execute(MovieClipNode& display, uint16_t frame, FrameTaskMask mask);
+        void    execute(MovieNode& display, uint16_t frame, FrameTaskMask mask);
 
         uint16_t    get_frame(const std::string&) const;
         int32_t     get_frame_count() const;
@@ -109,12 +109,12 @@ namespace openswf
     // 1. most of the control tags that can be used in the main file.
     // 2. a timeline that can stop, start, and play independently of the main file.
     // 3. a streaming sound track that is automatically mixed with the main sound track.
-    class MovieClipNode : public INode
+    class MovieNode : public INode
     {
     public:
         typedef std::map<uint16_t, INode*>      DisplayList;
-        typedef std::weak_ptr<MovieClipNode>    WeakPtr;
-        typedef std::shared_ptr<MovieClipNode>  SharedPtr;
+        typedef std::weak_ptr<MovieNode>    WeakPtr;
+        typedef std::shared_ptr<MovieNode>  SharedPtr;
 
     protected:
         DisplayList     m_children;
@@ -128,8 +128,8 @@ namespace openswf
         bool        m_paused;
 
     public:
-        MovieClipNode(Player* env, MovieClip* sprite);
-        virtual ~MovieClipNode();
+        MovieNode(Player* env, MovieClip* sprite);
+        virtual ~MovieNode();
         virtual void update(float dt);
         virtual void render(const Matrix& matrix, const ColorTransform& cxform);
 
@@ -140,7 +140,7 @@ namespace openswf
 
         INode*  set(uint16_t depth, uint16_t cid);
         INode*  get(uint16_t depth);
-        MovieClipNode*  get(const std::string& name);
+        MovieNode*  get(const std::string& name);
         void    erase(uint16_t depth);
 
         void reset();
@@ -161,42 +161,42 @@ namespace openswf
         void step_to_frame(uint16_t frame);
     };
 
-    inline void MovieClipNode::set_status(MovieGoto status)
+    inline void MovieNode::set_status(MovieGoto status)
     {
         if( status == MovieGoto::PLAY ) m_paused = false;
         else if( status == MovieGoto::STOP ) m_paused= true;
     }
 
-    inline uint16_t MovieClipNode::get_frame_count() const
+    inline uint16_t MovieNode::get_frame_count() const
     {
         return m_sprite->get_frame_count();
     }
 
     // frame start from 1
-    inline uint16_t MovieClipNode::get_current_frame() const
+    inline uint16_t MovieNode::get_current_frame() const
     {
         return m_current_frame;
     }
 
-    inline float MovieClipNode::get_frame_rate() const
+    inline float MovieNode::get_frame_rate() const
     {
         return m_frame_rate;
     }
 
-    inline void MovieClipNode::set_frame_rate(float rate)
+    inline void MovieNode::set_frame_rate(float rate)
     {
         assert( rate < 64.f && rate > 0.1f );
         m_frame_rate = rate;
         m_frame_delta = 1.f / rate;
     }
 
-    inline void MovieClipNode::goto_frame(const std::string& name, MovieGoto status, int offset)
+    inline void MovieNode::goto_frame(const std::string& name, MovieGoto status, int offset)
     {
         auto frame = m_sprite->get_frame(name);
         if( frame != 0 ) goto_frame(frame, status, offset);
     }
     
-    inline void MovieClipNode::execute_frame_actions(const std::string& name)
+    inline void MovieNode::execute_frame_actions(const std::string& name)
     {
         auto frame = m_sprite->get_frame(name);
         if( frame != 0 ) execute_frame_actions(frame);

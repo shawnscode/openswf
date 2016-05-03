@@ -19,7 +19,7 @@
 NS_OPENSWF_BEGIN
 
 class Stream;
-class MovieClipNode;
+class MovieNode;
 
 NS_OPENSWF_END
 

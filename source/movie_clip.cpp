@@ -51,7 +51,7 @@ namespace openswf
         return CommandPtr();
     }
 
-    void FrameCommand::execute(MovieClip& movie, MovieClipNode& clip)
+    void FrameCommand::execute(MovieClip& movie, MovieNode& clip)
     {
         auto stream = Stream(m_bytes.get(), m_header.size);
         if( m_header.code == TagCode::PLACE_OBJECT )
@@ -165,7 +165,7 @@ namespace openswf
         return ActionPtr();
     }
 
-    void FrameAction::execute(MovieClip& movie, MovieClipNode& node)
+    void FrameAction::execute(MovieClip& movie, MovieNode& node)
     {
         movie.get_player()->get_virtual_machine().execute(m_bytes.get(), m_header.size);
     }
@@ -178,7 +178,7 @@ namespace openswf
 
     INode* MovieClip::create_instance()
     {
-        return new MovieClipNode(m_player, this);
+        return new MovieNode(m_player, this);
     }
 
     uint16_t MovieClip::get_character_id() const
@@ -186,7 +186,7 @@ namespace openswf
         return m_character_id;
     }
 
-    void MovieClip::execute(MovieClipNode& display, uint16_t index, FrameTaskMask mask)
+    void MovieClip::execute(MovieNode& display, uint16_t index, FrameTaskMask mask)
     {
         if( index >= m_frames.size() )
             return;
@@ -206,7 +206,7 @@ namespace openswf
     }
 
     ////
-    MovieClipNode::MovieClipNode(Player* player, MovieClip* sprite)
+    MovieNode::MovieNode(Player* player, MovieClip* sprite)
     : INode(player, sprite),
     m_sprite(sprite), m_frame_timer(0),
     m_target_frame(1), m_current_frame(0), m_paused(false)
@@ -217,7 +217,7 @@ namespace openswf
         m_frame_delta = 1.f / m_frame_rate;
     }
 
-    MovieClipNode::~MovieClipNode()
+    MovieNode::~MovieNode()
     {
         for( auto& pair : m_children )
             delete pair.second;
@@ -225,7 +225,7 @@ namespace openswf
     }
 
     // INHERITANTED
-    void MovieClipNode::update(float dt)
+    void MovieNode::update(float dt)
     {
         if( !m_paused )
         {
@@ -252,7 +252,7 @@ namespace openswf
             pair.second->update(dt);
     }
 
-    void MovieClipNode::render(const Matrix& matrix, const ColorTransform& cxform)
+    void MovieNode::render(const Matrix& matrix, const ColorTransform& cxform)
     {
         for( auto& pair : m_children )
             pair.second->render( matrix*m_matrix, cxform*m_cxform );
@@ -275,7 +275,7 @@ namespace openswf
         return true;
     }
 
-    MovieClipNode* MovieClipNode::get(const std::string& name)
+    MovieNode* MovieNode::get(const std::string& name)
     {
         if( name.empty() )
             return nullptr;
@@ -285,7 +285,7 @@ namespace openswf
         {
             for( auto& pair : m_children )
             {
-                auto clip = dynamic_cast<MovieClipNode*>(pair.second);
+                auto clip = dynamic_cast<MovieNode*>(pair.second);
                 if( clip != nullptr && clip->get_name() == current )
                     return clip->get(remaining);
             }
@@ -294,7 +294,7 @@ namespace openswf
         {
             for( auto& pair : m_children )
             {
-                auto clip = dynamic_cast<MovieClipNode*>(pair.second);
+                auto clip = dynamic_cast<MovieNode*>(pair.second);
                 if( clip != nullptr && clip->get_name() == name )
                     return clip;
             }
@@ -303,7 +303,7 @@ namespace openswf
         return nullptr;
     }
 
-    INode* MovieClipNode::get(uint16_t depth)
+    INode* MovieNode::get(uint16_t depth)
     {
         auto iter = m_children.find(depth);
         if( iter != m_children.end() )
@@ -319,7 +319,7 @@ namespace openswf
         return nullptr;
     }
 
-    INode* MovieClipNode::set(uint16_t depth, uint16_t cid)
+    INode* MovieNode::set(uint16_t depth, uint16_t cid)
     {
         auto iter = m_children.find(depth);
         if( iter != m_children.end() )
@@ -352,7 +352,7 @@ namespace openswf
         return nullptr;
     }
 
-    void MovieClipNode::erase(uint16_t depth)
+    void MovieNode::erase(uint16_t depth)
     {
         auto iter = m_children.find(depth);
         if( iter == m_children.end() )
@@ -362,7 +362,7 @@ namespace openswf
         m_children.erase(iter);
     }
 
-    void MovieClipNode::reset()
+    void MovieNode::reset()
     {
         m_paused = false;
         m_target_frame = 1;
@@ -377,7 +377,7 @@ namespace openswf
         m_children.clear();
     }
 
-    void MovieClipNode::goto_frame(uint16_t frame, MovieGoto status, int offset)
+    void MovieNode::goto_frame(uint16_t frame, MovieGoto status, int offset)
     {
         set_status(status);
         if( m_target_frame != (frame+offset) )
@@ -389,12 +389,12 @@ namespace openswf
     // or after the button state has changed. an action can cause other actions
     // to be triggered, in which case, the action is added to the list of actions
     // to be processed. actions are processed until the action list is empty.
-    void MovieClipNode::execute_frame_actions(uint16_t frame)
+    void MovieNode::execute_frame_actions(uint16_t frame)
     {
         m_sprite->execute(*this, frame, FRAME_ACTIONS);
     }
 
-    void MovieClipNode::step_to_frame(uint16_t frame)
+    void MovieNode::step_to_frame(uint16_t frame)
     {
         assert( frame > 0 );
 

@@ -16,9 +16,9 @@ class MovieObject : GCObject
     typedef std::unordered_map<std::string, Value> Scope;
 
 protected:
-    std::vector<StringObject*>      m_constants;
-    std::vector<Scope>              m_scope_chain;
-    std::weak_ptr<MovieClipNode>    m_userdata;
+    std::vector<StringObject*>  m_constants;
+    std::vector<Scope>          m_scope_chain;
+    std::weak_ptr<MovieNode>    m_userdata;
 
 public:
     MovieObject();
