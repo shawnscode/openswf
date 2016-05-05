@@ -31,12 +31,12 @@ struct Value
     Value() : type(ValueCode::UNDEFINED) {}
     Value(const Value& rh) : inner(rh.inner), type(rh.type) {}
 
-    Value& as_nil();
-    Value& as_undefined();
-    Value& as_number(double);
-    Value& as_integer(int32_t);
-    Value& as_boolean(bool);
-    Value& as_object(GCObject*);
+    Value& set_nil();
+    Value& set_undefined();
+    Value& set_number(double);
+    Value& set_integer(int32_t);
+    Value& set_boolean(bool);
+    Value& set_object(GCObject*);
 
     std::string to_string() const;
 
@@ -46,14 +46,14 @@ struct Value
     int32_t     to_integer() const;
     bool        to_boolean() const;
 
-    GCObject*   get_object()
+    GCObject*   to_object()
     {
         if( this->type == ValueCode::OBJECT )
             return this->inner.object;
         return nullptr;
     }
 
-    template<typename T> T* get_object()
+    template<typename T> T* to_object()
     {
         if( this->type == ValueCode::OBJECT )
             return dynamic_cast<T*>(this->inner.object);
@@ -63,40 +63,40 @@ struct Value
 
 /// INLINE METHODS
 
-inline Value& Value::as_nil()
+inline Value& Value::set_nil()
 {
     this->type = ValueCode::NULLPTR;
     return *this;
 }
 
-inline Value& Value::as_undefined()
+inline Value& Value::set_undefined()
 {
     this->type = ValueCode::UNDEFINED;
     return *this;
 }
 
-inline Value& Value::as_number(double num)
+inline Value& Value::set_number(double num)
 {
     this->type = ValueCode::NUMBER;
     this->inner.d = num;
     return *this;
 }
 
-inline Value& Value::as_integer(int32_t integer)
+inline Value& Value::set_integer(int32_t integer)
 {
     this->type = ValueCode::INTEGER;
     this->inner.i = integer;
     return *this;
 }
 
-inline Value& Value::as_boolean(bool boolean)
+inline Value& Value::set_boolean(bool boolean)
 {
     this->type = ValueCode::INTEGER;
     this->inner.i = boolean ? 1 : 0;
     return *this;
 }
 
-inline Value& Value::as_object(GCObject* object)
+inline Value& Value::set_object(GCObject* object)
 {
     if( object != nullptr )
     {

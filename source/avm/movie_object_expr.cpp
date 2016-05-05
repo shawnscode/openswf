@@ -14,7 +14,7 @@ void MovieObject::op_add(MovieEnvironment& env)
     auto op1 = env.pop().to_number();
     auto op2 = env.pop().to_number();
 
-    env.push(Value().as_number(op1+op2));
+    env.push(Value().set_number(op1+op2));
 }
 
 void MovieObject::op_subtract(MovieEnvironment& env)
@@ -22,7 +22,7 @@ void MovieObject::op_subtract(MovieEnvironment& env)
     auto op1 = env.pop().to_number();
     auto op2 = env.pop().to_number();
 
-    env.push(Value().as_number(op2-op1));
+    env.push(Value().set_number(op2-op1));
 }
 
 void MovieObject::op_multiply(MovieEnvironment& env)
@@ -30,7 +30,7 @@ void MovieObject::op_multiply(MovieEnvironment& env)
     auto op1 = env.pop().to_number();
     auto op2 = env.pop().to_number();
 
-    env.push(Value().as_number(op2*op1));
+    env.push(Value().set_number(op2*op1));
 }
 
 void MovieObject::op_divide(MovieEnvironment& env)
@@ -48,19 +48,19 @@ void MovieObject::op_divide(MovieEnvironment& env)
         {
             auto str = env.vm->new_object<StringObject>();
             str->set(err);
-            env.push(Value().as_object(str));
+            env.push(Value().set_object(str));
         }
         else if( op2 == 0 || std::isnan(op2) || std::isnan(op1) )
         {
-            env.push(Value().as_number(limit));
+            env.push(Value().set_number(limit));
         }
         else
         {
-            env.push(Value().as_number(op2 < 0 ? -infinity : infinity));
+            env.push(Value().set_number(op2 < 0 ? -infinity : infinity));
         }
     }
     else
-        env.push(Value().as_number(op2/op1));
+        env.push(Value().set_number(op2/op1));
 }
 
 void MovieObject::op_equals(MovieEnvironment& env)
@@ -69,9 +69,9 @@ void MovieObject::op_equals(MovieEnvironment& env)
     auto op2 = env.pop().to_number();
 
     if( env.version < 5 )
-        env.push(Value().as_number(op2 == op1 ? 1 : 0));
+        env.push(Value().set_number(op2 == op1 ? 1 : 0));
     else
-        env.push(Value().as_boolean(op2 == op1));
+        env.push(Value().set_boolean(op2 == op1));
 }
 
 void MovieObject::op_less(MovieEnvironment& env)
@@ -80,9 +80,9 @@ void MovieObject::op_less(MovieEnvironment& env)
     auto op2 = env.pop().to_number();
 
     if( env.version < 5 )
-        env.push(Value().as_number(op2 < op1 ? 1 : 0));
+        env.push(Value().set_number(op2 < op1 ? 1 : 0));
     else
-        env.push(Value().as_boolean(op2 < op1));
+        env.push(Value().set_boolean(op2 < op1));
 }
 
 void MovieObject::op_greater(MovieEnvironment& env)
@@ -91,9 +91,9 @@ void MovieObject::op_greater(MovieEnvironment& env)
     auto op2 = env.pop().to_number();
 
     if( env.version < 5 )
-        env.push(Value().as_number(op2 >= op1 ? 1 : 0));
+        env.push(Value().set_number(op2 >= op1 ? 1 : 0));
     else
-        env.push(Value().as_boolean(op2 >= op1));
+        env.push(Value().set_boolean(op2 >= op1));
 }
 
 void MovieObject::op_and(MovieEnvironment& env)
@@ -102,9 +102,9 @@ void MovieObject::op_and(MovieEnvironment& env)
     auto op2 = env.pop().to_number();
 
     if( env.version < 5 )
-        env.push(Value().as_number(op2 != 0 && op1 != 0 ? 1 : 0));
+        env.push(Value().set_number(op2 != 0 && op1 != 0 ? 1 : 0));
     else
-        env.push(Value().as_boolean(op2 != 0 && op1 != 0));
+        env.push(Value().set_boolean(op2 != 0 && op1 != 0));
 }
 
 void MovieObject::op_or(MovieEnvironment& env)
@@ -113,9 +113,9 @@ void MovieObject::op_or(MovieEnvironment& env)
     auto op2 = env.pop().to_number();
 
     if( env.version < 5 )
-        env.push(Value().as_number(op2 != 0 || op1 != 0 ? 1 : 0));
+        env.push(Value().set_number(op2 != 0 || op1 != 0 ? 1 : 0));
     else
-        env.push(Value().as_boolean(op2 != 0 || op1 != 0));
+        env.push(Value().set_boolean(op2 != 0 || op1 != 0));
 }
 
 void MovieObject::op_not(MovieEnvironment& env)
@@ -123,9 +123,9 @@ void MovieObject::op_not(MovieEnvironment& env)
     auto op = env.pop().to_number();
 
     if( env.version < 5 )
-        env.push(Value().as_number(op == 0 ? 1 : 0));
+        env.push(Value().set_number(op == 0 ? 1 : 0));
     else
-        env.push(Value().as_boolean(op == 0));
+        env.push(Value().set_boolean(op == 0));
 }
 
 void MovieObject::op_jump(MovieEnvironment& env)

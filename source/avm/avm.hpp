@@ -29,6 +29,7 @@ NS_AVM_BEGIN
 class GCObject;
 class MovieObject;
 class StringObject;
+class ScriptObject;
 class VirtualMachine;
 
 NS_AVM_END

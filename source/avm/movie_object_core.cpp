@@ -9,10 +9,10 @@
 NS_AVM_BEGIN
 
 MovieEnvironment::MovieEnvironment(
-    VirtualMachine* vm, MovieObject* that, Stream* bc, int version)
-    : vm(vm),
+    VirtualMachine* vm, MovieObject* that, Stream* bc)
+    : vm(vm), version(vm->get_version()),
     object(that), node(that->get_movie_node()),
-    bytecode(bc), version(version), m_current_operand(0) {}
+    bytecode(bc), m_current_operand(0) {}
 
 bool MovieEnvironment::is_finished() const
 {
@@ -99,7 +99,7 @@ Value MovieObject::get_variable(const char* name)
         else
         {
             if( m_sub_movies[i]->get_movie_node()->get_name() == name )
-                return Value().as_object(m_sub_movies[i]);
+                return Value().set_object(m_sub_movies[i]);
         }
     }
 
@@ -115,7 +115,7 @@ void MovieObject::execute(VirtualMachine& vm, Stream& bytecode)
        return;
    }
 
-    auto env = MovieEnvironment(&vm, this, &bytecode, vm.get_version());
+    auto env = MovieEnvironment(&vm, this, &bytecode);
 
     for(;;)
     {
@@ -173,7 +173,7 @@ void MovieObject::mark(uint8_t v)
     {
         for( auto pair : scope )
         {
-            auto object = pair.second.get_object();
+            auto object = pair.second.to_object();
             if( object != nullptr ) object->mark(v);
         }
     }
@@ -233,45 +233,45 @@ void MovieObject::op_push(MovieEnvironment& env)
                 auto str = env.vm->new_object<StringObject>();
                 str->set(env.bytecode->read_string());
 
-                env.push(Value().as_object(str));
+                env.push(Value().set_object(str));
                 break;
             }
 
             case OpPushCode::FLOAT:
             {
-                env.push(Value().as_number(env.bytecode->read_float32()));
+                env.push(Value().set_number(env.bytecode->read_float32()));
                 break;
             }
 
             case OpPushCode::BOOLEAN:
             {
-                env.push(Value().as_boolean(env.bytecode->read_uint8()));
+                env.push(Value().set_boolean(env.bytecode->read_uint8()));
                 break;
             }
 
             case OpPushCode::DOUBLE:
             {
-                env.push(Value().as_number(env.bytecode->read_float64()));
+                env.push(Value().set_number(env.bytecode->read_float64()));
                 break;
             }
 
             case OpPushCode::INTEGER:
             {
-                env.push(Value().as_integer(env.bytecode->read_uint32()));
+                env.push(Value().set_integer(env.bytecode->read_uint32()));
                 break;
             }
 
             case OpPushCode::CONSTANT8:
             {
                 auto index = env.bytecode->read_uint8();
-                env.push(Value().as_object(env.object->m_constants[index]));
+                env.push(Value().set_object(env.object->m_constants[index]));
                 break;
             }
 
             case OpPushCode::CONSTANT16:
             {
                 auto index2 = env.bytecode->read_uint16();
-                env.push(Value().as_object(env.object->m_constants[index2]));
+                env.push(Value().set_object(env.object->m_constants[index2]));
                 break;
             }
 

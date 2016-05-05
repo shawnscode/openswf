@@ -13,6 +13,8 @@ protected:
     uint32_t        m_objects;
     int32_t         m_version;
 
+    // std::unordered_set<std::string> m_strings;
+
 public:
     VirtualMachine(MovieNode*, int version = 10);
     ~VirtualMachine();
@@ -28,7 +30,7 @@ public:
         m_objects ++;
         return nv;
     }
-
+ 
     MovieObject* new_movie_object(MovieNode* node);
     void free_movie_object(MovieObject* movie);
 

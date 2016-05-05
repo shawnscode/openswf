@@ -9,7 +9,7 @@ NS_AVM_BEGIN
 void MovieObject::op_define_local(MovieEnvironment& env)
 {
     auto value  = env.pop();
-    auto name   = env.pop().get_object<StringObject>();
+    auto name   = env.pop().to_object<StringObject>();
     
     env.object->set_variable(name->c_str(), value);
 }
@@ -20,7 +20,7 @@ void MovieObject::op_define_local(MovieEnvironment& env)
 void MovieObject::op_set_variable(MovieEnvironment& env)
 {
     auto value  = env.pop();
-    auto name   = env.pop().get_object<StringObject>();
+    auto name   = env.pop().to_object<StringObject>();
 
     env.object->set_variable(name->c_str(), value, false);
 }
@@ -30,7 +30,7 @@ void MovieObject::op_set_variable(MovieEnvironment& env)
 // the variable name with the target path and a colon.
 void MovieObject::op_get_variable(MovieEnvironment& env)
 {
-    auto name = env.pop().get_object<StringObject>();
+    auto name = env.pop().to_object<StringObject>();
     assert(name != nullptr);
 
     env.push( env.object->get_variable(name->c_str()) );
@@ -68,7 +68,7 @@ void MovieObject::op_set_property(MovieEnvironment& env)
 {
     auto value = env.pop();
     auto index = (PropertyCode)env.pop().to_integer();
-    auto object = env.pop().get_object<MovieObject>();
+    auto object = env.pop().to_object<MovieObject>();
     assert( object != nullptr );
 
     if( object->expired() )
@@ -81,40 +81,40 @@ void MovieObject::op_set_property(MovieEnvironment& env)
     //     {
             
     //         auto pos = node->get_position();
-    //         env.push(Value().as_number(pos.x));
+    //         env.push(Value().set_number(pos.x));
     //         break;
     //     }
 
     //     case PropertyCode::Y:
     //     {
     //         auto pos = node->get_position();
-    //         env.push(Value().as_number(pos.y));
+    //         env.push(Value().set_number(pos.y));
     //         break;
     //     }
 
     //     case PropertyCode::XSCALE:
     //     {
     //         auto scale = node->get_scale();
-    //         env.push(Value().as_number(scale.x));
+    //         env.push(Value().set_number(scale.x));
     //         break;
     //     }
 
     //     case PropertyCode::YSCALE:
     //     {
     //         auto scale = node->get_scale();
-    //         env.push(Value().as_number(scale.y));
+    //         env.push(Value().set_number(scale.y));
     //         break;
     //     }
 
     //     case PropertyCode::CURRENT_FRAME:
     //     {
-    //         env.push(Value().as_integer(node->get_current_frame()));
+    //         env.push(Value().set_integer(node->get_current_frame()));
     //         break;
     //     }
 
     //     case PropertyCode::TOTAL_FRAME:
     //     {
-    //         env.push(Value().as_integer(node->get_frame_count()));
+    //         env.push(Value().set_integer(node->get_frame_count()));
     //         break;
     //     }
 
@@ -130,7 +130,7 @@ void MovieObject::op_set_property(MovieEnvironment& env)
 void MovieObject::op_get_property(MovieEnvironment& env)
 {
     auto index = (PropertyCode)env.pop().to_integer();
-    auto object = env.pop().get_object<MovieObject>();
+    auto object = env.pop().to_object<MovieObject>();
     assert( object != nullptr );
 
     if( object->expired() )
@@ -145,40 +145,40 @@ void MovieObject::op_get_property(MovieEnvironment& env)
         case PropertyCode::X:
         {
             auto pos = node->get_position();
-            env.push(Value().as_number(pos.x));
+            env.push(Value().set_number(pos.x));
             break;
         }
 
         case PropertyCode::Y:
         {
             auto pos = node->get_position();
-            env.push(Value().as_number(pos.y));
+            env.push(Value().set_number(pos.y));
             break;
         }
 
         case PropertyCode::XSCALE:
         {
             auto scale = node->get_scale();
-            env.push(Value().as_number(scale.x));
+            env.push(Value().set_number(scale.x));
             break;
         }
 
         case PropertyCode::YSCALE:
         {
             auto scale = node->get_scale();
-            env.push(Value().as_number(scale.y));
+            env.push(Value().set_number(scale.y));
             break;
         }
 
         case PropertyCode::CURRENT_FRAME:
         {
-            env.push(Value().as_integer(node->get_current_frame()));
+            env.push(Value().set_integer(node->get_current_frame()));
             break;
         }
 
         case PropertyCode::TOTAL_FRAME:
         {
-            env.push(Value().as_integer(node->get_frame_count()));
+            env.push(Value().set_integer(node->get_frame_count()));
             break;
         }
 

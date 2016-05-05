@@ -25,8 +25,7 @@ protected:
     int             m_current_operand;
 
 public:
-    MovieEnvironment(
-        VirtualMachine* vm, MovieObject* that, Stream* bc, int version);
+    MovieEnvironment(VirtualMachine* vm, MovieObject* that, Stream* bc);
 
     void    push(Value value);
     Value   pop();
