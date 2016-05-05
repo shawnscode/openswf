@@ -57,7 +57,7 @@ namespace openswf
         }
 
         m_root = new MovieNode(this, m_sprite);
-        m_avm = new avm::VirtualMachine(m_root);
+        m_avm = new avm::VirtualMachine(m_root, m_version);
         return true;
     }
 

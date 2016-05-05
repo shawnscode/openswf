@@ -39,6 +39,9 @@ struct Value
     Value& as_object(GCObject*);
 
     std::string to_string() const;
+
+    // converts value to floating-point
+    // non-numeric values evaluate to 0.
     double      to_number() const;
     int32_t     to_integer() const;
     bool        to_boolean() const;

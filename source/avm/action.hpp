@@ -97,21 +97,13 @@
 //     protected:
 //         /// SWF3 ACTION MODEL
 //         static void End(Environment&);
-//         static void SetTarget(Environment&);
-//         static void GotoLable(Environment&);
-//         static void GotoFrame(Environment&);
-//         static void GetUrl(Environment&);
-//         static void NextFrame(Environment&);
-//         static void PrevFrame(Environment&);
-//         static void Play(Environment&);
-//         static void Stop(Environment&);
+
 //         static void ToggleQuality(Environment&);
 //         static void StopSounds(Environment&);
 //         static void WaitForFrame(Environment&);
+//         static void GetUrl(Environment&);
 
 //         /// SWF4 ACTION MODEL
-//         static void Push(Environment&); // stack based opeartions
-//         static void Pop(Environment&);
 
 //         static void Add(Environment&); // arthmetic opeartions
 //         static void Subtract(Environment&);

@@ -11,9 +11,10 @@ protected:
     MovieObject*    m_root;
     uint32_t        m_gc_threshold;
     uint32_t        m_objects;
+    int32_t         m_version;
 
 public:
-    VirtualMachine(MovieNode*);
+    VirtualMachine(MovieNode*, int version = 10);
     ~VirtualMachine();
 
     void execute(MovieObject*, const uint8_t* bytes, int length);
@@ -30,6 +31,15 @@ public:
 
     MovieObject* new_movie_object(MovieNode* node);
     void free_movie_object(MovieObject* movie);
+
+    int32_t get_version() const;
 };
+
+// INLINE METHODS
+
+inline int32_t VirtualMachine::get_version() const
+{
+    return m_version;
+}
 
 NS_AVM_END

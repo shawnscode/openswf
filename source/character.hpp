@@ -52,6 +52,8 @@ namespace openswf
         void set_name(const std::string& name);
         void set_clip_depth(uint16_t clip_depth);
 
+        Point2f get_position() const;
+        Point2f get_scale() const;
         const std::string&  get_name() const;
     };
 
@@ -84,6 +86,16 @@ namespace openswf
     inline void INode::set_clip_depth(uint16_t clip_depth)
     {
         m_clip_depth = clip_depth;
+    }
+
+    inline Point2f INode::get_position() const
+    {
+        return Point2f(m_matrix.get(0, 2), m_matrix.get(1, 2));
+    }
+
+    inline Point2f INode::get_scale() const
+    {
+        return Point2f(m_matrix.get(0, 0), m_matrix.get(1, 1));
     }
 
     inline const std::string& INode::get_name() const

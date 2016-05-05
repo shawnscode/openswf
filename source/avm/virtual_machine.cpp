@@ -8,8 +8,8 @@ NS_AVM_BEGIN
 
 const static int InitialGCThreshold = 4;
 
-VirtualMachine::VirtualMachine(MovieNode* node)
-: m_gc_threshold(InitialGCThreshold), m_objects(0)
+VirtualMachine::VirtualMachine(MovieNode* node, int version)
+: m_gc_threshold(InitialGCThreshold), m_objects(0), m_version(version)
 {
     m_root = new MovieObject();
     m_root->attach(node);

@@ -20,15 +20,16 @@ const char* opcode_to_string(Opcode code)
     case Opcode::GOTO_LABEL         : return "GOTO_LABEL      ";
     case Opcode::PUSH               : return "PUSH            ";
     case Opcode::POP                : return "POP             ";
-    // case Opcode::ADD                : return "ADD             ";
-    // case Opcode::SUBTRACT           : return "SUBTRACT        ";
-    // case Opcode::MULTIPLY           : return "MULTIPLY        ";
-    // case Opcode::DIVIDE             : return "DIVIDE          ";
-    // case Opcode::EQUALS             : return "EQUALS          ";
-    // case Opcode::LESS               : return "LESS            ";
-    // case Opcode::AND                : return "AND             ";
-    // case Opcode::OR                 : return "OR              ";
-    // case Opcode::NOT                : return "NOT             ";
+    case Opcode::ADD                : return "ADD             ";
+    case Opcode::SUBTRACT           : return "SUBTRACT        ";
+    case Opcode::MULTIPLY           : return "MULTIPLY        ";
+    case Opcode::DIVIDE             : return "DIVIDE          ";
+    case Opcode::EQUALS             : return "EQUALS          ";
+    case Opcode::LESS               : return "LESS            ";
+    case Opcode::GREATER            : return "GREATER         ";
+    case Opcode::AND                : return "AND             ";
+    case Opcode::OR                 : return "OR              ";
+    case Opcode::NOT                : return "NOT             ";
     // case Opcode::STRING_EQUALS      : return "STRING_EQUALS   ";
     // case Opcode::STRING_LENGTH      : return "STRING_LENGTH   ";
     // case Opcode::STRING_ADD         : return "STRING_ADD      ";
@@ -41,16 +42,16 @@ const char* opcode_to_string(Opcode code)
     // case Opcode::ASCII_TO_CHAR      : return "ASCII_TO_CHAR   ";
     // case Opcode::MBCHAR_TO_ASCII    : return "MBCHAR_TO_ASCII ";
     // case Opcode::MBASCII_TO_CHAR    : return "MBASCII_TO_CHAR ";
-    // case Opcode::JUMP               : return "JUMP            ";
-    // case Opcode::IF                 : return "IF              ";
-    // case Opcode::CALL               : return "CALL            ";
+    case Opcode::JUMP               : return "JUMP            ";
+    case Opcode::IF                 : return "IF              ";
+    case Opcode::CALL               : return "CALL            ";
     case Opcode::GET_VARIABLE       : return "GET_VARIABLE    ";
-    // case Opcode::SET_VARIABLE       : return "SET_VARIABLE    ";
+    case Opcode::SET_VARIABLE       : return "SET_VARIABLE    ";
     // case Opcode::GET_URL2           : return "GET_URL2        ";
     // case Opcode::GOTO_FRAME2        : return "GOTO_FRAME2     ";
     // case Opcode::SET_TARGET2        : return "SET_TARGET2     ";
-    // case Opcode::GET_PROPERTY       : return "GET_PROPERTY    ";
-    // case Opcode::SET_PROPERTY       : return "SET_PROPERTY    ";
+    case Opcode::GET_PROPERTY       : return "GET_PROPERTY    ";
+    case Opcode::SET_PROPERTY       : return "SET_PROPERTY    ";
     // case Opcode::CLONE_SPRITE       : return "CLONE_SPRITE    ";
     // case Opcode::REMOVE_SPRITE      : return "REMOVE_SPRITE   ";
     // case Opcode::START_DRAG         : return "START_DRAG      ";
@@ -62,7 +63,7 @@ const char* opcode_to_string(Opcode code)
 
     case Opcode::CONSTANT_POOL      : return "CONSTANT_POOL   ";
     case Opcode::DEFINE_LOCAL       : return "DEFINE_LOCAL    ";
-    default: return "UNDEFINED";
+    default: return "UNDEFINED       ";
     }
 }
 

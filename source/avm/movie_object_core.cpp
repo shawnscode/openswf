@@ -8,10 +8,16 @@
 
 NS_AVM_BEGIN
 
-MovieEnvironment::MovieEnvironment(VirtualMachine* vm, MovieObject* that, Stream* bc)
-: vm(vm),
-object(that), node(that->get_movie_node()),
-bytecode(bc), m_current_operand(0) {}
+MovieEnvironment::MovieEnvironment(
+    VirtualMachine* vm, MovieObject* that, Stream* bc, int version)
+    : vm(vm),
+    object(that), node(that->get_movie_node()),
+    bytecode(bc), version(version), m_current_operand(0) {}
+
+bool MovieEnvironment::is_finished() const
+{
+    return bytecode->get_position() >= finish;
+}
 
 typedef std::function<void(MovieEnvironment&)> OpHandler;
 static std::unordered_map<uint8_t, OpHandler> s_handlers;
@@ -20,19 +26,39 @@ void MovieObject::initialize()
 {
     if( s_handlers.size() != 0 ) return;
     
-    s_handlers[(uint8_t)Opcode::CONSTANT_POOL]  = MovieObject::op_constants;
-    s_handlers[(uint8_t)Opcode::PUSH]           = MovieObject::op_push;
-    s_handlers[(uint8_t)Opcode::POP]            = MovieObject::op_pop;
-    s_handlers[(uint8_t)Opcode::DEFINE_LOCAL]   = MovieObject::op_define_local;
-    s_handlers[(uint8_t)Opcode::GET_VARIABLE]   = MovieObject::op_get_variable;
-    s_handlers[(uint8_t)Opcode::TRACE]          = MovieObject::op_trace;
-
     s_handlers[(uint8_t)Opcode::NEXT_FRAME]     = MovieObject::op_next_frame;
     s_handlers[(uint8_t)Opcode::PREV_FRAME]     = MovieObject::op_prev_frame;
     s_handlers[(uint8_t)Opcode::GOTO_FRAME]     = MovieObject::op_goto_frame;
     s_handlers[(uint8_t)Opcode::GOTO_LABEL]     = MovieObject::op_goto_label;
     s_handlers[(uint8_t)Opcode::PLAY]           = MovieObject::op_play;
     s_handlers[(uint8_t)Opcode::STOP]           = MovieObject::op_stop;
+
+    s_handlers[(uint8_t)Opcode::PUSH]           = MovieObject::op_push;
+    s_handlers[(uint8_t)Opcode::POP]            = MovieObject::op_pop;
+
+    s_handlers[(uint8_t)Opcode::ADD]            = MovieObject::op_add;
+    s_handlers[(uint8_t)Opcode::SUBTRACT]       = MovieObject::op_subtract;
+    s_handlers[(uint8_t)Opcode::MULTIPLY]       = MovieObject::op_multiply;
+    s_handlers[(uint8_t)Opcode::DIVIDE]         = MovieObject::op_divide;
+    s_handlers[(uint8_t)Opcode::EQUALS]         = MovieObject::op_equals;
+    s_handlers[(uint8_t)Opcode::LESS]           = MovieObject::op_less;
+    s_handlers[(uint8_t)Opcode::GREATER]        = MovieObject::op_greater;
+    s_handlers[(uint8_t)Opcode::AND]            = MovieObject::op_and;
+    s_handlers[(uint8_t)Opcode::OR]             = MovieObject::op_or;
+    s_handlers[(uint8_t)Opcode::NOT]            = MovieObject::op_not;
+
+    s_handlers[(uint8_t)Opcode::JUMP]           = MovieObject::op_jump;
+    s_handlers[(uint8_t)Opcode::IF]             = MovieObject::op_if;
+
+    s_handlers[(uint8_t)Opcode::DEFINE_LOCAL]   = MovieObject::op_define_local;
+    // s_handlers[(uint8_t)Opcode::DEFINE_LOCAL2]  = MovieObject::op_define_local2;
+    s_handlers[(uint8_t)Opcode::GET_VARIABLE]   = MovieObject::op_get_variable;
+    s_handlers[(uint8_t)Opcode::SET_VARIABLE]   = MovieObject::op_set_variable;
+    s_handlers[(uint8_t)Opcode::GET_PROPERTY]   = MovieObject::op_get_property;
+    s_handlers[(uint8_t)Opcode::SET_PROPERTY]   = MovieObject::op_set_property;
+
+    s_handlers[(uint8_t)Opcode::TRACE]          = MovieObject::op_trace;
+    s_handlers[(uint8_t)Opcode::CONSTANT_POOL]  = MovieObject::op_constants;
 }
 
 MovieObject::MovieObject()
@@ -89,7 +115,7 @@ void MovieObject::execute(VirtualMachine& vm, Stream& bytecode)
        return;
    }
 
-    auto env = MovieEnvironment(&vm, this, nullptr);
+    auto env = MovieEnvironment(&vm, this, &bytecode, vm.get_version());
 
     for(;;)
     {
@@ -102,27 +128,26 @@ void MovieObject::execute(VirtualMachine& vm, Stream& bytecode)
 
         auto size = 0;
         if( (uint8_t)code >= 0x80 ) size = bytecode.read_uint16();
-        
-        auto sandbox = Stream(bytecode.get_current_ptr(), size);
-        env.bytecode = &sandbox;
+        env.finish = bytecode.get_position() + size;
 
         auto found = s_handlers.find((uint8_t)code);
         if( found != s_handlers. end() )
         {
 #ifdef DEBUG_AVM
-            printf("EXECUTE OP: %s(0x%X)\n", opcode_to_string(code), (uint32_t)code);
+            printf("EXECUTE OP: %s(0x%X, %d)\n",
+                opcode_to_string(code), (uint32_t)code, size);
 #endif
             found->second(env);
-            assert( sandbox.is_finished() );
         }
         else
         {
 #ifdef DEBUG_AVM
-            printf("UNDEFINED OP: %s(0x%X)\n", opcode_to_string(code), (uint32_t)code);
+            printf("[!] UNDEFINED OP: %s(0x%X, %d)\n",
+                opcode_to_string(code), (uint32_t)code, size);
 #endif
         }
         
-        bytecode.set_position(bytecode.get_position()+size);
+        bytecode.set_position(env.finish);
     }
 }
 
@@ -198,7 +223,7 @@ enum class OpPushCode : uint8_t
 
 void MovieObject::op_push(MovieEnvironment& env)
 {
-    for( auto i=0; !env.bytecode->is_finished(); i++ )
+    for( auto i=0; !env.is_finished(); i++ )
     {
         auto type = (OpPushCode)env.bytecode->read_uint8();
         switch(type)
@@ -266,22 +291,6 @@ void MovieObject::op_push(MovieEnvironment& env)
 void MovieObject::op_pop(MovieEnvironment& env)
 {
     env.pop();
-}
-
-void MovieObject::op_define_local(MovieEnvironment& env)
-{
-    auto value  = env.pop();
-    auto name   = env.pop().get_object<StringObject>();
-    
-    env.object->set_variable(name->c_str(), value);
-}
-
-void MovieObject::op_get_variable(MovieEnvironment& env)
-{
-    auto name = env.pop().get_object<StringObject>();
-    assert(name != nullptr);
-
-    env.push( env.object->get_variable(name->c_str()) );
 }
 
 void MovieObject::op_trace(MovieEnvironment& env)
