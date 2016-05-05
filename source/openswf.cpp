@@ -1,5 +1,4 @@
 #include "openswf.hpp"
-#include "avm/action.hpp"
 
 namespace openswf
 {

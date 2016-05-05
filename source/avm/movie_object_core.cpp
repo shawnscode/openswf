@@ -318,7 +318,7 @@ void MovieObject::op_goto_frame(MovieEnvironment& env)
 void MovieObject::op_goto_label(MovieEnvironment& env)
 {
     auto name = env.bytecode->read_string();
-    env.node->goto_frame(name);
+    env.node->goto_named_frame(name);
 }
 
 void MovieObject::op_play(MovieEnvironment& env)

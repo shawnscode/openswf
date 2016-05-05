@@ -23,7 +23,7 @@ public:
         return m_content.c_str();
     }
 
-    virtual std::string to_string() const { return m_content; }
+    virtual std::string to_string() const;
 };
 
 NS_AVM_END

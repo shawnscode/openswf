@@ -4,7 +4,6 @@
 #include "character.hpp"
 #include "swf/record.hpp"
 #include "avm/value.hpp"
-#include "avm/action.hpp"
 
 #include <map>
 #include <unordered_map>
@@ -156,8 +155,8 @@ namespace openswf
         void goto_frame(uint16_t frame, MovieGoto status = MovieGoto::NOCHANGE, int offset = 0);
         void execute_frame_actions(uint16_t frame);
 
-        void goto_frame(const char* label, MovieGoto status = MovieGoto::NOCHANGE, int offset = 0);
-        void execute_frame_actions(const char* label);
+        void goto_named_frame(const char* label, MovieGoto status = MovieGoto::NOCHANGE, int offset = 0);
+        void execute_named_frame_actions(const char* label);
 
         uint16_t    get_frame_count() const;
         uint16_t    get_current_frame() const;
@@ -208,13 +207,13 @@ namespace openswf
         m_frame_delta = 1.f / rate;
     }
 
-    inline void MovieNode::goto_frame(const char* name, MovieGoto status, int offset)
+    inline void MovieNode::goto_named_frame(const char* name, MovieGoto status, int offset)
     {
         auto frame = m_sprite->get_frame(name);
         if( frame != 0 ) goto_frame(frame, status, offset);
     }
     
-    inline void MovieNode::execute_frame_actions(const char* name)
+    inline void MovieNode::execute_named_frame_actions(const char* name)
     {
         auto frame = m_sprite->get_frame(name);
         if( frame != 0 ) execute_frame_actions(frame);
