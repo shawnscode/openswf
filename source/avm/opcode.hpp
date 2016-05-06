@@ -38,6 +38,9 @@ enum class Opcode : uint8_t
     GET_VARIABLE    = 0x1C,
     SET_PROPERTY    = 0x23,
     GET_PROPERTY    = 0x22,
+    SET_MEMBER      = 0x4F,
+    GET_MEMBER      = 0x4E,
+
 
     CONSTANT_POOL   = 0x88,
 };

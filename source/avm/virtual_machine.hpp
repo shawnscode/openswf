@@ -1,25 +1,24 @@
 #pragma once
 
 #include "avm/avm.hpp"
-#include "avm/movie_object.hpp"
+#include "avm/context_object.hpp"
 
 NS_AVM_BEGIN
 
 class VirtualMachine
 {
 protected:
-    MovieObject*    m_root;
+    GCObject*       m_root;
+    ContextObject*  m_context;
     uint32_t        m_gc_threshold;
     uint32_t        m_objects;
     int32_t         m_version;
 
-    // std::unordered_set<std::string> m_strings;
-
 public:
-    VirtualMachine(MovieNode*, int version = 10);
+    VirtualMachine(int version = 10);
     ~VirtualMachine();
 
-    void execute(MovieObject*, const uint8_t* bytes, int length);
+    void execute(ContextObject*, const uint8_t* bytes, int length);
     void gabarge_collect();
 
     template<typename T> T* new_object()
@@ -31,8 +30,8 @@ public:
         return nv;
     }
  
-    MovieObject* new_movie_object(MovieNode* node);
-    void free_movie_object(MovieObject* movie);
+    ContextObject*  new_context(MovieNode*);
+    void            free_context(ContextObject*);
 
     int32_t get_version() const;
 };

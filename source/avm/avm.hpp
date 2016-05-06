@@ -27,7 +27,7 @@ NS_OPENSWF_END
 NS_AVM_BEGIN
 
 class GCObject;
-class MovieObject;
+class ContextObject;
 class StringObject;
 class ScriptObject;
 class VirtualMachine;

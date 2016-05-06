@@ -1,4 +1,4 @@
-#include "avm/movie_object.hpp"
+#include "avm/context_object.hpp"
 #include "avm/string_object.hpp"
 #include "avm/virtual_machine.hpp"
 
@@ -9,7 +9,7 @@
 
 NS_AVM_BEGIN
 
-void MovieObject::op_add(MovieEnvironment& env)
+void ContextObject::op_add(MovieEnvironment& env)
 {
     auto op1 = env.pop().to_number();
     auto op2 = env.pop().to_number();
@@ -17,7 +17,7 @@ void MovieObject::op_add(MovieEnvironment& env)
     env.push(Value().set_number(op1+op2));
 }
 
-void MovieObject::op_subtract(MovieEnvironment& env)
+void ContextObject::op_subtract(MovieEnvironment& env)
 {
     auto op1 = env.pop().to_number();
     auto op2 = env.pop().to_number();
@@ -25,7 +25,7 @@ void MovieObject::op_subtract(MovieEnvironment& env)
     env.push(Value().set_number(op2-op1));
 }
 
-void MovieObject::op_multiply(MovieEnvironment& env)
+void ContextObject::op_multiply(MovieEnvironment& env)
 {
     auto op1 = env.pop().to_number();
     auto op2 = env.pop().to_number();
@@ -33,7 +33,7 @@ void MovieObject::op_multiply(MovieEnvironment& env)
     env.push(Value().set_number(op2*op1));
 }
 
-void MovieObject::op_divide(MovieEnvironment& env)
+void ContextObject::op_divide(MovieEnvironment& env)
 {
     const static char* err = "#ERROR#";
 
@@ -63,7 +63,7 @@ void MovieObject::op_divide(MovieEnvironment& env)
         env.push(Value().set_number(op2/op1));
 }
 
-void MovieObject::op_equals(MovieEnvironment& env)
+void ContextObject::op_equals(MovieEnvironment& env)
 {
     auto op1 = env.pop().to_number();
     auto op2 = env.pop().to_number();
@@ -74,7 +74,7 @@ void MovieObject::op_equals(MovieEnvironment& env)
         env.push(Value().set_boolean(op2 == op1));
 }
 
-void MovieObject::op_less(MovieEnvironment& env)
+void ContextObject::op_less(MovieEnvironment& env)
 {
     auto op1 = env.pop().to_number();
     auto op2 = env.pop().to_number();
@@ -85,7 +85,7 @@ void MovieObject::op_less(MovieEnvironment& env)
         env.push(Value().set_boolean(op2 < op1));
 }
 
-void MovieObject::op_greater(MovieEnvironment& env)
+void ContextObject::op_greater(MovieEnvironment& env)
 {
     auto op1 = env.pop().to_number();
     auto op2 = env.pop().to_number();
@@ -96,7 +96,7 @@ void MovieObject::op_greater(MovieEnvironment& env)
         env.push(Value().set_boolean(op2 >= op1));
 }
 
-void MovieObject::op_and(MovieEnvironment& env)
+void ContextObject::op_and(MovieEnvironment& env)
 {
     auto op1 = env.pop().to_number();
     auto op2 = env.pop().to_number();
@@ -107,7 +107,7 @@ void MovieObject::op_and(MovieEnvironment& env)
         env.push(Value().set_boolean(op2 != 0 && op1 != 0));
 }
 
-void MovieObject::op_or(MovieEnvironment& env)
+void ContextObject::op_or(MovieEnvironment& env)
 {
     auto op1 = env.pop().to_number();
     auto op2 = env.pop().to_number();
@@ -118,7 +118,7 @@ void MovieObject::op_or(MovieEnvironment& env)
         env.push(Value().set_boolean(op2 != 0 || op1 != 0));
 }
 
-void MovieObject::op_not(MovieEnvironment& env)
+void ContextObject::op_not(MovieEnvironment& env)
 {
     auto op = env.pop().to_number();
 
@@ -128,14 +128,14 @@ void MovieObject::op_not(MovieEnvironment& env)
         env.push(Value().set_boolean(op == 0));
 }
 
-void MovieObject::op_jump(MovieEnvironment& env)
+void ContextObject::op_jump(MovieEnvironment& env)
 {
     auto offset = env.bytecode->read_int16();
     auto current = env.bytecode->get_position();
     env.bytecode->set_position(current+offset);
 }
 
-void MovieObject::op_if(MovieEnvironment& env)
+void ContextObject::op_if(MovieEnvironment& env)
 {
     auto offset = env.bytecode->read_int16();
     auto current = env.bytecode->get_position();
@@ -143,7 +143,7 @@ void MovieObject::op_if(MovieEnvironment& env)
         env.bytecode->set_position(current+offset);
 }
 
-// void MovieObject::op_call(MovieEnvironment& env)
+// void ContextObject::op_call(MovieEnvironment& env)
 // {
 
 // }

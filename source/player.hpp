@@ -32,6 +32,7 @@ namespace openswf
         uint32_t        m_start_ms;
 
         avm::VirtualMachine*    m_avm;
+        avm::ContextObject*     m_context;
 
     protected:
         Player();

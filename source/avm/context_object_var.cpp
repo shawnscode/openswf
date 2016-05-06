@@ -1,39 +1,58 @@
-#include "avm/movie_object.hpp"
+#include "avm/context_object.hpp"
 #include "avm/string_object.hpp"
 #include "avm/virtual_machine.hpp"
 
 #include "movie_clip.hpp"
 
+#include <cstring>
+
 NS_AVM_BEGIN
 
-void MovieObject::op_define_local(MovieEnvironment& env)
+void ContextObject::op_define_local(MovieEnvironment& env)
 {
     auto value  = env.pop();
     auto name   = env.pop().to_object<StringObject>();
     
-    env.object->set_variable(name->c_str(), value);
+    env.object->set_local_variable(name->c_str(), value);
 }
 
 // sets the variable name in the current execution context to value.
 // a variable in another execution context can be referenced by prefixing
 // the variable name with the target path and a colon.
-void MovieObject::op_set_variable(MovieEnvironment& env)
+void ContextObject::op_set_variable(MovieEnvironment& env)
 {
     auto value  = env.pop();
     auto name   = env.pop().to_object<StringObject>();
-
-    env.object->set_variable(name->c_str(), value, false);
+    env.object->set_variable(name->c_str(), value);
 }
 
 // pushes the value of the variable to the stack.
 // A variable in another execution context can be referenced by prefixing
 // the variable name with the target path and a colon.
-void MovieObject::op_get_variable(MovieEnvironment& env)
+void ContextObject::op_get_variable(MovieEnvironment& env)
+{
+    auto name = env.pop().to_object<StringObject>();
+    assert(name != nullptr);
+    env.push( env.object->get_variable(name->c_str()) );
+}
+
+void ContextObject::op_set_member(MovieEnvironment& env)
+{
+}
+
+void ContextObject::op_get_member(MovieEnvironment& env)
 {
     auto name = env.pop().to_object<StringObject>();
     assert(name != nullptr);
 
-    env.push( env.object->get_variable(name->c_str()) );
+    auto object = env.pop().to_object<ScriptObject>();
+    if( object != nullptr )
+    {
+        env.push( object->get_variable(name->c_str()) );
+        return;
+    }
+
+    env.push(Value());
 }
 
 enum class PropertyCode : uint8_t
@@ -64,11 +83,11 @@ enum class PropertyCode : uint8_t
 };
 
 //
-void MovieObject::op_set_property(MovieEnvironment& env)
+void ContextObject::op_set_property(MovieEnvironment& env)
 {
     auto value = env.pop();
     auto index = (PropertyCode)env.pop().to_integer();
-    auto object = env.pop().to_object<MovieObject>();
+    auto object = env.pop().to_object<ContextObject>();
     assert( object != nullptr );
 
     if( object->expired() )
@@ -127,10 +146,10 @@ void MovieObject::op_set_property(MovieEnvironment& env)
 
 // retrieves the value of the property enumerated as index from the movie
 // clip with target path target and pushes the value to the stack.
-void MovieObject::op_get_property(MovieEnvironment& env)
+void ContextObject::op_get_property(MovieEnvironment& env)
 {
     auto index = (PropertyCode)env.pop().to_integer();
-    auto object = env.pop().to_object<MovieObject>();
+    auto object = env.pop().to_object<ContextObject>();
     assert( object != nullptr );
 
     if( object->expired() )

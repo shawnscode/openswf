@@ -47,6 +47,8 @@ const char* opcode_to_string(Opcode code)
     case Opcode::CALL               : return "CALL            ";
     case Opcode::GET_VARIABLE       : return "GET_VARIABLE    ";
     case Opcode::SET_VARIABLE       : return "SET_VARIABLE    ";
+    case Opcode::GET_MEMBER         : return "GET_MEMBER      ";
+    case Opcode::SET_MEMBER         : return "SET_MEMBER      ";
     // case Opcode::GET_URL2           : return "GET_URL2        ";
     // case Opcode::GOTO_FRAME2        : return "GOTO_FRAME2     ";
     // case Opcode::SET_TARGET2        : return "SET_TARGET2     ";

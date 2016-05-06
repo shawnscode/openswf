@@ -36,7 +36,7 @@ namespace openswf
         stream.set_position(0);
         auto header = SWFHeader::read(stream);
 
-        m_sprite = new MovieClip(0, header.frame_count, header.frame_rate);
+        m_sprite = new (std::nothrow) MovieClip(0, header.frame_count, header.frame_rate);
         m_sprite->set_player(this);
 
         m_size = header.frame_size;
@@ -56,8 +56,11 @@ namespace openswf
                     Parser::to_string(env.tag.code));
         }
 
-        m_root = new MovieNode(this, m_sprite);
-        m_avm = new avm::VirtualMachine(m_root, m_version);
+        m_root = new (std::nothrow) MovieNode(this, m_sprite);
+        m_root->set_name("_level0");
+
+        m_avm = new (std::nothrow) avm::VirtualMachine(m_version);
+        m_context = m_avm->new_context(m_root);
         return true;
     }
 
@@ -83,6 +86,7 @@ namespace openswf
         {
             delete m_avm;
             m_avm = nullptr;
+            m_context = nullptr;
         }
     }
 

@@ -15,7 +15,7 @@ namespace openswf
     class MovieClip;
     class MovieNode;
     namespace avm {
-    class MovieObject;
+    class ContextObject;
     }
 
     class FrameCommand;
@@ -122,8 +122,9 @@ namespace openswf
         DisplayList     m_children;
         DisplayList     m_deprecated;
 
-        MovieClip*          m_sprite;
-        avm::MovieObject*   m_object;
+        MovieNode*              m_parent;
+        MovieClip*              m_sprite;
+        avm::ContextObject*     m_context;
 
         uint16_t    m_current_frame, m_target_frame;
         float       m_frame_delta;
@@ -142,15 +143,16 @@ namespace openswf
             return dynamic_cast<T*>(get(name));
         }
 
-        INode*  set(uint16_t depth, uint16_t cid);
-        INode*  get(uint16_t depth);
+        INode*      set(uint16_t depth, uint16_t cid);
+        INode*      get(uint16_t depth);
         MovieNode*  get(const std::string& name);
-        void    erase(uint16_t depth);
+        void        erase(uint16_t depth);
+        MovieNode*  get_parent() const;
 
         void reset();
         void set_status(MovieGoto status);
-        void set_movie_object(avm::MovieObject*);
-        avm::MovieObject* get_movie_object();
+        void set_context(avm::ContextObject*);
+        avm::ContextObject* get_context();
 
         void goto_frame(uint16_t frame, MovieGoto status = MovieGoto::NOCHANGE, int offset = 0);
         void execute_frame_actions(uint16_t frame);
@@ -165,17 +167,28 @@ namespace openswf
 
     protected:
         void step_to_frame(uint16_t frame);
+        void set_parent(MovieNode*);
     };
 
     /// INLINE METHODS
-    inline void MovieNode::set_movie_object(avm::MovieObject* object)
+    inline void MovieNode::set_parent(MovieNode* parent)
     {
-        m_object = object;
+        m_parent = parent;
     }
 
-    inline avm::MovieObject* MovieNode::get_movie_object()
+    inline MovieNode* MovieNode::get_parent() const
     {
-        return m_object;
+        return m_parent;
+    }
+
+    inline void MovieNode::set_context(avm::ContextObject* context)
+    {
+        m_context = context;
+    }
+
+    inline avm::ContextObject* MovieNode::get_context()
+    {
+        return m_context;
     }
 
     inline void MovieNode::set_status(MovieGoto status)

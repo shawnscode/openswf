@@ -1,8 +1,7 @@
 #pragma once
 
 #include "avm/avm.hpp"
-#include "avm/object.hpp"
-#include "avm/value.hpp"
+#include "avm/script_object.hpp"
 
 #include <vector>
 #include <unordered_map>
@@ -14,7 +13,7 @@ const static int MaxOperands = 32;
 struct MovieEnvironment
 {
     VirtualMachine* vm;
-    MovieObject*    object;
+    ContextObject*    object;
     MovieNode*      node;
     Stream*         bytecode;
     int32_t         version;
@@ -25,7 +24,7 @@ protected:
     int             m_current_operand;
 
 public:
-    MovieEnvironment(VirtualMachine* vm, MovieObject* that, Stream* bc);
+    MovieEnvironment(VirtualMachine* vm, ContextObject* that, Stream* bc);
 
     void    push(Value value);
     Value   pop();
@@ -34,31 +33,32 @@ public:
     bool    is_finished() const;
 };
 
-// MovieObject is the minimal runtime context in avm.
-class MovieObject : public GCObject
+// ContextObject is the minimal runtime context in avm.
+class ContextObject : public ScriptObject
 {
     friend class VirtualMachine;
     typedef std::unordered_map<std::string, Value> Scope;
 
 protected:
-    std::vector<StringObject*>  m_constants;
-    std::vector<Scope>          m_scope_chain;
-    std::vector<MovieObject*>   m_sub_movies;
-    MovieNode*                  m_movie_node;
+    std::vector<StringObject*>      m_constants;
+    std::vector<Scope>              m_scope_chain;
+    MovieNode*                      m_movie_node;
 
 public:
-    MovieObject();
+    ContextObject();
 
-    void execute(VirtualMachine& vm, Stream& bytecode);
-    bool expired() const;
-    MovieNode* get_movie_node();
+    void        execute(VirtualMachine& vm, Stream& bytecode);
+    bool        expired() const;
+    MovieNode*  get_movie_node();
 
-    void    attach_movie(MovieObject*);
-    void    set_variable(const char* name, Value value, bool local = true);
-    Value   get_variable(const char* name);
+    void attach_movie(ContextObject*);
+    void push_scope();
+    void set_local_variable(const char*, Value);
+    void pop_scope();
 
     virtual void mark(uint8_t);
     virtual std::string to_string() const;
+    virtual Value get_variable(const char*);
 
 protected:
     void attach(MovieNode*);
@@ -108,6 +108,10 @@ protected:
     static void op_get_property(MovieEnvironment&); //
     static void op_set_variable(MovieEnvironment&); //
     static void op_get_variable(MovieEnvironment&);
+    static void op_set_member(MovieEnvironment&);
+    static void op_get_member(MovieEnvironment&);
+
+    //
     static void op_trace(MovieEnvironment&);
 
     // swf5
@@ -139,32 +143,29 @@ inline int MovieEnvironment::get_current_op() const
     return m_current_operand;
 }
 
-inline bool MovieObject::expired() const
+inline bool ContextObject::expired() const
 {
     return m_movie_node == nullptr;
 }
 
-inline MovieNode* MovieObject::get_movie_node()
+inline MovieNode* ContextObject::get_movie_node()
 {
     return m_movie_node;
 }
 
-inline void MovieObject::set_scope()
+inline void ContextObject::push_scope()
 {
     m_scope_chain.push_back(Scope());
 }
 
-inline void MovieObject::attach_movie(MovieObject* object)
+inline void ContextObject::pop_scope()
 {
-    m_sub_movies.push_back(object);
+    m_scope_chain.pop_back();
 }
 
-inline void MovieObject::set_variable(const char* name, Value value, bool local)
+inline void ContextObject::set_local_variable(const char* name, Value value)
 {
-    if( local )
-        m_scope_chain.back()[name] = value;
-    else
-        m_scope_chain.front()[name] = value;
+    m_scope_chain.back()[name] = value;
 }
 
 NS_AVM_END
