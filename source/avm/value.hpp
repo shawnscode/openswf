@@ -10,9 +10,9 @@ enum class ValueCode : uint8_t
 {
     UNDEFINED = 0,
     NULLPTR,
+    BOOLEAN,
     NUMBER,
     INTEGER,
-    BOOLEAN,
     OBJECT
 };
 

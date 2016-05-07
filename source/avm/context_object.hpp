@@ -10,7 +10,7 @@ NS_AVM_BEGIN
 
 const static int MaxOperands = 32;
 
-struct MovieEnvironment
+struct Environment
 {
     VirtualMachine* vm;
     ContextObject*    object;
@@ -24,7 +24,7 @@ protected:
     int             m_current_operand;
 
 public:
-    MovieEnvironment(VirtualMachine* vm, ContextObject* that, Stream* bc);
+    Environment(VirtualMachine* vm, ContextObject* that, Stream* bc);
 
     void    push(Value value);
     Value   pop();
@@ -51,14 +51,14 @@ public:
     bool        expired() const;
     MovieNode*  get_movie_node();
 
-    void attach_movie(ContextObject*);
     void push_scope();
     void set_local_variable(const char*, Value);
     void pop_scope();
 
-    virtual void mark(uint8_t);
+    virtual void        mark(uint8_t);
     virtual std::string to_string() const;
-    virtual Value get_variable(const char*);
+    virtual Value       get_variable(const char*);
+    virtual void        set_variable(const char*, Value);
 
 protected:
     void attach(MovieNode*);
@@ -68,77 +68,77 @@ protected:
     static void initialize();
 
     // swf3
-    static void op_next_frame(MovieEnvironment&);
-    static void op_prev_frame(MovieEnvironment&);
-    static void op_goto_frame(MovieEnvironment&);
-    static void op_goto_label(MovieEnvironment&);
-    static void op_play(MovieEnvironment&);
-    static void op_stop(MovieEnvironment&);
+    static void op_next_frame(Environment&);
+    static void op_prev_frame(Environment&);
+    static void op_goto_frame(Environment&);
+    static void op_goto_label(Environment&);
+    static void op_play(Environment&);
+    static void op_stop(Environment&);
 
     // swf 4 incorporates a stack machine that interprets actions. instead of
     // embedding parameters in the tag, we push parameters onto the stack, and
     // pop results of the stack.
-    static void op_push(MovieEnvironment&);
-    static void op_pop(MovieEnvironment&);
+    static void op_push(Environment&);
+    static void op_pop(Environment&);
 
     // literal expressions
-    static void op_add(MovieEnvironment&);
-    static void op_subtract(MovieEnvironment&);
-    static void op_multiply(MovieEnvironment&);
-    static void op_divide(MovieEnvironment&);
-    static void op_equals(MovieEnvironment&);
-    static void op_less(MovieEnvironment&);
-    static void op_greater(MovieEnvironment&);
-    static void op_and(MovieEnvironment&);
-    static void op_or(MovieEnvironment&);
-    static void op_not(MovieEnvironment&);
+    static void op_add(Environment&);
+    static void op_subtract(Environment&);
+    static void op_multiply(Environment&);
+    static void op_divide(Environment&);
+    static void op_equals(Environment&);
+    static void op_less(Environment&);
+    static void op_greater(Environment&);
+    static void op_and(Environment&);
+    static void op_or(Environment&);
+    static void op_not(Environment&);
 
     // the current point of execution of swf is called the program counter (PC).
     // the value of the PC is defined as the address of the action that follows
     // the action currently being executed. control flow actions could change
     // the value of the PC, and might create variable scope.
-    static void op_jump(MovieEnvironment&);
-    static void op_if(MovieEnvironment&);
-    // static void op_call(MovieEnvironment&); //
+    static void op_jump(Environment&);
+    static void op_if(Environment&);
+    // static void op_call(Environment&); //
 
     //
-    static void op_define_local(MovieEnvironment&);
-    static void op_define_local2(MovieEnvironment&); //
-    static void op_set_property(MovieEnvironment&); //
-    static void op_get_property(MovieEnvironment&); //
-    static void op_set_variable(MovieEnvironment&); //
-    static void op_get_variable(MovieEnvironment&);
-    static void op_set_member(MovieEnvironment&);
-    static void op_get_member(MovieEnvironment&);
+    static void op_define_local(Environment&);
+    static void op_define_local2(Environment&); //
+    static void op_set_property(Environment&); //
+    static void op_get_property(Environment&); //
+    static void op_set_variable(Environment&); //
+    static void op_get_variable(Environment&);
+    static void op_set_member(Environment&);
+    static void op_get_member(Environment&);
 
     //
-    static void op_trace(MovieEnvironment&);
+    static void op_trace(Environment&);
 
     // swf5
-    // static void op_define_local2(MovieEnvironment&); //
-    static void op_constants(MovieEnvironment&);
+    // static void op_define_local2(Environment&); //
+    static void op_constants(Environment&);
 };
 
 // INLINE METHODS
-inline void MovieEnvironment::push(Value value)
+inline void Environment::push(Value value)
 {
     assert(m_current_operand<MaxOperands);
     m_operands[m_current_operand++] = value;
 }
 
-inline Value MovieEnvironment::pop()
+inline Value Environment::pop()
 {
     assert(m_current_operand>0);
     return m_operands[--m_current_operand];
 }
 
-inline Value MovieEnvironment::back()
+inline Value Environment::back()
 {
     assert(m_current_operand>0);
     return m_operands[m_current_operand-1];
 }
 
-inline int MovieEnvironment::get_current_op() const
+inline int Environment::get_current_op() const
 {
     return m_current_operand;
 }

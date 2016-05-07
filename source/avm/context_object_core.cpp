@@ -8,18 +8,18 @@
 
 NS_AVM_BEGIN
 
-MovieEnvironment::MovieEnvironment(
+Environment::Environment(
     VirtualMachine* vm, ContextObject* that, Stream* bc)
     : vm(vm), version(vm->get_version()),
     object(that), node(that->get_movie_node()),
     bytecode(bc), m_current_operand(0) {}
 
-bool MovieEnvironment::is_finished() const
+bool Environment::is_finished() const
 {
     return bytecode->get_position() >= finish;
 }
 
-typedef std::function<void(MovieEnvironment&)> OpHandler;
+typedef std::function<void(Environment&)> OpHandler;
 static std::unordered_map<uint8_t, OpHandler> s_handlers;
 
 void ContextObject::initialize()
@@ -63,16 +63,6 @@ void ContextObject::initialize()
     s_handlers[(uint8_t)Opcode::CONSTANT_POOL]  = ContextObject::op_constants;
 }
 
-static void get_x()
-{
-
-}
-
-static void set_x()
-{
-
-}
-
 ContextObject::ContextObject()
 : m_movie_node(nullptr)
 {
@@ -87,6 +77,9 @@ void ContextObject::attach(MovieNode* node)
 
     set_variable("this", Value().set_object(this));
     set_variable("", Value().set_object(this));
+
+    // set_variable("_x", 32);
+    // set_variable("_y", 64);
 }
 
 void ContextObject::detach()
@@ -112,17 +105,21 @@ Value ContextObject::get_variable(const char* name)
     return Value();
 }
 
+void ContextObject::set_variable(const char* name, Value value)
+{
+    ScriptObject::set_variable(name, value);
+}
+
 void ContextObject::execute(VirtualMachine& vm, Stream& bytecode)
 {
-   if( expired() )
-   {
-       printf("[AVM] trying to execute action at a expired movie object.\n");
-       assert(false);
-       return;
-   }
+    if( expired() )
+    {
+        printf("[AVM] trying to execute action at a expired movie object.\n");
+        assert(false);
+        return;
+    }
 
-    auto env = MovieEnvironment(&vm, this, &bytecode);
-
+    auto env = Environment(&vm, this, &bytecode);
     for(;;)
     {
         auto code = (Opcode)bytecode.read_uint8();
@@ -152,7 +149,7 @@ void ContextObject::execute(VirtualMachine& vm, Stream& bytecode)
                 opcode_to_string(code), (uint32_t)code, size);
 #endif
         }
-        
+
         bytecode.set_position(env.finish);
     }
 }
@@ -187,7 +184,9 @@ std::string ContextObject::to_string() const
 
 /// STATIC OP HANDLERS
 
-void ContextObject::op_constants(MovieEnvironment& env)
+// op_constants creates a new constant pool, and replaces the old constant
+// pool if one already exists.
+void ContextObject::op_constants(Environment& env)
 {
     auto count = env.bytecode->read_uint16();
 
@@ -219,7 +218,7 @@ enum class OpPushCode : uint8_t
     CONSTANT16
 };
 
-void ContextObject::op_push(MovieEnvironment& env)
+void ContextObject::op_push(Environment& env)
 {
     for( auto i=0; !env.is_finished(); i++ )
     {
@@ -286,45 +285,45 @@ void ContextObject::op_push(MovieEnvironment& env)
     }
 }
 
-void ContextObject::op_pop(MovieEnvironment& env)
+void ContextObject::op_pop(Environment& env)
 {
     env.pop();
 }
 
-void ContextObject::op_trace(MovieEnvironment& env)
+void ContextObject::op_trace(Environment& env)
 {
     printf("[AVM] trace: %s\n", env.pop().to_string().c_str());
 }
 
-void ContextObject::op_next_frame(MovieEnvironment& env)
+void ContextObject::op_next_frame(Environment& env)
 {
     env.node->goto_frame(env.node->get_current_frame()+1);
 }
 
-void ContextObject::op_prev_frame(MovieEnvironment& env)
+void ContextObject::op_prev_frame(Environment& env)
 {
     if( env.node->get_current_frame() > 0 )
         env.node->goto_frame(env.node->get_current_frame()-1);
 }
 
-void ContextObject::op_goto_frame(MovieEnvironment& env)
+void ContextObject::op_goto_frame(Environment& env)
 {
     auto frame = env.bytecode->read_uint16();
     env.node->goto_frame(frame);
 }
 
-void ContextObject::op_goto_label(MovieEnvironment& env)
+void ContextObject::op_goto_label(Environment& env)
 {
     auto name = env.bytecode->read_string();
     env.node->goto_named_frame(name);
 }
 
-void ContextObject::op_play(MovieEnvironment& env)
+void ContextObject::op_play(Environment& env)
 {
     env.node->set_status(MovieGoto::PLAY);
 }
 
-void ContextObject::op_stop(MovieEnvironment& env)
+void ContextObject::op_stop(Environment& env)
 {
     env.node->set_status(MovieGoto::STOP);
 }
