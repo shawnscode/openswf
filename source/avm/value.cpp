@@ -1,62 +1,95 @@
 #include "avm/value.hpp"
 #include "avm/object.hpp"
 
-#include <sstream>
+#include <limits>
+#include <cstring>
 
 NS_AVM_BEGIN
 
-std::string Value::to_string() const
-{
-    switch(this->type)
-    {
-        case ValueCode::UNDEFINED:
-            return "undefined";
+// static double string_to_number(const char* s)
+// {
+//     return 0;
+// }
 
-        case ValueCode::NULLPTR:
-            return "null";
+// Value& Value::set_string(const char* str)
+// {
+//     return set_string(str, strlen(str));
+// }
 
-        case ValueCode::NUMBER:
-        {
-            std::stringstream s;
-            s << this->inner.d;
-            return s.str();
-        }
+// Value& Value::set_lstring(const char* str, int32_t len)
+// {
+//     if( len >= sizeof(Value::Innervalue) )
+//     {
+//         vm.newstring()
+//     }
+// }
 
-        case ValueCode::INTEGER:
-        {
-            std::stringstream s;
-            s << this->inner.i;
-            return s.str();
-        }
+// double Value::to_number(VM& vm) const
+// {
+//     const static double NAN = std::numeric_limits<double>::quiet_NaN();
 
-        case ValueCode::BOOLEAN:
-            return this->inner.i > 0 ? "true" : "false";
+//     switch(this->type)
+//     {
+//         case ValueCode::UNDEFINED : return NAN;
+//         case ValueCode::NULLPTR: return 0;
+//         case ValueCode::BOOLEAN: return this->u.integer;
+//         case ValueCode::NUMBER: return this->u.number;
+//         case ValueCode::STRING:
+//             return string_to_number(this->u.string.c_str());
+//         case ValueCode::SHORT_STRING:
+//             return string_to_number(this->u.short_str);
+//         case ValueCode::LITERAL_STRING:
+//             return string_to_number(this->u.literal);
+//         case ValueCode::OBJECT:
+//         {
+//             // this->u.object->to_string()
+//             // string_to_number()
+//             return 0;
+//         }
+//     }
+// }
 
-        case ValueCode::OBJECT:
-            return this->inner.object->to_string();
+// int32_t Value::to_integer(VM& vm) const
+// {
+//     double number = to_number(vm);
+//     double sign = number < 0 ? -1 : 1;
+//     if( std::isnan(number) ) return 0;
+//     if( number == 0 || std::isinf(number) ) return number;
+//     return (int32_t)(sign * std::floor(std::fabs(number)));
+// }
 
-        default:
-            return "[exception]";
-    }
-}
+// bool Value::to_boolean(VM& vm) const
+// {
+//     switch(this->type)
+//     {
+//         case ValueCode::UNDEFINED: return false;
+//         case ValueCode::NULLPTR: return false;
+//         case ValueCode::BOOLEAN: return this->u.integer;
+//         case ValueCode::NUMBER:
+//             return this->u.number != 0 && !std::isnan(this->u.number);
+//         case ValueCode::STRING:
+//             return this->u.string.c_str()[0] != 0;
+//         case ValueCode::SHORT_STRING:
+//             return this->u.short_str[0] != 0;
+//         case ValueCode::LITERAL_STRING:
+//             return this->u.literal[0] != 0;
+//         case ValueCode::OBJECT:
+//             return 1;
+//     }
+// }
 
-double Value::to_number() const
-{
-    return
-        this->type == ValueCode::NUMBER ? this->inner.d :
-        this->type == ValueCode::INTEGER ? (double)this->inner.i :
-        this->type == ValueCode::BOOLEAN ? ( this->inner.i > 0 ? 1 : 0 ) :
-        0.0f;
-}
+// const char* Value::to_string(VM& vm) const
+// {
+//     switch(this->type)
+//     {
+//         case ValueCode::UNDEFINED: return "undefined";
+//         case ValueCode::NULLPTR: return "null";
+//         case ValueCode::BOOLEAN: return this->u.integer ? "true" : "false";
+//         case ValueCode::STRING: return this->u.string->c_str();
+//         case ValueCode::SHORT_STRING: return this->u.short_str[0];
+//         case ValueCode::LITERAL_STRING: return this->u.literal;
 
-int32_t Value::to_integer() const
-{
-    return static_cast<int32_t>(to_number());
-}
-
-bool Value::to_boolean() const
-{
-    return to_number() > 0;
-}
+//     }
+// }
 
 NS_AVM_END

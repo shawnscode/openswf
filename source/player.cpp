@@ -6,7 +6,6 @@
 
 #include "swf/parser.hpp"
 #include "avm/avm.hpp"
-#include "avm/virtual_machine.hpp"
 
 #include <ctime>
 
@@ -18,7 +17,7 @@ namespace openswf
 
     Player::Player()
     : m_version(10),
-    m_avm(nullptr), m_script_max_recursion(MaxRecursionDepth), m_script_timeout(TimeoutSeconds)
+    m_script_max_recursion(MaxRecursionDepth), m_script_timeout(TimeoutSeconds)
     {}
 
     Player* Player::create(Stream& stream)
@@ -59,8 +58,8 @@ namespace openswf
         m_root = new (std::nothrow) MovieNode(this, m_sprite);
         m_root->set_name("_level0");
 
-        m_avm = new (std::nothrow) avm::VirtualMachine(m_version);
-        m_context = m_avm->new_context(m_root);
+//        m_avm = new (std::nothrow) avm::VirtualMachine(m_version);
+//        m_context = m_avm->new_context(m_root);
         return true;
     }
 
@@ -82,12 +81,12 @@ namespace openswf
             m_root = nullptr;
         }
 
-        if( m_avm != nullptr )
-        {
-            delete m_avm;
-            m_avm = nullptr;
-            m_context = nullptr;
-        }
+//        if( m_avm != nullptr )
+//        {
+//            delete m_avm;
+//            m_avm = nullptr;
+//            m_context = nullptr;
+//        }
     }
 
     void Player::update(float dt)

@@ -2,8 +2,6 @@
 #include "player.hpp"
 #include "stream.hpp"
 
-#include "avm/virtual_machine.hpp"
-
 namespace openswf
 {
     /// SPRITE CHARACTER
@@ -167,8 +165,8 @@ namespace openswf
 
     void FrameAction::execute(MovieClip& movie, MovieNode& node)
     {
-        auto& vm = movie.get_player()->get_virtual_machine();
-        vm.execute(node.get_context(), m_bytes.get(), m_header.size);
+//        auto& vm = movie.get_player()->get_virtual_machine();
+//        vm.execute(node.get_context(), m_bytes.get(), m_header.size);
     }
 
     MovieClip::MovieClip(uint16_t cid, uint16_t frame_count, float frame_rate)
@@ -221,7 +219,7 @@ namespace openswf
 
     MovieNode::~MovieNode()
     {
-        m_player->get_virtual_machine().free_context(m_context);
+//        m_player->get_virtual_machine().free_context(m_context);
 
         for( auto& pair : m_children )
             delete pair.second;
@@ -356,7 +354,7 @@ namespace openswf
             if( node != nullptr )
             {
                 node->set_parent(this);
-                node->set_context(m_player->get_virtual_machine().new_context(node));
+//                node->set_context(m_player->get_virtual_machine().new_context(node));
             }
 
             m_children[depth] = instance;

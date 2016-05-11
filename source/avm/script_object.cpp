@@ -1,34 +1,74 @@
 #include "avm/script_object.hpp"
-#include "avm/string_object.hpp"
+
+#include <cstring>
 
 NS_AVM_BEGIN
 
-void ScriptObject::mark(uint8_t v)
+bool StringCompare::operator () (const char* lh, const char* rh) const
 {
-    if( get_marked_value() != 0 )
-        return;
+    return strcmp(lh, rh) == 0;
+}
 
-    GCObject::mark(v);
+// bkdr hash
+size_t StringHash::operator () (const char* v) const
+{
+    unsigned int seed = 131; // 31 131 1313 13131 131313 etc..
+    unsigned int hash = 0;
+    while(*v) { hash = hash * seed + (*v++); }
+    return hash & 0x7FFFFFFF;
+}
 
-    for( auto pair : m_variables )
+ScriptObject::ScriptObject(ScriptObject* prototype)
+: m_prototype(prototype), m_extensible(true) {}
+
+Property* ScriptObject::get_property(const char* name)
+{
+    auto object = this;
+    while(object != nullptr)
     {
-        auto object = pair.second.to_object();
-        if( object != nullptr ) object->mark(v);
+        auto found = m_members.find(name);
+        if( found != m_members.end() )
+            return found->second;
+        object = object->m_prototype;
     }
+
+    return nullptr;
 }
 
-void ScriptObject::set_variable(const char* name, Value value)
+Property* ScriptObject::set_property(const char* name)
 {
-    // printf("set variable %s -> %s\n", name, value.to_string().c_str());
-    m_variables[name] = value;
-}
-
-Value ScriptObject::get_variable(const char* name)
-{
-    auto found = m_variables.find(name);
-    if( found != m_variables.end() )
+    auto found = m_members.find(name);
+    if( found != m_members.end() )
         return found->second;
-    return Value();
+
+    auto p = new Property();
+    p->name     = name;
+    p->getter   = nullptr;
+    p->setter   = nullptr;
+
+    m_members[name] = p;
+    return p;
+}
+
+void ScriptObject::del_property(const char* name)
+{
+    auto found = m_members.find(name);
+    if( found != m_members.end() )
+        m_members.erase(found);
+}
+
+////
+
+static void object_to_string(State* s)
+{
+    // s->
+}
+
+bool ScriptObject::initialize(State* S)
+{
+    auto object = S->new_object();
+    auto cxt = S->get_context();
+    // cxt->push_object()
 }
 
 NS_AVM_END

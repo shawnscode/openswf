@@ -5,11 +5,6 @@
 
 #define DEBUG_AVM
 
-#define NS_OPENSWF_BEGIN namespace openswf {
-#define NS_OPENSWF_END }
-
-#define USING_NS_OPENSWF using namespace openswf;
-
 #define NS_AVM_BEGIN namespace openswf { namespace avm {
 #define NS_AVM_END } }
 
@@ -17,19 +12,15 @@
 
 // FORWARD DECLARATIONS
 
-NS_OPENSWF_BEGIN
-
-class Stream;
-class MovieNode;
-
-NS_OPENSWF_END
-
 NS_AVM_BEGIN
 
+const static int32_t MaxStackSize = 256; // value stack size
+
+class State;
+class Context;
+
 class GCObject;
-class ContextObject;
-class StringObject;
 class ScriptObject;
-class VirtualMachine;
+class String;
 
 NS_AVM_END
