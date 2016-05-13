@@ -10,10 +10,13 @@ NS_AVM_BEGIN
 
 struct Property
 {
-    const char* name;
-    GCObject*   getter;
-    GCObject*   setter;
-    Value       value;
+    const char*     name;
+    GCObject*       getter;
+    GCObject*       setter;
+    int             attributes;
+    Value           value;
+    
+    Property() : name(nullptr), getter(nullptr), setter(nullptr), attributes(0) {}
 };
 
 struct StringCompare
@@ -41,8 +44,11 @@ protected:
 
 public:
     Property*   get_property(const char* name);
+    Property*   get_own_property(const char* name);
     Property*   set_property(const char* name);
     void        del_property(const char* name);
+
+    ScriptObject* get_prototype();
 };
 
 NS_AVM_END
