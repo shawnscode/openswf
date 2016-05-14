@@ -11,6 +11,7 @@ class State
     friend class Context;
 
 private:
+    Context*    m_main_context;
     Context*    m_context;      // list of all context
     GCObject*   m_gcobject;     // list of all collectable objects
 
@@ -22,14 +23,21 @@ protected:
     ScriptObject* NUMBER;
     ScriptObject* STRING;
 
-    ScriptObject* R;            // registry of hidden values
+    // ScriptObject* R;            // registry of hidden values
     ScriptObject* G;            // global object
 
-public:
     State();
-    ~State();
-
+    State(const State&);
     bool    initialize();
+
+public:
+    ~State();
+    static State* create();
+
+    Context*    create_context();
+    Context*    get_main_context();
+    void        free_context(Context*);
+
     String* new_string(const char*, int32_t);
 
     template<typename T> T*  new_object(ScriptObject* prototype)

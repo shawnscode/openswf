@@ -36,3 +36,11 @@ class CClosureObject;
 typedef std::function<void(Context*)> CFunction;
 
 NS_AVM_END
+
+
+#define NS_OPENSWF_BEGIN namespace openswf {
+#define NS_OPENSWF_END }
+
+NS_OPENSWF_BEGIN
+class Stream;
+NS_OPENSWF_END

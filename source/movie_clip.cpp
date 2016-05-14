@@ -1,6 +1,7 @@
 #include "movie_clip.hpp"
 #include "player.hpp"
 #include "stream.hpp"
+#include "movie_context.hpp"
 
 namespace openswf
 {
@@ -165,8 +166,8 @@ namespace openswf
 
     void FrameAction::execute(MovieClip& movie, MovieNode& node)
     {
-//        auto& vm = movie.get_player()->get_virtual_machine();
-//        vm.execute(node.get_context(), m_bytes.get(), m_header.size);
+        Stream stream(m_bytes.get(), m_header.size);
+        node.get_context()->execute(&stream);
     }
 
     MovieClip::MovieClip(uint16_t cid, uint16_t frame_count, float frame_rate)
@@ -208,18 +209,22 @@ namespace openswf
     MovieNode::MovieNode(Player* player, MovieClip* sprite)
     : INode(player, sprite),
     m_sprite(sprite), m_frame_timer(0),
-    m_target_frame(1), m_current_frame(0), m_paused(false),
-    m_context(nullptr)
+    m_target_frame(1), m_current_frame(0), m_paused(false)
     {
         assert( sprite->get_frame_rate() < 64 && sprite->get_frame_rate() > 0.1f );
 
         m_frame_rate = sprite->get_frame_rate();
         m_frame_delta = 1.f / m_frame_rate;
+        m_context = MovieContext::create(&player->get_state(), this);
     }
 
     MovieNode::~MovieNode()
     {
-//        m_player->get_virtual_machine().free_context(m_context);
+        if( m_context )
+        {
+            delete m_context;
+            m_context = nullptr;
+        }
 
         for( auto& pair : m_children )
             delete pair.second;

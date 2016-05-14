@@ -5,7 +5,7 @@
 #include "render.hpp"
 
 #include "swf/parser.hpp"
-#include "avm/avm.hpp"
+#include "avm/state.hpp"
 
 #include <ctime>
 
@@ -55,11 +55,10 @@ namespace openswf
                     Parser::to_string(env.tag.code));
         }
 
+        m_state = avm::State::create();
+
         m_root = new (std::nothrow) MovieNode(this, m_sprite);
         m_root->set_name("_level0");
-
-//        m_avm = new (std::nothrow) avm::VirtualMachine(m_version);
-//        m_context = m_avm->new_context(m_root);
         return true;
     }
 

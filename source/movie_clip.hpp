@@ -14,9 +14,7 @@ namespace openswf
     class Player;
     class MovieClip;
     class MovieNode;
-    namespace avm {
-    class ContextObject;
-    }
+    class MovieContext;
 
     class FrameCommand;
     typedef std::unique_ptr<FrameCommand> CommandPtr;
@@ -124,7 +122,7 @@ namespace openswf
 
         MovieNode*              m_parent;
         MovieClip*              m_sprite;
-        avm::ContextObject*     m_context;
+        MovieContext*           m_context;
 
         uint16_t    m_current_frame, m_target_frame;
         float       m_frame_delta;
@@ -151,8 +149,7 @@ namespace openswf
 
         void reset();
         void set_status(MovieGoto status);
-        void set_context(avm::ContextObject*);
-        avm::ContextObject* get_context();
+        MovieContext* get_context();
 
         void goto_frame(uint16_t frame, MovieGoto status = MovieGoto::NOCHANGE, int offset = 0);
         void execute_frame_actions(uint16_t frame);
@@ -181,12 +178,7 @@ namespace openswf
         return m_parent;
     }
 
-    inline void MovieNode::set_context(avm::ContextObject* context)
-    {
-        m_context = context;
-    }
-
-    inline avm::ContextObject* MovieNode::get_context()
+    inline MovieContext* MovieNode::get_context()
     {
         return m_context;
     }

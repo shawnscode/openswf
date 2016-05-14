@@ -30,9 +30,7 @@ namespace openswf
         uint8_t         m_version;
         uint16_t        m_script_max_recursion, m_script_timeout;
         uint32_t        m_start_ms;
-
-//        avm::VirtualMachine*    m_avm;
-//        avm::ContextObject*     m_context;
+        avm::State*     m_state;
 
     protected:
         Player();
@@ -67,9 +65,9 @@ namespace openswf
         uint16_t        get_script_timeout() const;
         uint32_t        get_eplased_ms() const;
 
-        MovieClip&              get_root_def();
-        MovieNode&              get_root();
-//        avm::VirtualMachine&    get_virtual_machine();
+        MovieClip&      get_root_def();
+        MovieNode&      get_root();
+        avm::State&     get_state();
     };
 
     //// INLINE METHODS of PLAYER
@@ -124,8 +122,8 @@ namespace openswf
         return *m_root;
     }
 
-//    inline avm::VirtualMachine& Player::get_virtual_machine()
-//    {
-//        return *m_avm;
-//    }
+    inline avm::State& Player::get_state()
+    {
+        return *m_state;
+    }
 }

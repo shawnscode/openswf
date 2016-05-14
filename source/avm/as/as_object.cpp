@@ -7,19 +7,19 @@ NS_AVM_BEGIN
 
 static void to_string(Context* ctx)
 {
-    auto self = ctx->to_script_object(0);
+    auto self = ctx->to_object<ScriptObject>(0);
     ctx->push_string( self->to_string(ctx->get_state()) );
 }
 
 static void value_of(Context* ctx)
 {
-    auto self = ctx->to_script_object(0);
+    auto self = ctx->to_object<ScriptObject>(0);
     ctx->push_number( self->to_number(ctx->get_state()) );
 }
 
 static void has_own_property(Context* ctx)
 {
-    auto self = ctx->to_script_object(0);
+    auto self = ctx->to_object<ScriptObject>(0);
     auto name = ctx->to_string(1);
 
     auto ref = self->get_own_property(name);

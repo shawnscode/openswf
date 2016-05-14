@@ -25,6 +25,11 @@ Value* Context::get_stack_at(int32_t index)
     return STACK + index;
 }
 
+Value* Context::back()
+{
+    return get_stack_at(-1);
+}
+
 void Context::pop(int32_t n)
 {
     TOP -= n;
@@ -39,6 +44,11 @@ void Context::pop(int32_t n)
 void Context::push_value(Value v)
 {
     STACK[TOP++] = v;
+}
+
+void Context::push_undefined()
+{
+    STACK[TOP++].type = ValueCode::UNDEFINED;
 }
 
 void Context::push_null()
@@ -90,13 +100,13 @@ void Context::push_object(GCObject* v)
 
 void Context::push_new_object()
 {
-    auto object = STATE->new_object<ScriptObject>(STATE->Object);
+    auto object = STATE->new_object<ScriptObject>(STATE->OBJECT);
     push_object(object);
 }
 
 void Context::push_new_cfunction(const char* name, CFunction cfun, int retn)
 {
-    auto object = STATE->new_object<CClosureObject>(STATE->Function);
+    auto object = STATE->new_object<CClosureObject>(STATE->FUNCTION);
     object->name        = name;
     object->function    = cfun;
     object->constructor = nullptr;
@@ -108,7 +118,7 @@ void Context::push_new_cfunction(const char* name, CFunction cfun, int retn)
 
 void Context::push_new_cconstructor(const char* name, CFunction cfun, CFunction ccon, int retn)
 {
-    auto object = STATE->new_object<CClosureObject>(STATE->Function);
+    auto object = STATE->new_object<CClosureObject>(STATE->FUNCTION);
     object->name        = name;
     object->function    = cfun;
     object->constructor = ccon;
@@ -142,7 +152,7 @@ void Context::set_property(const char* name, PropertyAttribute attrs)
     const char* pname = strrchr(name, '.');
     pname = pname ? pname + 1 : name;
 
-    auto object = to_script_object(-2);
+    auto object = to_object<ScriptObject>(-2);
     auto value  = get_stack_at(-1);
     set_property(object, value, pname, attrs);
     pop(1);
@@ -177,6 +187,34 @@ void Context::set_property_literal(const char* name, const char* s)
     set_property(name, PA_DONTENUM);
 }
 
+Value* Context::pop_back()
+{
+    auto value = get_stack_at(-1);
+    pop(1);
+    return value;
+}
+
+bool Context::fetch_as_boolean()
+{
+    return pop_back()->to_boolean(m_state);
+}
+
+double Context::fetch_as_number()
+{
+    return pop_back()->to_number(m_state);
+}
+
+int32_t Context::fetch_as_integer()
+{
+    return static_cast<int32_t>(fetch_as_number());
+}
+
+const char* Context::fetch_as_string()
+{
+    return pop_back()->to_string(m_state);
+}
+
+
 bool Context::to_boolean(int32_t index)
 {
     return get_stack_at(index)->to_boolean(m_state);
@@ -190,11 +228,6 @@ double Context::to_number(int32_t index)
 const char* Context::to_string(int32_t index)
 {
     return get_stack_at(index)->to_string(m_state);
-}
-
-ScriptObject* Context::to_script_object(int32_t index)
-{
-    return get_stack_at(index)->to_object<ScriptObject>(m_state);
 }
 
 NS_AVM_END
