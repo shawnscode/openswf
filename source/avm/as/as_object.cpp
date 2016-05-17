@@ -8,13 +8,13 @@ NS_AVM_BEGIN
 static void to_string(Context* ctx)
 {
     auto self = ctx->to_object<ScriptObject>(0);
-    ctx->push_string( self->to_string(ctx->get_state()) );
+    ctx->push_string( self->to_string().c_str() );
 }
 
 static void value_of(Context* ctx)
 {
     auto self = ctx->to_object<ScriptObject>(0);
-    ctx->push_number( self->to_number(ctx->get_state()) );
+    ctx->push_number( self->to_number() );
 }
 
 static void has_own_property(Context* ctx)
@@ -22,7 +22,7 @@ static void has_own_property(Context* ctx)
     auto self = ctx->to_object<ScriptObject>(0);
     auto name = ctx->to_string(1);
 
-    auto ref = self->get_own_property(name);
+    auto ref = self->get_own_property(name.c_str());
     ctx->push_boolean(ref != nullptr);
 }
 
@@ -42,6 +42,7 @@ void ActionScript::register_object(Context* ctx, ScriptObject* proto)
     //
     ctx->push_object(proto);
     {
+
         ctx->set_property_cfunction("toString", to_string, 0);
         ctx->set_property_cfunction("toLocalString", to_string, 0);
         ctx->set_property_cfunction("valueOf", value_of, 0);

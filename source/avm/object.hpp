@@ -19,8 +19,9 @@ public:
 
     uint8_t get_marked_value() const { return m_marked; }
     virtual void        mark(uint8_t v) { m_marked = v; }
-    virtual double      to_number(State*) const { return 0; }
-    virtual const char* to_string(State*) const { return "[object]"; }
+
+    virtual double      to_number() const { return 0; }
+    virtual std::string to_string() const { return "[object]"; }
 };
 
 NS_AVM_END

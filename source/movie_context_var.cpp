@@ -7,10 +7,12 @@ namespace openswf
 
 void MovieContext::op_define_local()
 {
-    auto value  = CTX->pop_back();
+    auto value  = CTX->fetch();
     auto name   = CTX->fetch_as_string();
-
-    // env.object->set_local_variable(name->c_str(), value);
+    
+    printf("op_define_local %s\n", name.c_str());
+    CTX->set_variable(name.c_str(), value);
+    // should be local variable
 }
 
 // sets the variable name in the current execution context to value.
@@ -18,10 +20,10 @@ void MovieContext::op_define_local()
 // the variable name with the target path and a colon.
 void MovieContext::op_set_variable()
 {
-    auto value  = CTX->pop_back();
+    auto value  = CTX->fetch();
     auto name   = CTX->fetch_as_string();
 
-    // env.object->set_variable(name->c_str(), value);
+    CTX->set_variable(name.c_str(), value);
 }
 
 // pushes the value of the variable to the stack.
@@ -30,29 +32,28 @@ void MovieContext::op_set_variable()
 void MovieContext::op_get_variable()
 {
     auto name   = CTX->fetch_as_string();
-
-    // env.push( env.object->get_variable(name->c_str()) );
+    auto value  = CTX->get_variable(name.c_str());
+    CTX->push_value(value);
 }
 
 void MovieContext::op_set_member()
 {
-    auto value  = CTX->pop_back();
+    auto value  = CTX->fetch();
     auto name   = CTX->fetch_as_string();
     auto object = CTX->fetch_as_object<avm::ScriptObject>();
 
-    // if( object != nullptr )
-        // object->set_variable(name->c_str(), value);
+    if( object != nullptr )
+        object->set_variable(name.c_str(), value);
 }
 
 void MovieContext::op_get_member()
 {
-    auto value  = CTX->pop_back();
     auto name   = CTX->fetch_as_string();
     auto object = CTX->fetch_as_object<avm::ScriptObject>();
 
     if( object != nullptr )
     {
-        auto prop = object->get_property(name);
+        auto prop = object->get_property(name.c_str());
         if( prop != nullptr )
         {
             CTX->push_value(prop->value);
@@ -91,16 +92,15 @@ static const char* Properties[] = {
 //
 void MovieContext::op_set_property()
 {
-    auto value = CTX->pop_back();
+    auto value = CTX->fetch();
     auto index = CTX->fetch_as_integer();
     assert(index>=0 && index<22);
 
-    auto name = CTX->fetch_as_string();
-    assert(name != nullptr);
+    auto name   = CTX->fetch_as_string();
+    auto object = CTX->get_variable(name.c_str()).to_object<avm::ScriptObject>();
 
-    // auto object = env.object->get_variable(name->c_str()).to_object<ScriptObject>();
-    // if( object != nullptr )
-    //     object->set_variable(Properties[index], value);
+    if( object != nullptr )
+        object->set_variable(Properties[index], value);
 }
 
 // retrieves the value of the property enumerated as index from the movie
@@ -111,14 +111,17 @@ void MovieContext::op_get_property()
     assert(index>=0 && index<22);
 
     auto name = CTX->fetch_as_string();
-    assert(name != nullptr);
+    auto object = CTX->get_variable(name.c_str()).to_object<avm::ScriptObject>();
 
-    // auto object = env.object->get_variable(name->c_str()).to_object<ScriptObject>();
-    // if( object != nullptr )
-    // {
-    //     env.push( object->get_variable(Properties[index]) );
-    //     return;
-    // }
+    if( object != nullptr )
+    {
+        auto value = object->get_variable(Properties[index]);
+        if( value != nullptr )
+        {
+            CTX->push_value( *value );
+            return;
+        }
+    }
 
     CTX->push_undefined();
 }

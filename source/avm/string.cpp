@@ -17,7 +17,7 @@ String::~String()
     delete[] m_bytes;
 }
 
-const char* String::to_string() const
+std::string String::to_string() const
 {
     return m_bytes;
 }

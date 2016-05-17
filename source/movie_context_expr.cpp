@@ -95,7 +95,7 @@ void MovieContext::op_push()
         }
 
 #ifdef DEBUG_AVM
-        printf("\t[%d] %s\n", i, CTX->to_string(-1));
+        printf("\t[%d] %s\n", i, CTX->to_string(-1).c_str());
 #endif
     }
 }
@@ -107,7 +107,7 @@ void MovieContext::op_pop()
 
 void MovieContext::op_trace()
 {
-    printf("[AVM] trace: %s\n", CTX->fetch_as_string());
+    printf("[AVM] trace: %s\n", CTX->fetch_as_string().c_str());
 }
 
 void MovieContext::op_next_frame()

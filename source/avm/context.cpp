@@ -13,8 +13,23 @@ NS_AVM_BEGIN
 #define BOT (this->m_stack_bottom)
 #define STATE (this->m_state)
 
-Context::Context(State* vm)
-: m_state(vm), m_stack_top(0), m_stack_bottom(0) {}
+Context::Context()
+: m_state(nullptr), m_stack_top(0), m_stack_bottom(0), m_environment(nullptr) {}
+
+bool Context::initialize(State* S)
+{
+    m_state = S;
+    m_environment = S->new_object<ScriptObject>(nullptr);
+    return true;
+}
+
+Context* Context::create(State* S)
+{
+    auto ctx = new (std::nothrow) Context();
+    if( ctx && ctx->initialize(S) ) return ctx;
+    if( ctx ) delete ctx;
+    return nullptr;
+}
 
 Value* Context::get_stack_at(int32_t index)
 {
@@ -169,6 +184,23 @@ void Context::set_global_property(const char* name, PropertyAttribute attrs)
     pop(1);
 }
 
+void Context::set_variable(const char* name, Value value)
+{
+    printf("set_variable %s\n", name);
+    m_environment->set_variable(name, value);
+}
+
+Value Context::get_variable(const char* name)
+{
+    auto value = m_environment->get_variable(name);
+    if( value != nullptr ) return *value;
+
+    value = m_state->G->get_variable(name);
+    if( value != nullptr ) return *value;
+
+    return Value();
+}
+
 void Context::set_property_cfunction(const char* name, CFunction cfun, int32_t retn)
 {
     push_new_cfunction(name, cfun, retn);
@@ -187,21 +219,21 @@ void Context::set_property_literal(const char* name, const char* s)
     set_property(name, PA_DONTENUM);
 }
 
-Value* Context::pop_back()
+Value Context::fetch()
 {
     auto value = get_stack_at(-1);
     pop(1);
-    return value;
+    return *value;
 }
 
 bool Context::fetch_as_boolean()
 {
-    return pop_back()->to_boolean(m_state);
+    return fetch().to_boolean();
 }
 
 double Context::fetch_as_number()
 {
-    return pop_back()->to_number(m_state);
+    return fetch().to_number();
 }
 
 int32_t Context::fetch_as_integer()
@@ -209,25 +241,25 @@ int32_t Context::fetch_as_integer()
     return static_cast<int32_t>(fetch_as_number());
 }
 
-const char* Context::fetch_as_string()
+std::string Context::fetch_as_string()
 {
-    return pop_back()->to_string(m_state);
+    return fetch().to_string();
 }
 
 
 bool Context::to_boolean(int32_t index)
 {
-    return get_stack_at(index)->to_boolean(m_state);
+    return get_stack_at(index)->to_boolean();
 }
 
 double Context::to_number(int32_t index)
 {
-    return get_stack_at(index)->to_number(m_state);
+    return get_stack_at(index)->to_number();
 }
 
-const char* Context::to_string(int32_t index)
+std::string Context::to_string(int32_t index)
 {
-    return get_stack_at(index)->to_string(m_state);
+    return get_stack_at(index)->to_string();
 }
 
 NS_AVM_END

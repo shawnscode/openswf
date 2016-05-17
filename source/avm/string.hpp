@@ -21,7 +21,7 @@ public:
 
     const char*         c_str() const;
     int32_t             get_length() const;
-    virtual const char* to_string() const;
+    virtual std::string to_string() const;
     virtual double      to_number() const;
 
 

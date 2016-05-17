@@ -23,7 +23,7 @@ protected:
     ScriptObject* NUMBER;
     ScriptObject* STRING;
 
-    // ScriptObject* R;            // registry of hidden values
+    // ScriptObject* R;         // registry of hidden values
     ScriptObject* G;            // global object
 
     State();
@@ -38,7 +38,7 @@ public:
     Context*    get_main_context();
     void        free_context(Context*);
 
-    String* new_string(const char*, int32_t);
+    String*     new_string(const char*, int32_t);
 
     template<typename T> T*  new_object(ScriptObject* prototype)
     {

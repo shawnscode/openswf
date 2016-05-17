@@ -49,6 +49,7 @@ enum class Opcode : uint8_t
 
 #define CTX (this->m_context)
 #define NODE (this->m_parent)
+#define STATE (this->m_context->get_state())
 
 class MovieContext
 {

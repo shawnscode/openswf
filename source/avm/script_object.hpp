@@ -19,20 +19,10 @@ struct Property
     Property() : name(nullptr), getter(nullptr), setter(nullptr), attributes(0) {}
 };
 
-struct StringCompare
-{
-    bool operator() (const char*, const char*) const;
-};
-
-struct StringHash
-{
-    size_t operator() (const char*) const;
-};
-
 class ScriptObject : public GCObject
 {
     friend class State;
-    typedef std::unordered_map<const char*, Property*, StringHash, StringCompare> PropertyTable;
+    typedef std::unordered_map<std::string, Property*> PropertyTable;
 
 protected:
     PropertyTable   m_members;
@@ -43,12 +33,15 @@ protected:
     static void initialize(State*);
 
 public:
+    ScriptObject* get_prototype();
+
     Property*   get_property(const char* name);
     Property*   get_own_property(const char* name);
     Property*   set_property(const char* name);
     void        del_property(const char* name);
 
-    ScriptObject* get_prototype();
+    Value*      get_variable(const char* name);
+    void        set_variable(const char* name, Value value);
 };
 
 NS_AVM_END

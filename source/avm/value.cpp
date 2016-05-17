@@ -9,7 +9,7 @@
 
 NS_AVM_BEGIN
 
-bool Value::to_boolean(State* S)
+bool Value::to_boolean()
 {
     switch(type)
     {
@@ -23,7 +23,7 @@ bool Value::to_boolean(State* S)
     }
 }
 
-double Value::to_number(State* S)
+double Value::to_number()
 {
     switch(type)
     {
@@ -33,11 +33,11 @@ double Value::to_number(State* S)
         case ValueCode::NUMBER: return u.number;
         case ValueCode::SHORT_STRING: return strtod(u.short_str, NULL);
         case ValueCode::LITERAL_STRING: return strtod(u.literal, NULL);
-        case ValueCode::OBJECT: return u.object->to_number(S);
+        case ValueCode::OBJECT: return u.object->to_number();
     }
 }
 
-const char* Value::to_string(State* S)
+std::string Value::to_string()
 {
     switch(type)
     {
@@ -48,33 +48,15 @@ const char* Value::to_string(State* S)
         {
             char buf[32];
             auto p = String::number_to_string(buf, u.number);
-            if( p == buf )
-            {
-                int n = strlen(p);
-                if( n < 8 )
-                {
-                    char *s = (char*)u.short_str;
-                    while(n--) *s++ = *p++;
-                    *s = 0;
-                    type = ValueCode::SHORT_STRING;
-                    return u.short_str;
-                }
-                else
-                {
-                    u.object = S->new_string(p, n);
-                    type = ValueCode::OBJECT;
-                    return static_cast<String*>(u.object)->c_str();
-                }
-            }
-            return p; // literal
+            return std::string(p);
         }
-        case ValueCode::SHORT_STRING: return u.short_str;
-        case ValueCode::LITERAL_STRING: return u.literal;
-        case ValueCode::OBJECT: return u.object->to_string(S);
+        case ValueCode::SHORT_STRING: return std::string(u.short_str);
+        case ValueCode::LITERAL_STRING: return std::string(u.literal);
+        case ValueCode::OBJECT: return u.object->to_string();
     }
 }
 
-GCObject* Value::to_object(State* S)
+GCObject* Value::to_object()
 {
     switch (type) {
         case ValueCode::OBJECT: return u.object;

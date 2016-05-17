@@ -32,14 +32,14 @@ struct Value
     Value() : type(ValueCode::UNDEFINED) {}
     Value(const Value& rh) : u(rh.u), type(rh.type) {}
 
-    bool        to_boolean(State*);
-    double      to_number(State*);
-    const char* to_string(State*);
-    GCObject*   to_object(State*);
+    bool        to_boolean();
+    double      to_number();
+    std::string to_string();
+    GCObject*   to_object();
 
-    template<typename T> T* to_object(State* S)
+    template<typename T> T* to_object()
     {
-        return dynamic_cast<T*>(to_object(S));
+        return dynamic_cast<T*>(to_object());
     }
 };
 

@@ -28,15 +28,15 @@ State::~State()
 
 bool State::initialize()
 {
-    m_main_context   = new (std::nothrow) Context(this);
+    m_main_context = Context::create(this);
     VALID_OR_RETURN(m_main_context);
     
-    G           = new_object<ScriptObject>(NULL);
+    G = new_object<ScriptObject>(nullptr);
 
-    OBJECT      = new_object<ScriptObject>(NULL);
+    OBJECT = new_object<ScriptObject>(nullptr);
     VALID_OR_RETURN(OBJECT);
 
-    FUNCTION    = new_object<CClosureObject>(OBJECT);
+    FUNCTION = new_object<CClosureObject>(OBJECT);
     VALID_OR_RETURN(FUNCTION);
 
     ActionScript::register_object(m_main_context, OBJECT);
@@ -53,7 +53,7 @@ State* State::create()
 
 Context* State::create_context()
 {
-    auto ctx = new Context(this);
+    auto ctx = Context::create(this);
     PUSH(m_context, ctx);
     return ctx;
 }

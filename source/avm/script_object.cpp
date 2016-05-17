@@ -4,19 +4,19 @@
 
 NS_AVM_BEGIN
 
-bool StringCompare::operator () (const char* lh, const char* rh) const
-{
-    return strcmp(lh, rh) == 0;
-}
+// bool StringCompare::operator () (const char* lh, const char* rh) const
+// {
+//     return strcmp(lh, rh) == 0;
+// }
 
-// bkdr hash
-size_t StringHash::operator () (const char* v) const
-{
-    unsigned int seed = 131; // 31 131 1313 13131 131313 etc..
-    unsigned int hash = 0;
-    while(*v) { hash = hash * seed + (*v++); }
-    return hash & 0x7FFFFFFF;
-}
+// // bkdr hash
+// size_t StringHash::operator () (const char* v) const
+// {
+//     unsigned int seed = 131; // 31 131 1313 13131 131313 etc..
+//     unsigned int hash = 0;
+//     while(*v) { hash = hash * seed + (*v++); }
+//     return hash & 0x7FFFFFFF;
+// }
 
 ScriptObject::ScriptObject(ScriptObject* prototype)
 : m_prototype(prototype), m_extensible(true) {}
@@ -63,6 +63,19 @@ void ScriptObject::del_property(const char* name)
     auto found = m_members.find(name);
     if( found != m_members.end() )
         m_members.erase(found);
+}
+
+Value* ScriptObject::get_variable(const char* name)
+{
+    auto prop = get_property(name);
+    if( prop != nullptr ) return &prop->value;
+    return nullptr;
+}
+
+void ScriptObject::set_variable(const char* name, Value value)
+{
+    auto prop = set_property(name);
+    prop->value = value;
 }
 
 NS_AVM_END
