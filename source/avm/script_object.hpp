@@ -33,6 +33,9 @@ protected:
     static void initialize(State*);
 
 public:
+    ~ScriptObject();
+    virtual void mark(uint8_t);
+
     ScriptObject* get_prototype();
 
     Property*   get_property(const char* name);

@@ -31,6 +31,21 @@ Context* Context::create(State* S)
     return nullptr;
 }
 
+void Context::mark(uint8_t v)
+{
+    if( get_marked_value() == v ) return;
+
+    GCObject::mark(v);
+
+    for(auto i=0; i<m_stack_top; i++)
+    {
+        auto object = STACK[i].to_object();
+        if( object != nullptr ) object->mark(v);
+    }
+
+    m_environment->mark(v);
+}
+
 Value* Context::get_stack_at(int32_t index)
 {
     static Value undefined;

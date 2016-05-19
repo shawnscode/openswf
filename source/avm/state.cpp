@@ -11,9 +11,11 @@ NS_AVM_BEGIN
 
 #define PUSH(v, n) do { if(v == nullptr) { v = n; } else { n->m_next = v; v = n; } } while(false);
 #define VALID_OR_RETURN(v) do { if(v == nullptr) return false; } while(false);
+#define MARK(t, v) do { if(t != nullptr) t->mark(v); } while(false);
 
 State::State()
-: m_gcobject(nullptr), m_main_context(nullptr), m_context(nullptr)
+: m_gcobject(nullptr), m_main_context(nullptr), m_context(nullptr),
+m_gccount(0), m_gcthreshold(32)
 {}
 
 State::~State()
@@ -28,9 +30,12 @@ State::~State()
 
 bool State::initialize()
 {
+    m_gcthreshold = InitialGCThreshold;
+    m_gccount = 0;
+
     m_main_context = Context::create(this);
     VALID_OR_RETURN(m_main_context);
-    
+
     G = new_object<ScriptObject>(nullptr);
 
     OBJECT = new_object<ScriptObject>(nullptr);
@@ -38,6 +43,11 @@ bool State::initialize()
 
     FUNCTION = new_object<CClosureObject>(OBJECT);
     VALID_OR_RETURN(FUNCTION);
+
+    ARRAY   = nullptr;
+    BOOLEAN = nullptr;
+    NUMBER  = nullptr;
+    STRING  = nullptr;
 
     ActionScript::register_object(m_main_context, OBJECT);
     return true;
@@ -49,6 +59,58 @@ State* State::create()
     if( state && state->initialize() ) return state;
     if( state ) delete state;
     return nullptr;
+}
+
+void State::try_garbage_collect()
+{
+    if( m_gccount < m_gcthreshold )
+        return;
+
+    MARK(OBJECT,    1);
+    MARK(ARRAY,     1);
+    MARK(FUNCTION,  1);
+    MARK(BOOLEAN,   1);
+    MARK(NUMBER,    1);
+    MARK(STRING,    1);
+
+    MARK(m_main_context, 1);
+    for(auto current = (GCObject*)m_context; current; current = m_context->m_next )
+        MARK(current, 1);
+
+    GCObject* prev = nullptr;
+    GCObject* current = static_cast<GCObject*>(m_gcobject);
+
+    auto before = m_gccount;
+    while(current != nullptr)
+    {
+        if( current->get_marked_value() == 0 )
+        {
+            if( prev == nullptr )
+            {
+                auto tmp = current->m_next;
+                delete current;
+                current = tmp;
+            }
+            else
+            {
+                prev->m_next = current->m_next;
+                delete current;
+                current = prev->m_next;
+            }
+            m_gcobject --;
+        }
+        else
+        {
+            prev = current;
+            current->m_marked = 0;
+            current = current->m_next;
+        }
+    }
+
+    printf("[AVM] garbage collected! %d object(s) have been collected, with %d object(s) remaining.\n",
+        before - m_gccount, m_gccount);
+
+    m_gcthreshold = m_gccount * 1.5f;
 }
 
 Context* State::create_context()
@@ -85,6 +147,7 @@ String* State::new_string(const char* v, int32_t len)
 {
     auto str = new String(v, len);
     PUSH(m_gcobject, str);
+    m_gcobject ++;
     return str;
 }
 

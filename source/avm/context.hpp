@@ -25,6 +25,9 @@ protected:
 
 public:
     ///
+    virtual void mark(uint8_t v);
+
+    ///
     State*      get_state() { return m_state; }
 
     ///

@@ -93,7 +93,7 @@ void MovieContext::execute(Stream* bytecode)
     {
         auto code = (Opcode)bytecode->read_uint8();
         if( code == Opcode::END )
-            return;
+            break;
 
         auto size = 0;
         if( (uint8_t)code >= 0x80 ) size = bytecode->read_uint16();
@@ -118,6 +118,8 @@ void MovieContext::execute(Stream* bytecode)
 
         bytecode->set_position(m_finish_position);
     }
+
+    m_context->get_state()->try_garbage_collect();
 }
 
 

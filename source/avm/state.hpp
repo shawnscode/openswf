@@ -14,6 +14,8 @@ private:
     Context*    m_main_context;
     Context*    m_context;      // list of all context
     GCObject*   m_gcobject;     // list of all collectable objects
+    int32_t     m_gcthreshold;
+    int32_t     m_gccount;
 
 protected:
     ScriptObject* OBJECT;       // runtime environments
@@ -34,13 +36,14 @@ public:
     ~State();
     static State* create();
 
+    void        try_garbage_collect();
+
     Context*    create_context();
     Context*    get_main_context();
     void        free_context(Context*);
 
-    String*     new_string(const char*, int32_t);
-
-    template<typename T> T*  new_object(ScriptObject* prototype)
+    String* new_string(const char*, int32_t);
+    template<typename T> T* new_object(ScriptObject* prototype)
     {
         auto object = new T(prototype);
         if( m_gcobject == nullptr )
@@ -52,6 +55,8 @@ public:
             object->m_next = m_gcobject;
             m_gcobject = object;
         }
+
+        m_gccount ++;
         return object;
     }
 };

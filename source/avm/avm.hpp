@@ -16,6 +16,7 @@
 NS_AVM_BEGIN
 
 const static int32_t MaxStackSize = 256; // value stack size
+const static int32_t InitialGCThreshold = 128;
 
 enum PropertyAttribute
 {

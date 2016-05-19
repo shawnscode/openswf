@@ -18,8 +18,31 @@ NS_AVM_BEGIN
 //     return hash & 0x7FFFFFFF;
 // }
 
+#define MARK(t, v) do { if(t != nullptr ) t->mark(v); } while(false);
+
 ScriptObject::ScriptObject(ScriptObject* prototype)
 : m_prototype(prototype), m_extensible(true) {}
+
+ScriptObject::~ScriptObject()
+{
+    for( auto pair : m_members )
+        delete pair.second;
+    m_members.clear();
+}
+
+void ScriptObject::mark(uint8_t v)
+{
+    if( get_marked_value() == v ) return;
+
+    GCObject::mark(v);
+
+    for( auto pair : m_members )
+    {
+        MARK(pair.second->value.to_object(), v);
+        MARK(pair.second->getter, v);
+        MARK(pair.second->setter, v);
+    }
+}
 
 Property* ScriptObject::get_property(const char* name)
 {
@@ -62,7 +85,10 @@ void ScriptObject::del_property(const char* name)
 {
     auto found = m_members.find(name);
     if( found != m_members.end() )
+    {
+        delete found->second;
         m_members.erase(found);
+    }
 }
 
 Value* ScriptObject::get_variable(const char* name)
