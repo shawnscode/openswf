@@ -1,5 +1,5 @@
 ## OpenSWF
-[![Build Status](https://travis-ci.org/drunkenme/openswf.svg?branch=master)](https://travis-ci.org/drunkenme/openswf)
+[![Build Status](https://travis-ci.org/shawnscode/openswf.svg?branch=master)](https://travis-ci.org/shawnscode/openswf)
 
 This project is used to enable ease swf integration into video games. Its far from a stable version literally, but i'll keep on developing. If u have any suggestion, feel free to make a pull request or just open a issue to let me know.
 
